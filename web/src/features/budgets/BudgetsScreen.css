@@ -1,0 +1,36 @@
+.screen__section-header {
+  padding: var(--sp-md, 17px) var(--sp-md, 17px) 8px;
+}
+
+.budgets__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-sm, 12px);
+}
+
+.budgets__form-actions {
+  display: flex;
+  gap: var(--sp-sm, 12px);
+}
+
+.budget-row {
+  padding: 16px var(--sp-md, 17px);
+  border-bottom: 1px solid var(--color-hairline, #f0f0f0);
+}
+
+.budget-row:last-child {
+  border-bottom: none;
+}
+
+.budget-row__top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 8px;
+}
+
+.budget-row__label {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-sm, 12px);
+}

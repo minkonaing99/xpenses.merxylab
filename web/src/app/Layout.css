@@ -1,0 +1,11 @@
+.layout {
+  position: relative;
+  min-height: 100dvh;
+  max-width: 480px;
+  margin: 0 auto;
+  background: var(--color-canvas);
+}
+
+.layout__content {
+  min-height: 100dvh;
+}

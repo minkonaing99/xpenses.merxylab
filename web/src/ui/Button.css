@@ -1,0 +1,30 @@
+.button {
+  min-height: var(--touch-min, 44px);
+  padding: 0 var(--sp-lg, 24px);
+  border-radius: var(--radius-pill, 999px);
+  font-size: 17px;
+  font-weight: 600;
+  transition:
+    transform var(--motion-fast, 150ms ease-out),
+    opacity var(--motion-fast, 150ms ease-out);
+}
+
+.button:active {
+  transform: scale(0.95);
+}
+
+.button--primary {
+  background: var(--color-primary, #0066cc);
+  color: #fff;
+}
+
+.button--secondary {
+  background: transparent;
+  color: var(--color-primary, #0066cc);
+  border: 1px solid var(--color-hairline-strong, #e0e0e0);
+}
+
+.button--destructive {
+  background: transparent;
+  color: var(--color-error, #d70015);
+}

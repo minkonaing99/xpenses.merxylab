@@ -1,0 +1,85 @@
+'use strict'
+
+const { toMysqlDatetime } = require('../../lib/mysqlDate')
+const { validateTransactionFields } = require('../transactions/service')
+const txnRepo = require('../transactions/repo')
+const accountsRepo = require('../accounts/repo')
+const categoriesRepo = require('../categories/repo')
+const budgetsRepo = require('../budgets/repo')
+const recurringRepo = require('../recurring/repo')
+
+const SIMPLE_REPOS = {
+  accounts: accountsRepo,
+  categories: categoriesRepo,
+  budgets: budgetsRepo,
+  recurring: recurringRepo,
+}
+
+async function applyTransactionOp(pool, action, payload) {
+  const id = payload.id
+
+  if (action === 'delete') {
+    const result = await txnRepo.softDeleteGuarded(pool, id, toMysqlDatetime(payload.updatedAt))
+    if (result.status === 'not_found') return { id, status: 'error', code: 'NOT_FOUND' }
+    return { id, status: result.status }
+  }
+
+  const fieldError = validateTransactionFields(payload)
+  if (fieldError) return { id, status: 'error', code: 'VALIDATION_ERROR' }
+
+  const result = await txnRepo.upsert(pool, { ...payload, updatedAt: toMysqlDatetime(payload.updatedAt) })
+  return { id, status: result.status }
+}
+
+// Accounts/categories/budgets/recurring have server-managed updated_at (no
+// client clock to compare) — there's no LWW skip concept for them, only
+// found/not-found. Retrying an already-applied op is treated as a success
+// (idempotent), not an error, so a client outbox can safely replay.
+async function applySimpleOp(pool, repo, action, payload) {
+  const id = payload.id
+  try {
+    if (action === 'create') {
+      await repo.create(pool, payload)
+      return { id, status: 'applied' }
+    }
+    if (action === 'update') {
+      const existing = await repo.findById(pool, id)
+      if (!existing) return { id, status: 'error', code: 'NOT_FOUND' }
+      await repo.update(pool, id, payload)
+      return { id, status: 'applied' }
+    }
+    if (action === 'delete') {
+      const existing = await repo.findById(pool, id)
+      if (!existing) return { id, status: 'applied' }
+      await repo.softDelete(pool, id)
+      return { id, status: 'applied' }
+    }
+    return { id, status: 'error', code: 'VALIDATION_ERROR' }
+  } catch (err) {
+    if (err.code === 'ER_DUP_ENTRY') return { id, status: 'applied' }
+    return { id, status: 'error', code: 'SERVER_ERROR' }
+  }
+}
+
+// One op's exception (e.g. a malformed updatedAt that fails Date parsing)
+// must not crash the whole batch — every op resolves to a result, never throws.
+async function applyOp(pool, op) {
+  const { entity, action, payload } = op
+  if (!payload || !payload.id) {
+    return { id: payload?.id ?? null, status: 'error', code: 'VALIDATION_ERROR' }
+  }
+
+  try {
+    if (entity === 'transactions') {
+      return await applyTransactionOp(pool, action, payload)
+    }
+    if (SIMPLE_REPOS[entity]) {
+      return await applySimpleOp(pool, SIMPLE_REPOS[entity], action, payload)
+    }
+    return { id: payload.id, status: 'error', code: 'VALIDATION_ERROR' }
+  } catch {
+    return { id: payload.id, status: 'error', code: 'VALIDATION_ERROR' }
+  }
+}
+
+module.exports = { applyOp }

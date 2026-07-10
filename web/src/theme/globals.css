@@ -1,0 +1,174 @@
+/* Values mirror theme/tokens.ts — keep both in sync when editing. */
+:root {
+  --color-primary: #0066cc;
+  --color-focus: #0071e3;
+  --color-ink: #1d1d1f;
+  --color-canvas: #f5f5f7;
+  --color-surface: #ffffff;
+  --color-muted: #7a7a7a;
+  --color-muted-strong: #333333;
+  --color-hairline: #f0f0f0;
+  --color-hairline-strong: #e0e0e0;
+  --color-success: #1d8a3e;
+  --color-warning: #d9822b;
+  --color-error: #d70015;
+
+  --sp-xxs: 4px;
+  --sp-xs: 8px;
+  --sp-sm: 12px;
+  --sp-md: 17px;
+  --sp-lg: 24px;
+  --sp-xl: 32px;
+  --sp-xxl: 48px;
+
+  --radius-sm: 8px;
+  --radius-md: 14px;
+  --radius-lg: 18px;
+  --radius-pill: 999px;
+
+  --motion-fast: 150ms ease-out;
+  --motion-base: 200ms ease-out;
+
+  --touch-min: 44px;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', system-ui, sans-serif;
+  background: var(--color-canvas);
+  color: var(--color-ink);
+}
+
+button {
+  font: inherit;
+  color: inherit;
+  background: none;
+  border: none;
+  padding: 0;
+  cursor: pointer;
+}
+
+button:disabled {
+  opacity: 0.4;
+  cursor: not-allowed;
+}
+
+.tabular {
+  font-variant-numeric: tabular-nums;
+}
+
+.text-screen-title {
+  font-size: 34px;
+  font-weight: 600;
+  line-height: 1.15;
+}
+
+.text-section-header {
+  font-size: 21px;
+  font-weight: 600;
+  line-height: 1.25;
+}
+
+.text-amount {
+  font-size: 32px;
+  font-weight: 700;
+  font-variant-numeric: tabular-nums;
+}
+
+.text-body {
+  font-size: 17px;
+}
+
+.text-body-strong {
+  font-size: 17px;
+  font-weight: 600;
+}
+
+.text-caption {
+  font-size: 14px;
+  color: var(--color-muted);
+}
+
+.text-caption-strong {
+  font-size: 14px;
+  font-weight: 600;
+}
+
+:focus-visible {
+  outline: 2px solid var(--color-focus);
+  outline-offset: 2px;
+}
+
+/* Shared screen layout — every route uses the same header/body rhythm. */
+.screen {
+  min-height: 100%;
+  padding-bottom: 96px;
+}
+
+.screen__header {
+  padding: var(--sp-sm) var(--sp-lg) 0;
+}
+
+.screen__body {
+  padding: var(--sp-lg);
+}
+
+/* Shared chip-wrap layout — used anywhere a Chip/CategoryPicker/AccountPicker
+   list wraps (was scoped to AddTransactionSheet only; now reused). */
+.chip-row {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--sp-xs);
+}
+
+/* Shared banner slot below a screen header — used by any screen showing a
+   dismissible/status Banner above its main Panel. */
+.screen__banner {
+  padding: var(--sp-md) var(--sp-lg) 0;
+}
+
+/* Shared floating action button — used by any screen with a primary "add"
+   action (Transactions, Recurring). */
+.screen__fab {
+  position: fixed;
+  bottom: 96px;
+  /* Anchor to the centered 480px column's right edge, not the viewport's. */
+  right: max(var(--sp-lg), calc((100vw - 480px) / 2 + var(--sp-lg)));
+  width: 56px;
+  height: 56px;
+  border-radius: var(--radius-pill);
+  background: var(--color-primary);
+  color: #fff;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  box-shadow:
+    0 2px 4px rgba(0, 102, 204, 0.15),
+    0 8px 20px rgba(0, 102, 204, 0.28);
+  transition:
+    transform var(--motion-fast),
+    box-shadow var(--motion-fast);
+}
+
+.screen__fab:active {
+  transform: scale(0.92);
+}
+
+@keyframes shimmer {
+  0% {
+    background-position: -300px 0;
+  }
+  100% {
+    background-position: 300px 0;
+  }
+}

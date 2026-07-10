@@ -1,0 +1,9 @@
+.recurring-form__interval-count {
+  width: 64px;
+  text-align: center;
+}
+
+.recurring-form__error {
+  color: var(--color-error);
+  margin-top: var(--sp-xxs);
+}

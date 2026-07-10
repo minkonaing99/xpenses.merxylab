@@ -1,0 +1,42 @@
+.accounts__form {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-sm);
+}
+
+.accounts__field {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-xxs);
+}
+
+.accounts__input {
+  height: var(--touch-min);
+  padding: 0 var(--sp-sm);
+  border: 1px solid var(--color-hairline-strong);
+  border-radius: var(--radius-sm);
+}
+
+.accounts__row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-sm);
+  padding: var(--sp-sm) 0;
+  border-bottom: 1px solid var(--color-hairline);
+}
+
+.accounts__row:last-child {
+  border-bottom: none;
+}
+
+.accounts__row-label {
+  display: flex;
+  flex-direction: column;
+  flex: 1;
+}
+
+.accounts__delete {
+  color: var(--color-muted);
+  padding: var(--sp-xxs);
+}

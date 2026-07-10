@@ -1,0 +1,97 @@
+.sheet-backdrop {
+  position: fixed;
+  inset: 0;
+  background: rgba(0, 0, 0, 0.32);
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+  z-index: 20;
+}
+
+.sheet {
+  width: 100%;
+  max-width: 480px;
+  background: var(--color-surface, #fff);
+  border-radius: var(--radius-lg, 18px) var(--radius-lg, 18px) 0 0;
+  box-shadow: 0 -4px 24px rgba(29, 29, 31, 0.12);
+  padding-bottom: var(--sp-lg, 24px);
+}
+
+.sheet__handle {
+  width: 36px;
+  height: 5px;
+  border-radius: var(--radius-pill, 999px);
+  background: var(--color-hairline-strong, #e0e0e0);
+  margin: 12px auto 8px;
+}
+
+.sheet__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: 0 var(--sp-lg, 24px) var(--sp-sm, 12px);
+}
+
+.sheet__header button {
+  min-height: 44px;
+}
+
+.sheet__save {
+  color: var(--color-primary, #0066cc);
+}
+
+.sheet__type-toggle {
+  display: flex;
+  gap: var(--sp-xs, 8px);
+  padding: 4px var(--sp-lg, 24px) var(--sp-md, 17px);
+  background: var(--color-canvas, #f5f5f7);
+  margin: 0 var(--sp-lg, 24px) var(--sp-md, 17px);
+  border-radius: var(--radius-pill, 999px);
+}
+
+.sheet__type-btn {
+  flex: 1;
+  min-height: 36px;
+  border-radius: var(--radius-pill, 999px);
+  font-size: 14px;
+  font-weight: 600;
+  color: var(--color-muted, #7a7a7a);
+}
+
+.sheet__type-btn--active {
+  background: #fff;
+  color: var(--color-ink, #1d1d1f);
+  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
+}
+
+.sheet__amount {
+  text-align: center;
+  padding-bottom: var(--sp-lg, 24px);
+}
+
+.sheet__field {
+  padding: 0 var(--sp-lg, 24px) var(--sp-md, 17px);
+}
+
+.sheet__field > .text-caption-strong {
+  color: var(--color-muted, #7a7a7a);
+  margin-bottom: var(--sp-xs, 8px);
+  display: block;
+}
+
+.sheet__delete {
+  width: 100%;
+  text-align: center;
+  color: var(--color-error, #d70015);
+  min-height: var(--touch-min, 44px);
+}
+
+.sheet__note-input {
+  width: 100%;
+  min-height: var(--touch-min, 44px);
+  border-radius: var(--radius-md, 14px);
+  background: var(--color-canvas, #f5f5f7);
+  padding: 0 var(--sp-md, 17px);
+  border: none;
+  outline: none;
+}

@@ -1,0 +1,17 @@
+.category-chart__total-row {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  padding-bottom: var(--sp-sm);
+}
+
+.category-chart__row {
+  padding: var(--sp-sm) 0;
+}
+
+.category-chart__row-top {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  margin-bottom: 6px;
+}

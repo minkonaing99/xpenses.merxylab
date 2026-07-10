@@ -1,0 +1,21 @@
+.chip {
+  min-height: 40px;
+  padding: 0 var(--sp-md, 17px);
+  border-radius: var(--radius-pill, 999px);
+  font-size: 14px;
+  font-weight: 600;
+  background: var(--color-canvas, #f5f5f7);
+  color: var(--color-ink, #1d1d1f);
+  transition:
+    transform var(--motion-fast, 150ms ease-out),
+    background-color var(--motion-fast, 150ms ease-out);
+}
+
+.chip:active {
+  transform: scale(0.95);
+}
+
+.chip--selected {
+  background: var(--color-primary, #0066cc);
+  color: #fff;
+}
