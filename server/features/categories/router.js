@@ -113,4 +113,4 @@ function createCategoriesRouter(pool) {
   return router
 }
 
-module.exports = { createCategoriesRouter }
+module.exports = { createCategoriesRouter, createSchema, updateSchema }

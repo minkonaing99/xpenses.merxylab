@@ -24,6 +24,7 @@ body {
   -webkit-font-smoothing: antialiased;
   text-rendering: optimizeLegibility;
   overscroll-behavior-y: none;
+  touch-action: manipulation; /* kill double-tap-to-zoom on iOS */
 }
 
 /* Money and any numeric readout: tabular, lining. */
@@ -32,6 +33,14 @@ input[inputmode="decimal"],
 input[inputmode="numeric"] {
   font-variant-numeric: tabular-nums lining-nums;
   font-feature-settings: var(--num);
+}
+
+/* Baht sign: the system-font ฿ (a Thai glyph) has near-zero right side-bearing
+   and tall vertical bars, so inline it crowds and towers over the first digit.
+   Trim it slightly and give it breathing room so it reads as a currency prefix. */
+.num__baht {
+  margin-inline-end: 0.1em;
+  font-size: 0.88em;
 }
 
 button {

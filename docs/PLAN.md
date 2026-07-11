@@ -284,14 +284,20 @@ masked by `--runInBand`).
 
 ## Phase 7 — Deploy + Hardening
 **Goal:** Live on xpenses.merxylab.com, secured, tested to coverage target.
-- [ ] 7.1 `server/app.js` exports app for Passenger (no hardcoded port);
-      Plan B `/api/cron/run` behind shared secret (documented).
+- [x] 7.1 `server/app.js` exports app for Passenger (no hardcoded port);
+      Plan B `/api/cron/run` behind shared secret (documented). Confirmed
+      already satisfied during Phase 7 — app exports with no `.listen()`,
+      cron gated to production, `/api/cron` behind the shared-secret compare.
 - [ ] 7.2 `deploy.sh` (SSH): backend git pull + `npm ci --omit=dev` + restart
-      Passenger; frontend `npm run build` + rsync `dist/`.
-- [ ] 7.3 security-reviewer pass: secrets in env, parameterized SQL, rate limit,
-      cookie flags, error envelope leak check.
-- [ ] 7.4 Coverage gate: verify 80%+ (server + client). Fill gaps.
-- [ ] 7.5 `docs/SETUP.md` changelog v1 entry.
+      Passenger; frontend `npm run build` + rsync `dist/`. **Deferred** (user
+      chose to skip deploy.sh this pass).
+- [x] 7.3 security-reviewer pass: 0 CRITICAL / 0 HIGH. Fixed 1 MEDIUM
+      (`/api/sync/push` bypassed per-entity zod validation — now validates
+      against the same schemas the REST routes use) + 1 LOW (CSV formula-
+      injection guard); 1 LOW accepted (`safeCompare` length-timing, standard
+      pattern, random secret). Detail in docs/SETUP.md changelog.
+- [x] 7.4 Coverage gate: server 88% stmts/lines, web 86% stmts — both > 80%.
+- [x] 7.5 `docs/SETUP.md` changelog Phase 7 entry (Security subsection).
 **Deliverables:** deployed, reviewed, tested v1 live at the domain.
 **Depends on:** Phase 6.
 
@@ -341,8 +347,9 @@ security-reviewer passes and the app is reachable at `xpenses.merxylab.com`.
 Keep updated. Claude reads this before starting work.
 
 ### In Progress
-- None. Phase 6 complete; next up is Phase 7 (deploy + hardening) per the
-  dependency map (Phase 7 depends on Phase 6, now done).
+- None. Phase 7 hardening done (7.1 confirmed, 7.3 security pass, 7.4 coverage
+  gate, 7.5 changelog). Only 7.2 `deploy.sh` remains, deliberately deferred by
+  the user. 250 server / 73 web tests passing.
 
 ### Backlog
 - Phase 0 — 0.1 (README.md still missing), 0.5 (`lib/money.js` on the

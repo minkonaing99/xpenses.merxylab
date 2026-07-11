@@ -9,6 +9,7 @@ vi.mock("../../lib/api", async (orig) => {
 import { api } from "../../lib/api";
 import { ReportsScreen } from "./ReportsScreen";
 import { fakeGet, renderApp } from "../../test/utils";
+import { money } from "../../test/money";
 
 const summary = {
   accounts: [{ id: "a1", name: "Cash", type: "cash", balance: 12000 }],
@@ -34,7 +35,7 @@ describe("ReportsScreen", () => {
     expect(screen.getByText("Out")).toBeInTheDocument();
     expect(screen.getByText("Net")).toBeInTheDocument();
     expect(screen.getByText("Cash")).toBeInTheDocument();
-    expect(screen.getByText("+฿200.00")).toBeInTheDocument(); // monthNet
+    expect(screen.getByText(money("+฿200.00"))).toBeInTheDocument(); // monthNet
   });
 
   it("shows a month-over-month spend comparison", async () => {

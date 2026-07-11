@@ -103,4 +103,4 @@ function createBudgetsRouter(pool) {
   return router
 }
 
-module.exports = { createBudgetsRouter }
+module.exports = { createBudgetsRouter, createSchema, updateSchema }

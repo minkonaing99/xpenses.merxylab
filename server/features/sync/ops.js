@@ -1,18 +1,27 @@
 'use strict'
 
 const { toMysqlDatetime } = require('../../lib/mysqlDate')
+const { rowToCamel } = require('../../lib/caseMap')
 const { validateTransactionFields } = require('../transactions/service')
 const txnRepo = require('../transactions/repo')
 const accountsRepo = require('../accounts/repo')
 const categoriesRepo = require('../categories/repo')
 const budgetsRepo = require('../budgets/repo')
 const recurringRepo = require('../recurring/repo')
+const accountsRouter = require('../accounts/router')
+const categoriesRouter = require('../categories/router')
+const budgetsRouter = require('../budgets/router')
+const recurringRouter = require('../recurring/router')
 
-const SIMPLE_REPOS = {
-  accounts: accountsRepo,
-  categories: categoriesRepo,
-  budgets: budgetsRepo,
-  recurring: recurringRepo,
+// Reuse the exact create/update zod schemas the direct REST routes enforce, so
+// a write replayed through /api/sync/push can't bypass the same field/type/
+// bound validation. `fieldCheck` mirrors the recurring router's extra per-type
+// field-matrix check (validateTransactionFields).
+const SIMPLE_ENTITIES = {
+  accounts: { repo: accountsRepo, schemas: accountsRouter },
+  categories: { repo: categoriesRepo, schemas: categoriesRouter },
+  budgets: { repo: budgetsRepo, schemas: budgetsRouter },
+  recurring: { repo: recurringRepo, schemas: recurringRouter, fieldCheck: true },
 }
 
 async function applyTransactionOp(pool, action, payload) {
@@ -35,17 +44,28 @@ async function applyTransactionOp(pool, action, payload) {
 // client clock to compare) — there's no LWW skip concept for them, only
 // found/not-found. Retrying an already-applied op is treated as a success
 // (idempotent), not an error, so a client outbox can safely replay.
-async function applySimpleOp(pool, repo, action, payload) {
+async function applySimpleOp(pool, config, action, payload) {
+  const { repo, schemas, fieldCheck } = config
   const id = payload.id
   try {
     if (action === 'create') {
-      await repo.create(pool, payload)
+      const parsed = schemas.createSchema.safeParse(payload)
+      if (!parsed.success) return { id, status: 'error', code: 'VALIDATION_ERROR' }
+      if (fieldCheck && validateTransactionFields(parsed.data)) {
+        return { id, status: 'error', code: 'VALIDATION_ERROR' }
+      }
+      await repo.create(pool, parsed.data)
       return { id, status: 'applied' }
     }
     if (action === 'update') {
       const existing = await repo.findById(pool, id)
       if (!existing) return { id, status: 'error', code: 'NOT_FOUND' }
-      await repo.update(pool, id, payload)
+      const parsed = schemas.updateSchema.safeParse(payload)
+      if (!parsed.success) return { id, status: 'error', code: 'VALIDATION_ERROR' }
+      if (fieldCheck && validateTransactionFields({ ...rowToCamel(existing), ...parsed.data })) {
+        return { id, status: 'error', code: 'VALIDATION_ERROR' }
+      }
+      await repo.update(pool, id, parsed.data)
       return { id, status: 'applied' }
     }
     if (action === 'delete') {
@@ -73,8 +93,8 @@ async function applyOp(pool, op) {
     if (entity === 'transactions') {
       return await applyTransactionOp(pool, action, payload)
     }
-    if (SIMPLE_REPOS[entity]) {
-      return await applySimpleOp(pool, SIMPLE_REPOS[entity], action, payload)
+    if (SIMPLE_ENTITIES[entity]) {
+      return await applySimpleOp(pool, SIMPLE_ENTITIES[entity], action, payload)
     }
     return { id: payload.id, status: 'error', code: 'VALIDATION_ERROR' }
   } catch {

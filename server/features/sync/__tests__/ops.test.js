@@ -130,4 +130,28 @@ describe('applyOp — simple entities (accounts)', () => {
     const result = await applyOp(pool, { entity: 'accounts', action: 'delete', payload: { id: randomUUID() } })
     expect(result.status).toBe('applied')
   })
+
+  it('rejects an invalid account type instead of writing it (schema validation)', async () => {
+    const result = await applyOp(pool, {
+      entity: 'accounts',
+      action: 'create',
+      payload: { id: accountId, name: 'Bad', type: 'crypto' },
+    })
+    expect(result.status).toBe('error')
+    expect(result.code).toBe('VALIDATION_ERROR')
+    const written = await pool.query('SELECT id FROM accounts WHERE id = ?', [accountId])
+    expect(written[0]).toHaveLength(0)
+  })
+})
+
+describe('applyOp — simple-entity validation', () => {
+  it('rejects a non-positive budget limit (schema validation)', async () => {
+    const result = await applyOp(pool, {
+      entity: 'budgets',
+      action: 'create',
+      payload: { id: randomUUID(), categoryId: randomUUID(), limitAmount: -500 },
+    })
+    expect(result.status).toBe('error')
+    expect(result.code).toBe('VALIDATION_ERROR')
+  })
 })
