@@ -8,6 +8,8 @@ import {
 } from "../../api/hooks";
 import type { BudgetStatus, Category, CategorySpend } from "../../api/types";
 import { useMonth } from "../../app/MonthContext";
+import { useEntrance } from "../../lib/useEntrance";
+import { AnimatedMoney } from "../../ui/AnimatedMoney";
 import { LogoMark, Wordmark } from "../../ui/Logo";
 import { Money } from "../../ui/Money";
 import { MonthSwitcher } from "../../ui/MonthSwitcher";
@@ -31,8 +33,10 @@ export function DashboardScreen() {
   const spent = summary.data?.monthExpense ?? 0;
   const income = summary.data?.monthIncome ?? 0;
 
+  const stageRef = useEntrance<HTMLDivElement>();
+
   return (
-    <div className="dash">
+    <div className="dash" ref={stageRef}>
       <header className="dash__hero">
         <div className="dash__brandrow">
           <span className="dash__brand">
@@ -44,7 +48,7 @@ export function DashboardScreen() {
           </div>
         </div>
         <p className="dash__net-label">Net balance</p>
-        <Money amount={netWorth} className="dash__net" />
+        <AnimatedMoney amount={netWorth} className="dash__net" />
         <p className="dash__flow">
           <span>
             Spent <Money amount={spent} tone="neg" className="dash__flow-num" />
