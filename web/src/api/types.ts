@@ -67,3 +67,39 @@ export interface Summary {
   monthExpense: number; // satang
   monthNet: number; // satang, income - expense this month
 }
+
+export interface Forecast {
+  month: string;
+  daysInMonth: number;
+  daysElapsed: number;
+  daysRemaining: number;
+  paidIncome: number; // satang, actual so far
+  paidExpense: number; // satang, actual so far
+  projectedIncome: number; // satang, projected month-end
+  projectedExpense: number; // satang, projected month-end
+  projectedNet: number; // satang, projected month-end
+  dailyBurnRate: number; // satang/day discretionary
+}
+
+export type Anomaly =
+  | { type: "budget_burn"; categoryId: string; name: string; spent: number; limit: number; pct: number }
+  | {
+      type: "category_velocity";
+      categoryId: string;
+      name: string;
+      currentSpent: number;
+      avg3mo: number;
+      projectedFull: number;
+    }
+  | { type: "duplicate"; ids: string[]; amount: number; name: string | null; note: string | null; txnDate: string };
+
+export interface Comparison {
+  categoryId: string;
+  name: string;
+  current: number; // satang, this month
+  last: number; // satang, last month
+  prevAvg: number; // satang, trailing 3-month average
+  vsLast: number; // current - last
+  vsAvg: number; // current - prevAvg
+  trend: number; // sign of vsLast: 1 up, -1 down, 0 flat
+}

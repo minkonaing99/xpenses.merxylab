@@ -1,4 +1,6 @@
-import { useCategorySpend, useSummary } from "../../api/hooks";
+import { useMemo } from "react";
+import { useCategorySpend, useComparisons, useSummary } from "../../api/hooks";
+import type { Comparison } from "../../api/types";
 import { useMonth } from "../../app/MonthContext";
 import { prevMonth } from "../../lib/format";
 import { Donut } from "../../ui/Donut";
@@ -19,6 +21,13 @@ export function ReportsScreen() {
   const summary = useSummary(month);
   const prev = useSummary(prevMonth(month));
   const spend = useCategorySpend(month);
+
+  const comparisons = useComparisons(month);
+  const cmpByCat = useMemo(() => {
+    const m = new Map<string, Comparison>();
+    (comparisons.data ?? []).forEach((c) => m.set(c.categoryId, c));
+    return m;
+  }, [comparisons.data]);
 
   const s = summary.data;
   const items = [...(spend.data ?? [])].sort((a, b) => b.total - a.total);
@@ -69,6 +78,7 @@ export function ReportsScreen() {
             <li key={i.categoryId} className="legend__row">
               <span className="legend__dot" style={{ background: shade(idx, items.length) }} aria-hidden="true" />
               <span className="legend__name">{i.name}</span>
+              <TrendChip cmp={cmpByCat.get(i.categoryId)} />
               <span className="legend__pct num">{total > 0 ? Math.round((i.total / total) * 100) : 0}%</span>
               <Money amount={i.total} className="legend__amt" />
             </li>
@@ -86,6 +96,18 @@ export function ReportsScreen() {
         ))}
       </section>
     </div>
+  );
+}
+
+// vs last month. Spending more (up) is the "bad" direction for an expense,
+// so up = neg tint, down = pos tint. Hidden when there is no prior baseline.
+function TrendChip({ cmp }: { cmp?: Comparison }) {
+  if (!cmp || cmp.last === 0 || cmp.vsLast === 0) return null;
+  const up = cmp.vsLast > 0;
+  return (
+    <span className={`trend trend--${up ? "up" : "down"}`} title="vs last month">
+      {up ? "▲" : "▼"} {Math.abs(Math.round(cmp.vsLast / 100)).toLocaleString()}
+    </span>
   );
 }
 

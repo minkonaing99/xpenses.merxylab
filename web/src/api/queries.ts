@@ -4,9 +4,12 @@ import { api } from "../lib/api";
 import { keys } from "./keys";
 import type {
   Account,
+  Anomaly,
   BudgetStatus,
   CategorySpend,
   Category,
+  Comparison,
+  Forecast,
   RecurringRule,
   Summary,
   Transaction,
@@ -65,6 +68,27 @@ export function useTransactions(month: string) {
   return useQuery({
     queryKey: keys.txns(month),
     queryFn: () => api.get<Transaction[]>(`/transactions?month=${month}&limit=200`),
+  });
+}
+
+export function useForecast(month: string) {
+  return useQuery({
+    queryKey: keys.forecast(month),
+    queryFn: () => api.get<Forecast>(`/insights/forecast?month=${month}`),
+  });
+}
+
+export function useAnomalies(month: string) {
+  return useQuery({
+    queryKey: keys.anomalies(month),
+    queryFn: () => api.get<Anomaly[]>(`/insights/anomalies?month=${month}`),
+  });
+}
+
+export function useComparisons(month: string) {
+  return useQuery({
+    queryKey: keys.comparisons(month),
+    queryFn: () => api.get<Comparison[]>(`/insights/comparisons?month=${month}`),
   });
 }
 

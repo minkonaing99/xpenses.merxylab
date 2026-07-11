@@ -134,6 +134,20 @@
   text-align: right;
 }
 
+.trend {
+  font-size: var(--t-caption);
+  font-variant-numeric: tabular-nums;
+  flex: 0 0 auto;
+}
+
+.trend--up {
+  color: var(--neg);
+}
+
+.trend--down {
+  color: var(--pos);
+}
+
 .legend__amt {
   font-weight: 650;
   min-width: 7ch;

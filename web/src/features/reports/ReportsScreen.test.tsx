@@ -18,10 +18,26 @@ const summary = {
   monthNet: 20000,
 };
 const spend = [{ categoryId: "c1", name: "Food", total: 30000 }];
+const comparisons = [
+  {
+    categoryId: "c1",
+    name: "Food",
+    current: 30000,
+    last: 20000,
+    prevAvg: 22000,
+    vsLast: 10000,
+    vsAvg: 8000,
+    trend: 1,
+  },
+];
 
 beforeEach(() => {
   vi.mocked(api.get).mockImplementation(
-    fakeGet({ "/reports/summary": summary, "/reports/category-spend": spend }) as never,
+    fakeGet({
+      "/reports/summary": summary,
+      "/reports/category-spend": spend,
+      "/insights/comparisons": comparisons,
+    }) as never,
   );
 });
 afterEach(() => vi.clearAllMocks());
@@ -42,5 +58,11 @@ describe("ReportsScreen", () => {
     renderApp(<ReportsScreen />);
     // Both months resolve to the same mocked summary -> flat delta.
     expect(await screen.findByText(/flat vs last month/i)).toBeInTheDocument();
+  });
+
+  it("shows a per-category trend chip vs last month", async () => {
+    renderApp(<ReportsScreen />);
+    // vsLast = 10000 satang = ฿100, spending up -> ▲ 100
+    expect(await screen.findByTitle("vs last month")).toHaveTextContent("100");
   });
 });

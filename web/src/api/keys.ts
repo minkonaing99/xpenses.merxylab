@@ -9,9 +9,20 @@ export const keys = {
   spend: (m: string) => ["spend", m] as const,
   txns: (m: string) => ["txns", m] as const,
   recentTxns: ["txns", "recent"] as const,
+  forecast: (m: string) => ["forecast", m] as const,
+  anomalies: (m: string) => ["anomalies", m] as const,
+  comparisons: (m: string) => ["comparisons", m] as const,
 };
 
 /** Every month-scoped query. Invalidate all after a txn write. */
 export function monthKeys(m: string) {
-  return [keys.summary(m), keys.budgets(m), keys.spend(m), keys.txns(m)];
+  return [
+    keys.summary(m),
+    keys.budgets(m),
+    keys.spend(m),
+    keys.txns(m),
+    keys.forecast(m),
+    keys.anomalies(m),
+    keys.comparisons(m),
+  ];
 }

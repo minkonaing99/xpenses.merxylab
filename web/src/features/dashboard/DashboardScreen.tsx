@@ -1,12 +1,15 @@
 import { useMemo, useState, type ReactNode } from "react";
 import {
   useAccounts,
+  useAnomalies,
   useBudgets,
   useCategories,
   useCategorySpend,
+  useForecast,
   useSummary,
 } from "../../api/hooks";
 import type { BudgetStatus, Category, CategorySpend } from "../../api/types";
+import { AnomalyCards, ForecastCard } from "../insights/InsightsCards";
 import { useMonth } from "../../app/MonthContext";
 import { useEntrance } from "../../lib/useEntrance";
 import { AnimatedMoney } from "../../ui/AnimatedMoney";
@@ -30,6 +33,8 @@ export function DashboardScreen() {
   const budgets = useBudgets(month);
   const categories = useCategories();
   const spend = useCategorySpend(month);
+  const forecast = useForecast(month);
+  const anomalies = useAnomalies(month);
 
   const catName = useMemo(() => {
     const m = new Map<string, string>();
@@ -88,6 +93,12 @@ export function DashboardScreen() {
         <OvRow glyph="↑" color="var(--neg)" label="Expenses" amount={spent} tone="neg" />
         <OvRow glyph="≈" color="var(--accent)" label="Net" amount={net} signed />
       </section>
+
+      {anomalies.data && anomalies.data.length > 0 && (
+        <AnomalyCards month={month} anomalies={anomalies.data} />
+      )}
+
+      {forecast.data && <ForecastCard forecast={forecast.data} />}
 
       <Card title="Accounts">
         {(accounts.data ?? []).map((a) => (
