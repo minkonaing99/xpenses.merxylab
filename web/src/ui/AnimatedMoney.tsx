@@ -9,6 +9,8 @@ interface Props {
   signed?: boolean;
   tone?: "pos" | "neg" | "ink";
   className?: string;
+  /** override the sign-based color (e.g. "#fff" on a dark hero) */
+  color?: string;
   /** seconds; the roll-up feels quick and calm by default */
   duration?: number;
 }
@@ -23,7 +25,7 @@ function toneColor(amount: number, signed?: boolean, tone?: Props["tone"]): stri
  * Same output as <Money>, but animated. Skips the tween (renders the final
  * value) when the user prefers reduced motion.
  */
-export function AnimatedMoney({ amount, signed, tone, className = "", duration = 0.7 }: Props) {
+export function AnimatedMoney({ amount, signed, tone, className = "", color, duration = 0.7 }: Props) {
   const ref = useRef<HTMLSpanElement>(null);
   const prev = useRef(0);
   const fmt = (v: number) => (signed ? formatSigned(Math.round(v)) : `฿${formatSatang(Math.round(v))}`);
@@ -57,7 +59,7 @@ export function AnimatedMoney({ amount, signed, tone, className = "", duration =
     <span
       ref={ref}
       className={`num ${className}`.trim()}
-      style={{ color: toneColor(amount, signed, tone) }}
+      style={{ color: color ?? toneColor(amount, signed, tone) }}
     >
       {fmt(amount)}
     </span>

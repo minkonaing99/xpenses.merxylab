@@ -1,4 +1,4 @@
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../lib/api", async (orig) => {
@@ -39,6 +39,17 @@ describe("DashboardScreen", () => {
     // netWorth (12000+8000) and monthNet both format to ฿200.00 in this fixture.
     expect((await screen.findAllByText("฿200.00")).length).toBeGreaterThan(0);
     expect(screen.getByText("Total balance")).toBeInTheDocument();
+  });
+
+  it("masks the balance until tapped", async () => {
+    renderApp(<DashboardScreen />);
+    const reveal = await screen.findByRole("button", { name: "Show balance" });
+    expect(screen.getByText(/∗∗∗/)).toBeInTheDocument();
+
+    fireEvent.click(reveal);
+    expect(screen.getByRole("button", { name: "Hide balance" })).toBeInTheDocument();
+    // hero now shows the real balance (netWorth = ฿200.00)
+    expect(screen.getAllByText("฿200.00").length).toBeGreaterThan(0);
   });
 
   it("renders budgets and category spend once loaded", async () => {

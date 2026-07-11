@@ -65,13 +65,22 @@
   background: rgba(255, 255, 255, 0.18);
 }
 
-.hero__amount {
+.hero__amount-btn {
   display: block;
   margin-top: var(--sp-2);
+  text-align: left;
+}
+
+.hero__amount {
+  display: block;
   font-size: var(--t-hero);
   font-weight: 700;
   letter-spacing: -0.03em;
   color: #fff;
+}
+
+.hero__amount--masked {
+  letter-spacing: 0.05em;
 }
 
 .hero__delta {

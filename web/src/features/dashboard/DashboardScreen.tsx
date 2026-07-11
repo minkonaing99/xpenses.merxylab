@@ -1,4 +1,4 @@
-import { useMemo, type ReactNode } from "react";
+import { useMemo, useState, type ReactNode } from "react";
 import {
   useAccounts,
   useBudgets,
@@ -44,6 +44,7 @@ export function DashboardScreen() {
   const net = summary.data?.monthNet ?? 0;
 
   const stageRef = useEntrance<HTMLDivElement>();
+  const [shown, setShown] = useState(false);
 
   return (
     <div className="dash" ref={stageRef}>
@@ -62,7 +63,19 @@ export function DashboardScreen() {
           <span className="hero__label">Total balance</span>
           <MonthSwitcher />
         </div>
-        <AnimatedMoney amount={netWorth} className="hero__amount" />
+        <button
+          className="hero__amount-btn"
+          onClick={() => setShown((v) => !v)}
+          aria-label={shown ? "Hide balance" : "Show balance"}
+        >
+          {shown ? (
+            <AnimatedMoney amount={netWorth} className="hero__amount" color="#fff" />
+          ) : (
+            <span className="hero__amount hero__amount--masked" aria-hidden="true">
+              ฿ ∗∗∗∗∗∗
+            </span>
+          )}
+        </button>
         <p className="hero__delta">
           {net >= 0 ? "▲" : "▼"} <Money amount={Math.abs(net)} className="hero__delta-num" /> net this month
         </p>
