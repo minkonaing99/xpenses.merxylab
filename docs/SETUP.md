@@ -107,6 +107,27 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 
 ## [Unreleased]
 ### Added
+- **Insights (Phase 8)** — new `features/insights/` server feature + `/api/insights`:
+  - `GET /forecast?month=` — recurring-aware month-end projection. Discretionary
+    (non-recurring) spend is extrapolated at the current daily burn rate over the
+    days left; recurring bills still due are added at exact amounts from the rules
+    (reuses `recurring/scheduler` `planDueRuns`). Optional `asOf=YYYY-MM-DD`.
+  - `GET /anomalies?month=` — dismissible heads-up flags: budget burn (>=80% of
+    budget before 80% of month), category velocity (projected month spend >=2x the
+    trailing 3-month average, floor ฿500), and duplicate expenses (same amount +
+    category within 48h).
+  - `GET /comparisons?month=` — per-category current vs last month vs trailing
+    3-month average, with deltas.
+  - Web: forecast card + dismissible anomaly cards on Dashboard (dismissed state
+    per-month in `localStorage`, no schema); per-category trend chips on Reports.
+  - Tests: +30 server (service pure math, repo SQL, router), +3 web.
+- **MCP server (Phase 9)** — `mcp/` package (stdio, `@modelcontextprotocol/sdk`)
+  exposing finances to Claude Desktop / Claude Code. Read tools (transactions,
+  balances, budgets, forecast, anomalies, comparisons) + one write
+  (`create_expense`, baht->satang, category/account matched by name). Auth via a
+  new optional `API_TOKEN` env: `middleware/auth.js` now accepts a constant-time
+  `Authorization: Bearer <token>` alongside the JWT cookie; `config/env.js`
+  enforces a 24-char floor. Setup in `docs/MCP.md`. Self-check: `mcp/test.mjs`.
 - **Quick-add / repeat**: the Add-transaction sheet shows one-tap chips of
   recent distinct expense/income entries (`lib/templates.ts`,
   `useRecentTransactions`); tapping prefills type/amount/note/category/account.

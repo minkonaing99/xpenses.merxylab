@@ -349,7 +349,18 @@ Keep updated. Claude reads this before starting work.
 ### In Progress
 - None. Phase 7 hardening done (7.1 confirmed, 7.3 security pass, 7.4 coverage
   gate, 7.5 changelog). Only 7.2 `deploy.sh` remains, deliberately deferred by
-  the user. 250 server / 73 web tests passing.
+  the user.
+
+### Done — Phase 8 (Insights) + Phase 9 (MCP)
+- **Phase 8** — `features/insights/` + `/api/insights` (forecast, anomalies,
+  comparisons). Recurring-aware month-end forecast; anomaly flags (budget burn,
+  category velocity, duplicates); per-category MoM comparisons. Web: dashboard
+  forecast + dismissible anomaly cards, reports trend chips. TDD throughout
+  (service pure-math + repo SQL + router), 96% feature coverage.
+- **Phase 9** — `mcp/` stdio MCP server (read tools + `create_expense`). Added
+  optional `API_TOKEN` bearer auth to `middleware/auth.js` (constant-time,
+  alongside JWT cookie) + `config/env.js` 24-char floor. Docs: `docs/MCP.md`.
+- Tests after both phases: 286 server / 76 web passing, `mcp/test.mjs` green.
 
 ### Backlog
 - Phase 0 — 0.1 (README.md still missing), 0.5 (`lib/money.js` on the
