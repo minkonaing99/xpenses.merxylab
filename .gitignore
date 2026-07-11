@@ -9,3 +9,6 @@ coverage/
 # Claude
 CLAUDE.md
 .claude/
+
+# Local MCP config holds the dev API token
+.mcp.json

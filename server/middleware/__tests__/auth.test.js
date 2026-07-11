@@ -57,4 +57,46 @@ describe('makeAuthMiddleware', () => {
 
     expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'UNAUTHORIZED' }))
   })
+
+  describe('bearer API token', () => {
+    const API_TOKEN = 'a-long-enough-api-token-value-123'
+
+    function reqWithHeader(authorization) {
+      return {
+        req: {
+          cookies: {},
+          get: (h) => (h.toLowerCase() === 'authorization' ? authorization : undefined),
+        },
+        res: {},
+        next: jest.fn(),
+      }
+    }
+
+    it('authenticates a request whose Bearer token matches the configured API token', () => {
+      const middleware = makeAuthMiddleware(SECRET, API_TOKEN)
+      const { req, res, next } = reqWithHeader(`Bearer ${API_TOKEN}`)
+
+      middleware(req, res, next)
+
+      expect(next).toHaveBeenCalledWith()
+    })
+
+    it('rejects a Bearer token that does not match', () => {
+      const middleware = makeAuthMiddleware(SECRET, API_TOKEN)
+      const { req, res, next } = reqWithHeader('Bearer wrong-token-wrong-token-wrong')
+
+      middleware(req, res, next)
+
+      expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'UNAUTHORIZED' }))
+    })
+
+    it('ignores the Authorization header when no API token is configured', () => {
+      const middleware = makeAuthMiddleware(SECRET)
+      const { req, res, next } = reqWithHeader(`Bearer ${API_TOKEN}`)
+
+      middleware(req, res, next)
+
+      expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'UNAUTHORIZED' }))
+    })
+  })
 })

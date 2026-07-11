@@ -37,6 +37,13 @@ function loadEnv(source) {
     throw new Error(`DB_PORT must be an integer, got: ${env.DB_PORT}`)
   }
 
+  // Optional: enables Bearer-token auth for the MCP server / programmatic
+  // clients. Enforce a floor so a weak token can't be brute-forced.
+  const apiToken = env.API_TOKEN
+  if (apiToken !== undefined && apiToken.length < 24) {
+    throw new Error('API_TOKEN must be at least 24 characters')
+  }
+
   return {
     nodeEnv: env.NODE_ENV,
     dbHost: env.DB_HOST,
@@ -47,6 +54,7 @@ function loadEnv(source) {
     passwordHash,
     jwtSecret: env.JWT_SECRET,
     cronSharedSecret: env.CRON_SHARED_SECRET,
+    apiToken,
   }
 }
 

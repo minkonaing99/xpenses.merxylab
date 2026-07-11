@@ -44,4 +44,17 @@ describe('loadEnv', () => {
     env.PASSWORD_HASH_B64 = Buffer.from(VALID_ENV.PASSWORD_HASH).toString('base64')
     expect(loadEnv(env).passwordHash).toBe(VALID_ENV.PASSWORD_HASH)
   })
+
+  it('leaves apiToken undefined when API_TOKEN is not set', () => {
+    expect(loadEnv(VALID_ENV).apiToken).toBeUndefined()
+  })
+
+  it('returns API_TOKEN as apiToken when set', () => {
+    const token = 'x'.repeat(24)
+    expect(loadEnv({ ...VALID_ENV, API_TOKEN: token }).apiToken).toBe(token)
+  })
+
+  it('throws when API_TOKEN is set but too short', () => {
+    expect(() => loadEnv({ ...VALID_ENV, API_TOKEN: 'short' })).toThrow('API_TOKEN')
+  })
 })
