@@ -2,4 +2,5 @@ node_modules
 .env
 .env.*
 !.env.example
-public
+# server/public is the built frontend, committed so the Hostinger git deploy
+# ships it (Passenger serves it same-origin). Rebuild + commit on web changes.
