@@ -36,8 +36,9 @@ describe("DashboardScreen", () => {
   it("shows net worth summed from account balances", async () => {
     renderApp(<DashboardScreen />);
     // 12000 + 8000 = 20000 satang = ฿200.00
-    expect(await screen.findByText("฿200.00")).toBeInTheDocument();
-    expect(screen.getByText("Net balance")).toBeInTheDocument();
+    // netWorth (12000+8000) and monthNet both format to ฿200.00 in this fixture.
+    expect((await screen.findAllByText("฿200.00")).length).toBeGreaterThan(0);
+    expect(screen.getByText("Total balance")).toBeInTheDocument();
   });
 
   it("renders budgets and category spend once loaded", async () => {

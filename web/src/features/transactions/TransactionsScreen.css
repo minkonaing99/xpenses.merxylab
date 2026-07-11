@@ -1,5 +1,5 @@
 .ledger {
-  padding: calc(var(--safe-t) + var(--sp-3)) var(--sp-5) 0;
+  padding: calc(var(--safe-t) + var(--sp-3)) var(--sp-4) var(--sp-6);
 }
 
 .ledger__head {
@@ -7,7 +7,7 @@
   align-items: center;
   justify-content: space-between;
   gap: var(--sp-3);
-  padding: var(--sp-5) 0 var(--sp-4);
+  padding: var(--sp-4) 0 var(--sp-4);
 }
 
 .ledger__title {
@@ -16,20 +16,15 @@
   letter-spacing: -0.02em;
 }
 
-.ledger__month {
-  margin-top: 2px;
-  color: var(--ink-soft);
-  font-size: var(--t-body);
-}
-
 .ledger__search {
   width: 100%;
   height: 2.75rem;
-  margin-bottom: var(--sp-4);
+  margin-bottom: var(--sp-3);
   padding: 0 var(--sp-4);
-  background: var(--paper-sunken);
+  background: var(--paper-raised);
   border: 1px solid transparent;
   border-radius: var(--r-full);
+  box-shadow: var(--shadow-1);
   font-size: 1rem; /* >=16px: stops iOS auto-zoom on focus */
   transition: border-color var(--dur-1) var(--ease-out);
 }
@@ -37,6 +32,37 @@
 .ledger__search:focus {
   outline: none;
   border-color: var(--accent);
+}
+
+/* Type filter chips */
+.ledger__filters {
+  display: flex;
+  gap: var(--sp-2);
+  overflow-x: auto;
+  padding-bottom: var(--sp-2);
+  margin-bottom: var(--sp-2);
+  scrollbar-width: none;
+}
+
+.ledger__filters::-webkit-scrollbar {
+  display: none;
+}
+
+.chip {
+  flex: 0 0 auto;
+  padding: var(--sp-2) var(--sp-4);
+  font-size: var(--t-label);
+  font-weight: 600;
+  color: var(--ink-soft);
+  background: var(--paper-raised);
+  border-radius: var(--r-full);
+  box-shadow: var(--shadow-1);
+  transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
+}
+
+.chip--on {
+  color: var(--accent-ink);
+  background: var(--accent);
 }
 
 .ledger__note {
@@ -57,8 +83,9 @@
   margin: 0 auto var(--sp-4);
   font-size: 1.75rem;
   color: var(--ink-faint);
-  background: var(--paper-sunken);
+  background: var(--paper-raised);
   border-radius: var(--r-full);
+  box-shadow: var(--shadow-1);
 }
 
 .ledger__empty-title {
@@ -71,9 +98,13 @@
   color: var(--ink-soft);
 }
 
-/* Day group */
+/* Day group — white card */
 .day {
-  padding-top: var(--sp-5);
+  margin-top: var(--sp-3);
+  padding: var(--sp-2) var(--sp-4) var(--sp-3);
+  background: var(--paper-raised);
+  border-radius: var(--r-lg);
+  box-shadow: var(--shadow-2);
 }
 
 .day__head {
@@ -81,11 +112,6 @@
   align-items: baseline;
   justify-content: space-between;
   padding: var(--sp-2) 0;
-  position: sticky;
-  top: 0;
-  background: color-mix(in oklch, var(--paper) 92%, transparent);
-  backdrop-filter: blur(6px);
-  z-index: 1;
 }
 
 .day__label {
@@ -107,8 +133,8 @@
 }
 
 /* Transaction row */
-.txn-item {
-  border-bottom: 1px solid var(--line);
+.txn-item + .txn-item {
+  border-top: 1px solid var(--line);
 }
 
 .txn {
@@ -118,24 +144,13 @@
   gap: var(--sp-3);
   width: 100%;
   text-align: left;
-  padding: var(--sp-3) var(--sp-1);
-  border-radius: var(--r-sm);
-  transition: background-color var(--dur-1) var(--ease-out);
+  padding: var(--sp-3) 0;
+  transition: opacity var(--dur-1) var(--ease-out);
 }
 
 .txn:active {
-  background: var(--paper-sunken);
+  opacity: 0.6;
 }
-
-.txn__dot {
-  width: 0.5rem;
-  height: 0.5rem;
-  border-radius: var(--r-full);
-}
-
-.txn__dot--expense { background: var(--neg); }
-.txn__dot--income { background: var(--pos); }
-.txn__dot--transfer { background: var(--ink-faint); }
 
 .txn__meta {
   display: flex;

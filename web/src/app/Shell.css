@@ -60,7 +60,7 @@
   color: var(--accent-ink);
   background: var(--accent);
   border-radius: var(--r-full);
-  box-shadow: var(--shadow-2);
+  box-shadow: var(--shadow-accent);
   transition: transform var(--dur-1) var(--ease-out), background-color var(--dur-1) var(--ease-out);
 }
 

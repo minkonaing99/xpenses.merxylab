@@ -1,7 +1,7 @@
 <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="xpenses">
-  <rect width="512" height="512" fill="#f3ede1" />
+  <rect width="512" height="512" fill="#ffffff" />
   <g fill="none" stroke-width="52" stroke-linecap="round">
-    <path d="M188 188 L324 324" stroke="#26221c" />
-    <path d="M324 188 L188 324" stroke="#e0b64a" />
+    <path d="M188 188 L324 324" stroke="#2a2540" />
+    <path d="M324 188 L188 324" stroke="#7c5cf6" />
   </g>
 </svg>

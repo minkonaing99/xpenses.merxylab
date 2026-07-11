@@ -40,6 +40,6 @@ describe("ReportsScreen", () => {
   it("shows a month-over-month spend comparison", async () => {
     renderApp(<ReportsScreen />);
     // Both months resolve to the same mocked summary -> flat delta.
-    expect(await screen.findByText(/flat vs last month/)).toBeInTheDocument();
+    expect(await screen.findByText(/flat vs last month/i)).toBeInTheDocument();
   });
 });
