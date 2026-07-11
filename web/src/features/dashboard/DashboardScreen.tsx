@@ -8,7 +8,6 @@ import {
 } from "../../api/hooks";
 import type { BudgetStatus, Category, CategorySpend } from "../../api/types";
 import { useMonth } from "../../app/MonthContext";
-import { categoryColor } from "../../lib/categoryColor";
 import { useEntrance } from "../../lib/useEntrance";
 import { AnimatedMoney } from "../../ui/AnimatedMoney";
 import { LogoMark } from "../../ui/Logo";
@@ -197,10 +196,7 @@ function SpendList({ items }: { items: CategorySpend[] }) {
               </div>
               <div className="spend__barrow">
                 <span className="spend__track">
-                  <span
-                    className="spend__fill"
-                    style={{ width: `${pct}%`, background: categoryColor(i.categoryId) }}
-                  />
+                  <span className="spend__fill" style={{ width: `${pct}%` }} />
                 </span>
                 <span className="spend__pct num">{pct}%</span>
               </div>
