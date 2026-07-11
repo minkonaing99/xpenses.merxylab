@@ -1,5 +1,6 @@
 import { useCategorySpend, useSummary } from "../../api/hooks";
 import { useMonth } from "../../app/MonthContext";
+import { prevMonth } from "../../lib/format";
 import { Money } from "../../ui/Money";
 import { MonthSwitcher } from "../../ui/MonthSwitcher";
 import { PageHeader } from "../../ui/PageHeader";
@@ -8,12 +9,17 @@ import "./ReportsScreen.css";
 export function ReportsScreen() {
   const { month } = useMonth();
   const summary = useSummary(month);
+  const prev = useSummary(prevMonth(month));
   const spend = useCategorySpend(month);
 
   const s = summary.data;
   const items = [...(spend.data ?? [])].sort((a, b) => b.total - a.total);
   const max = Math.max(1, ...items.map((i) => i.total));
   const total = items.reduce((sum, i) => sum + i.total, 0);
+
+  // Month-over-month spend delta (this month's expense minus last month's).
+  const expenseDelta =
+    s && prev.data ? s.monthExpense - prev.data.monthExpense : null;
 
   return (
     <div className="reports">
@@ -24,6 +30,21 @@ export function ReportsScreen() {
         <Stat label="Out" amount={s?.monthExpense ?? 0} tone="neg" />
         <Stat label="Net" amount={s?.monthNet ?? 0} signed />
       </div>
+
+      {expenseDelta !== null && (
+        <p className="rmom">
+          Spending{" "}
+          {expenseDelta === 0 ? (
+            "is flat vs last month"
+          ) : (
+            <>
+              {expenseDelta > 0 ? "up" : "down"}{" "}
+              <Money amount={Math.abs(expenseDelta)} tone={expenseDelta > 0 ? "neg" : "pos"} className="rmom__amt" />{" "}
+              vs last month
+            </>
+          )}
+        </p>
+      )}
 
       <section className="rsec">
         <h2 className="rsec__title">Accounts</h2>
@@ -55,6 +76,10 @@ export function ReportsScreen() {
           ))}
         </ol>
       </section>
+
+      <a className="rexport" href={`/api/reports/export?month=${month}`} download>
+        Export {month} as CSV
+      </a>
     </div>
   );
 }

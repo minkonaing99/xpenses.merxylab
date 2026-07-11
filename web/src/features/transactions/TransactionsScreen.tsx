@@ -11,6 +11,7 @@ import "./TransactionsScreen.css";
 export function TransactionsScreen() {
   const { month } = useMonth();
   const [editing, setEditing] = useState<Transaction | null>(null);
+  const [query, setQuery] = useState("");
   const txns = useTransactions(month);
   const accounts = useAccounts();
   const categories = useCategories();
@@ -23,7 +24,11 @@ export function TransactionsScreen() {
     return { acct, cat };
   }, [accounts.data, categories.data]);
 
-  const groups = useMemo(() => groupByDay(txns.data ?? []), [txns.data]);
+  const filtered = useMemo(
+    () => filterTxns(txns.data ?? [], query, names),
+    [txns.data, query, names],
+  );
+  const groups = useMemo(() => groupByDay(filtered), [filtered]);
 
   return (
     <div className="ledger">
@@ -32,13 +37,26 @@ export function TransactionsScreen() {
         <MonthSwitcher />
       </header>
 
+      <input
+        className="ledger__search"
+        type="search"
+        placeholder="Search notes, categories, accounts"
+        aria-label="Search transactions"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+
       {txns.isLoading && <p className="ledger__note">Loading…</p>}
 
       {!txns.isLoading && groups.length === 0 && (
         <div className="ledger__empty">
           <p className="ledger__empty-mark" aria-hidden="true">฿</p>
-          <p className="ledger__empty-title">No transactions yet</p>
-          <p className="ledger__empty-sub">Tap the + below to log your first one.</p>
+          <p className="ledger__empty-title">
+            {query.trim() ? "No matches" : "No transactions yet"}
+          </p>
+          <p className="ledger__empty-sub">
+            {query.trim() ? "Try a different search." : "Tap the + below to log your first one."}
+          </p>
         </div>
       )}
 
@@ -96,6 +114,27 @@ function TxnRow({
       </button>
     </li>
   );
+}
+
+// Client-side search over the already-loaded month: matches note, category
+// name, and account name(s). Case-insensitive substring.
+function filterTxns(
+  txns: Transaction[],
+  query: string,
+  names: { acct: Map<string, string>; cat: Map<string, string> },
+): Transaction[] {
+  const q = query.trim().toLowerCase();
+  if (!q) return txns;
+  return txns.filter((t) => {
+    const parts = [
+      t.note ?? "",
+      names.cat.get(t.categoryId ?? "") ?? "",
+      names.acct.get(t.accountId ?? "") ?? "",
+      names.acct.get(t.fromAccountId ?? "") ?? "",
+      names.acct.get(t.toAccountId ?? "") ?? "",
+    ];
+    return parts.join(" ").toLowerCase().includes(q);
+  });
 }
 
 function groupByDay(txns: Transaction[]): Array<[string, Transaction[]]> {

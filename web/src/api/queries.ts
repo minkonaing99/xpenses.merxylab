@@ -67,3 +67,11 @@ export function useTransactions(month: string) {
     queryFn: () => api.get<Transaction[]>(`/transactions?month=${month}&limit=200`),
   });
 }
+
+/** Latest transactions across all months — powers quick-add "repeat" templates. */
+export function useRecentTransactions() {
+  return useQuery({
+    queryKey: keys.recentTxns,
+    queryFn: () => api.get<Transaction[]>("/transactions?limit=30"),
+  });
+}

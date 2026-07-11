@@ -105,6 +105,28 @@ Current version: `0.2.0`
 
 Format: [Keep a Changelog](https://keepachangelog.com)
 
+## [Unreleased]
+### Added
+- **Quick-add / repeat**: the Add-transaction sheet shows one-tap chips of
+  recent distinct expense/income entries (`lib/templates.ts`,
+  `useRecentTransactions`); tapping prefills type/amount/note/category/account.
+- **Ledger search**: client-side filter over the loaded month (note, category,
+  account names) — no new server round trip (`filterTxns` in
+  `TransactionsScreen`). Server `note LIKE` skipped: the month view already
+  loads the full set, and client filtering also matches category/account names
+  and works offline.
+- **Month-over-month** spend delta on Reports (reuses `GET /reports/summary`
+  for `prevMonth(month)`; no new endpoint).
+- **CSV export**: `GET /api/reports/export?month=` streams a `text/csv`
+  attachment (`reports/csv.js` pure builder, RFC4180 quoting; `monthTransactions`
+  repo join). Reports screen links it via a plain `<a download>` (same-origin
+  cookie auth, no fetch/blob).
+- **Budget pace**: each budget row shows "฿X left · ฿Y/day" (remaining over
+  days-left-in-month) or "Over by ฿X" (`lib/budgetPace.ts`, current-month only).
+- Tests: +11 server (csv unit + export router), +15 web (templates, budgetPace,
+  prevMonth pure + search/template/MoM/pace screen assertions). 247 server / 69
+  web passing.
+
 ## [0.2.0] - 2026-07-11
 ### Changed
 - **Web frontend rebuilt** from scratch with a leaner React-Query architecture

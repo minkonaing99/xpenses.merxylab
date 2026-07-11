@@ -10,6 +10,32 @@
   border-bottom: 1px solid var(--line);
 }
 
+.rmom {
+  padding: var(--sp-3) 0 0;
+  font-size: var(--t-body);
+  color: var(--ink-soft);
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 0.25em;
+}
+
+.rmom__amt {
+  font-weight: 650;
+}
+
+.rexport {
+  display: block;
+  margin: var(--sp-5) 0 var(--sp-6);
+  padding: var(--sp-3);
+  text-align: center;
+  font-size: var(--t-body);
+  font-weight: 600;
+  color: var(--accent);
+  background: var(--paper-sunken);
+  border-radius: var(--r-md);
+}
+
 .stat {
   display: flex;
   flex-direction: column;

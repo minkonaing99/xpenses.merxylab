@@ -44,4 +44,17 @@ describe("TransactionsScreen", () => {
     fireEvent.click(screen.getByRole("button", { name: /Edit Latte/ }));
     expect(await screen.findByRole("dialog", { name: "Edit transaction" })).toBeInTheDocument();
   });
+
+  it("filters rows by the search box (note or category name)", async () => {
+    renderApp(<TransactionsScreen />);
+    expect(await screen.findByText("Latte")).toBeInTheDocument();
+
+    const box = screen.getByRole("searchbox", { name: /Search transactions/ });
+    fireEvent.change(box, { target: { value: "zzz" } });
+    expect(screen.queryByText("Latte")).not.toBeInTheDocument();
+    expect(screen.getByText("No matches")).toBeInTheDocument();
+
+    fireEvent.change(box, { target: { value: "food" } });
+    expect(screen.getByText("Latte")).toBeInTheDocument();
+  });
 });

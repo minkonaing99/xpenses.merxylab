@@ -9,7 +9,8 @@ import {
 import type { BudgetStatus, Category } from "../../api/types";
 import { useMonth } from "../../app/MonthContext";
 import { ApiError } from "../../lib/api";
-import { bahtToSatang } from "../../lib/money";
+import { budgetPace } from "../../lib/budgetPace";
+import { bahtToSatang, formatSatang } from "../../lib/money";
 import { Button } from "../../ui/Button";
 import { Money } from "../../ui/Money";
 import { MoneyInput } from "../../ui/MoneyInput";
@@ -59,6 +60,7 @@ export function BudgetsScreen() {
                     <span className={`brow__fill brow__fill--${tone}`} style={{ width: `${pct}%` }} />
                   </div>
                 )}
+                {b && <span className="brow__pace">{paceLabel(b, month)}</span>}
               </button>
             </li>
           );
@@ -72,6 +74,15 @@ export function BudgetsScreen() {
       />
     </div>
   );
+}
+
+// "฿480 left · ฿22/day" for the current month, "฿480 left" for others,
+// "Over by ฿120" when past the limit.
+function paceLabel(b: BudgetStatus, month: string): string {
+  const { remaining, dailyPace } = budgetPace(b.limitAmount, b.spent, month);
+  if (remaining < 0) return `Over by ฿${formatSatang(-remaining)}`;
+  const left = `฿${formatSatang(remaining)} left`;
+  return dailyPace !== null ? `${left} · ฿${formatSatang(dailyPace)}/day` : left;
 }
 
 function BudgetForm({

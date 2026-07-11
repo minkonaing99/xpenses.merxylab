@@ -8,6 +8,7 @@ export const keys = {
   budgets: (m: string) => ["budgets", m] as const,
   spend: (m: string) => ["spend", m] as const,
   txns: (m: string) => ["txns", m] as const,
+  recentTxns: ["txns", "recent"] as const,
 };
 
 /** Every month-scoped query. Invalidate all after a txn write. */

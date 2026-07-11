@@ -16,10 +16,24 @@ const accounts = [
   { id: "a2", name: "Bank", type: "bank", startingBalance: 0, balance: 0 },
 ];
 const categories = [{ id: "c1", name: "Food" }];
+const recentTxns = [
+  {
+    id: "t9",
+    type: "expense",
+    amount: 6000,
+    note: "Coffee",
+    categoryId: "c1",
+    accountId: "a1",
+    fromAccountId: null,
+    toAccountId: null,
+    txnDate: "2026-07-08",
+    updatedAt: "2026-07-08T00:00:00.000Z",
+  },
+];
 
 beforeEach(() => {
   vi.mocked(api.get).mockImplementation(
-    fakeGet({ "/accounts": accounts, "/categories": categories }) as never,
+    fakeGet({ "/accounts": accounts, "/categories": categories, "/transactions": recentTxns }) as never,
   );
   vi.mocked(api.post).mockResolvedValue({} as never);
   vi.mocked(api.patch).mockResolvedValue({} as never);
@@ -60,6 +74,15 @@ describe("AddTransactionSheet", () => {
       ),
     );
     await waitFor(() => expect(onClose).toHaveBeenCalled());
+  });
+
+  it("prefills the form from a one-tap repeat chip", async () => {
+    renderApp(<AddTransactionSheet open onClose={() => {}} />);
+    const chip = await screen.findByRole("button", { name: /Coffee/ });
+    fireEvent.click(chip);
+
+    expect(screen.getByLabelText("Amount in baht")).toHaveValue("60");
+    expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
   });
 
   it("edits then deletes an existing transaction", async () => {

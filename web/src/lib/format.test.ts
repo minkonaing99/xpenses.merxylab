@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { currentMonth, dayLabel, monthLabel, today } from "./format";
+import { currentMonth, dayLabel, monthLabel, prevMonth, today } from "./format";
 
 // Fixed instant: 2026-07-11 00:00 UTC = 07:00 Asia/Bangkok, same calendar day.
 const now = new Date("2026-07-11T00:00:00.000Z");
@@ -18,6 +18,11 @@ describe("currentMonth / today (Asia/Bangkok)", () => {
 describe("monthLabel", () => {
   it("formats a human month", () => expect(monthLabel("2026-07")).toBe("July 2026"));
   it("handles January", () => expect(monthLabel("2026-01")).toBe("January 2026"));
+});
+
+describe("prevMonth", () => {
+  it("steps back within a year", () => expect(prevMonth("2026-07")).toBe("2026-06"));
+  it("rolls across a year boundary", () => expect(prevMonth("2026-01")).toBe("2025-12"));
 });
 
 describe("dayLabel", () => {

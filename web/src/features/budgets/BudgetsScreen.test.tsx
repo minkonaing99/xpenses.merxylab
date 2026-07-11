@@ -41,6 +41,12 @@ describe("BudgetsScreen", () => {
     );
   });
 
+  it("shows remaining budget for a category with a limit", async () => {
+    renderApp(<BudgetsScreen />);
+    // limit ฿5,000 - spent ฿1,000 = ฿4,000 left.
+    expect(await screen.findByText(/฿4,000\.00 left/)).toBeInTheDocument();
+  });
+
   it("edits an existing limit, prefilled from the budget", async () => {
     renderApp(<BudgetsScreen />);
     fireEvent.click(await screen.findByRole("button", { name: /Food/ }));

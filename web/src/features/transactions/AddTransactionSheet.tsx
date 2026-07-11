@@ -4,12 +4,14 @@ import {
   useCategories,
   useCreateTransaction,
   useDeleteTransaction,
+  useRecentTransactions,
   useUpdateTransaction,
 } from "../../api/hooks";
 import type { Transaction, TxnType } from "../../api/types";
 import { ApiError } from "../../lib/api";
-import { bahtToSatang } from "../../lib/money";
+import { bahtToSatang, formatSatang } from "../../lib/money";
 import { today } from "../../lib/format";
+import { buildTemplates, type TxnTemplate } from "../../lib/templates";
 import { Button } from "../../ui/Button";
 import { Segmented } from "../../ui/Segmented";
 import { MoneyInput } from "../../ui/MoneyInput";
@@ -34,6 +36,7 @@ interface Props {
 export function AddTransactionSheet({ open, onClose, editing }: Props) {
   const accounts = useAccounts();
   const categories = useCategories();
+  const recent = useRecentTransactions();
   const create = useCreateTransaction();
   const update = useUpdateTransaction();
   const remove = useDeleteTransaction();
@@ -51,6 +54,22 @@ export function AddTransactionSheet({ open, onClose, editing }: Props) {
 
   const acctOpts = (accounts.data ?? []).map((a) => ({ value: a.id, label: a.name }));
   const catOpts = (categories.data ?? []).map((c) => ({ value: c.id, label: c.name }));
+
+  const templates = useMemo(() => buildTemplates(recent.data ?? []), [recent.data]);
+  const catNames = useMemo(() => {
+    const m = new Map<string, string>();
+    (categories.data ?? []).forEach((c) => m.set(c.id, c.name));
+    return m;
+  }, [categories.data]);
+
+  function applyTemplate(t: TxnTemplate) {
+    setErr(null);
+    setType(t.type);
+    setAmount((t.amount / 100).toString());
+    setNote(t.note ?? "");
+    setCategoryId(t.categoryId);
+    setAccountId(t.accountId);
+  }
 
   // Prefill on open: from the edited txn, else fresh defaults.
   // Deps are only open/editing so late-arriving account data never clobbers edits.
@@ -138,6 +157,24 @@ export function AddTransactionSheet({ open, onClose, editing }: Props) {
     <Sheet open={open} onClose={onClose} title={editing ? "Edit transaction" : "New transaction"}>
       <div className="add">
         <Segmented options={TYPES} value={type} onChange={setType} label="Transaction type" />
+
+        {!editing && templates.length > 0 && (
+          <div className="add__repeat" aria-label="Repeat a recent transaction">
+            {templates.map((t, i) => (
+              <button
+                key={i}
+                type="button"
+                className="add__chip"
+                onClick={() => applyTemplate(t)}
+              >
+                <span className="add__chip-label">
+                  {t.note?.trim() || catNames.get(t.categoryId ?? "") || (t.type === "income" ? "Income" : "Expense")}
+                </span>
+                <span className="add__chip-amt num">฿{formatSatang(t.amount)}</span>
+              </button>
+            ))}
+          </div>
+        )}
 
         <label className="add__amount">
           <span className="add__baht" aria-hidden="true">฿</span>
