@@ -3,7 +3,8 @@
   place-items: center;
   flex: 0 0 auto;
   border-radius: var(--r-md);
-  color: #fff;
+  background: var(--accent);
+  color: var(--accent-ink);
   font-weight: 700;
   line-height: 1;
 }
