@@ -1,6 +1,6 @@
 import { useLayoutEffect, useRef } from "react";
 import gsap from "gsap";
-import { formatSatang, formatSigned } from "../lib/money";
+import { formatSatang } from "../lib/money";
 import { canAnimate } from "../lib/motion";
 
 interface Props {
@@ -26,15 +26,21 @@ function toneColor(amount: number, signed?: boolean, tone?: Props["tone"]): stri
  * value) when the user prefers reduced motion.
  */
 export function AnimatedMoney({ amount, signed, tone, className = "", color, duration = 0.7 }: Props) {
-  const ref = useRef<HTMLSpanElement>(null);
+  const numRef = useRef<HTMLSpanElement>(null);
+  const signRef = useRef<HTMLSpanElement>(null);
   const prev = useRef(0);
-  const fmt = (v: number) => (signed ? formatSigned(Math.round(v)) : `฿${formatSatang(Math.round(v))}`);
+  const signOf = (v: number) => (signed ? (v < 0 ? "-" : v > 0 ? "+" : "") : "");
 
   useLayoutEffect(() => {
-    const el = ref.current;
-    if (!el) return;
+    const numEl = numRef.current;
+    const signEl = signRef.current;
+    if (!numEl || !signEl) return;
+    const render = (v: number) => {
+      signEl.textContent = signOf(v);
+      numEl.textContent = formatSatang(v);
+    };
     if (!canAnimate() || prev.current === amount) {
-      el.textContent = fmt(amount);
+      render(amount);
       prev.current = amount;
       return;
     }
@@ -43,25 +49,21 @@ export function AnimatedMoney({ amount, signed, tone, className = "", color, dur
       v: amount,
       duration,
       ease: "power2.out",
-      onUpdate: () => {
-        el.textContent = fmt(obj.v);
-      },
+      onUpdate: () => render(Math.round(obj.v)),
     });
     prev.current = amount;
     return () => {
       tween.kill();
     };
-    // fmt closes over signed; re-run on amount/signed change only.
+    // signOf closes over signed; re-run on amount/signed change only.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [amount, signed]);
 
   return (
-    <span
-      ref={ref}
-      className={`num ${className}`.trim()}
-      style={{ color: color ?? toneColor(amount, signed, tone) }}
-    >
-      {fmt(amount)}
+    <span className={`num ${className}`.trim()} style={{ color: color ?? toneColor(amount, signed, tone) }}>
+      <span ref={signRef}>{signOf(amount)}</span>
+      <span className="num__baht">฿</span>
+      <span ref={numRef}>{formatSatang(amount)}</span>
     </span>
   );
 }

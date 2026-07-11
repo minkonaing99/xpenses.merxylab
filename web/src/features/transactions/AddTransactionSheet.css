@@ -50,25 +50,29 @@
   display: flex;
   align-items: baseline;
   justify-content: center;
-  gap: var(--sp-2);
+  gap: var(--sp-1);
   padding: var(--sp-4) 0 var(--sp-2);
 }
 
 .add__baht {
-  font-size: var(--t-title);
-  font-weight: 600;
+  font-size: var(--t-figure);
+  font-weight: 700;
   color: var(--ink-faint);
 }
 
+/* Grow with the typed value so the [฿ + digits] group stays optically centered
+   (a fixed-width, left-aligned field parked the digits left of true center). */
 .add__amount input {
-  width: 100%;
+  field-sizing: content;
+  width: auto;
+  min-width: 1ch;
   max-width: 9ch;
   border: none;
   background: none;
   font-size: var(--t-hero);
   font-weight: 700;
   letter-spacing: -0.03em;
-  text-align: left;
+  text-align: center;
 }
 
 .add__amount input:focus {

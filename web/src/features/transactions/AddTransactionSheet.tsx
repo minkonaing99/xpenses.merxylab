@@ -170,7 +170,10 @@ export function AddTransactionSheet({ open, onClose, editing }: Props) {
                 <span className="add__chip-label">
                   {t.note?.trim() || catNames.get(t.categoryId ?? "") || (t.type === "income" ? "Income" : "Expense")}
                 </span>
-                <span className="add__chip-amt num">฿{formatSatang(t.amount)}</span>
+                <span className="add__chip-amt num">
+                  <span className="num__baht">฿</span>
+                  {formatSatang(t.amount)}
+                </span>
               </button>
             ))}
           </div>

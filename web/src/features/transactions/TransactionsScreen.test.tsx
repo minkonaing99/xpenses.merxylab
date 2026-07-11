@@ -9,6 +9,7 @@ vi.mock("../../lib/api", async (orig) => {
 import { api } from "../../lib/api";
 import { TransactionsScreen } from "./TransactionsScreen";
 import { fakeGet, renderApp } from "../../test/utils";
+import { money } from "../../test/money";
 
 const accounts = [{ id: "a1", name: "Cash", type: "cash", startingBalance: 0, balance: 0 }];
 const categories = [{ id: "c1", name: "Food" }];
@@ -39,7 +40,7 @@ describe("TransactionsScreen", () => {
     renderApp(<TransactionsScreen />);
     expect(await screen.findByText("Latte")).toBeInTheDocument();
     // Appears twice: the row amount and the day-net header.
-    expect(screen.getAllByText("-฿120.00").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(money("-฿120.00")).length).toBeGreaterThan(0);
 
     fireEvent.click(screen.getByRole("button", { name: /Edit Latte/ }));
     expect(await screen.findByRole("dialog", { name: "Edit transaction" })).toBeInTheDocument();

@@ -9,6 +9,7 @@ vi.mock("../../lib/api", async (orig) => {
 import { api } from "../../lib/api";
 import { DashboardScreen } from "./DashboardScreen";
 import { fakeGet, renderApp } from "../../test/utils";
+import { money } from "../../test/money";
 
 const accounts = [
   { id: "a1", name: "Cash", type: "cash", startingBalance: 0, balance: 12000 },
@@ -37,7 +38,7 @@ describe("DashboardScreen", () => {
     renderApp(<DashboardScreen />);
     // 12000 + 8000 = 20000 satang = ฿200.00
     // netWorth (12000+8000) and monthNet both format to ฿200.00 in this fixture.
-    expect((await screen.findAllByText("฿200.00")).length).toBeGreaterThan(0);
+    expect((await screen.findAllByText(money("฿200.00"))).length).toBeGreaterThan(0);
     expect(screen.getByText("Total balance")).toBeInTheDocument();
   });
 
@@ -49,7 +50,7 @@ describe("DashboardScreen", () => {
     fireEvent.click(reveal);
     expect(screen.getByRole("button", { name: "Hide balance" })).toBeInTheDocument();
     // hero now shows the real balance (netWorth = ฿200.00)
-    expect(screen.getAllByText("฿200.00").length).toBeGreaterThan(0);
+    expect(screen.getAllByText(money("฿200.00")).length).toBeGreaterThan(0);
   });
 
   it("renders budgets and category spend once loaded", async () => {
