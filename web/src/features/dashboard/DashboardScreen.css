@@ -239,6 +239,8 @@
   flex-direction: column;
   gap: var(--sp-4);
   list-style: none;
+  margin: 0;
+  padding: 0;
 }
 
 .spend__row {
