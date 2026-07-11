@@ -125,4 +125,4 @@ function createRecurringRouter(pool) {
   return router
 }
 
-module.exports = { createRecurringRouter }
+module.exports = { createRecurringRouter, createSchema, updateSchema }

@@ -103,4 +103,4 @@ function createAccountsRouter(pool) {
   return router
 }
 
-module.exports = { createAccountsRouter }
+module.exports = { createAccountsRouter, createSchema, updateSchema }

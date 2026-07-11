@@ -21,6 +21,12 @@ describe('reports csv', () => {
       expect(escapeField(null)).toBe('')
       expect(escapeField(undefined)).toBe('')
     })
+
+    it('neutralizes a leading formula character to block CSV injection', () => {
+      expect(escapeField('=1+1')).toBe("'=1+1")
+      expect(escapeField('@cmd')).toBe("'@cmd")
+      expect(escapeField('=SUM(A1,A2)')).toBe('"\'=SUM(A1,A2)"')
+    })
   })
 
   describe('toCsv', () => {

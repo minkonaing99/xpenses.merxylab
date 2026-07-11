@@ -10,11 +10,14 @@ function satangToBaht(satang) {
 }
 
 // Wrap in quotes only when the field contains a comma, quote, or newline;
-// escape embedded quotes by doubling them.
+// escape embedded quotes by doubling them. Neutralize spreadsheet formula
+// injection by prefixing a `'` when a field starts with =, +, -, @, tab, or CR
+// (amounts are always positive satang, so the numeric column never triggers it).
 function escapeField(value) {
   const s = value == null ? '' : String(value)
-  if (/[",\n\r]/.test(s)) return `"${s.replace(/"/g, '""')}"`
-  return s
+  const guarded = /^[=+\-@\t\r]/.test(s) ? `'${s}` : s
+  if (/[",\n\r]/.test(guarded)) return `"${guarded.replace(/"/g, '""')}"`
+  return guarded
 }
 
 function accountLabel(row) {

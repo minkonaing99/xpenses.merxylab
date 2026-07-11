@@ -127,6 +127,31 @@ Format: [Keep a Changelog](https://keepachangelog.com)
   prevMonth pure + search/template/MoM/pace screen assertions). 247 server / 69
   web passing.
 
+### Security (Phase 7 hardening)
+- security-reviewer pass: 0 CRITICAL / 0 HIGH. Fixed 1 MEDIUM + 1 LOW; 1 LOW
+  accepted (documented below).
+  - **MEDIUM** — `/api/sync/push` bypassed the per-entity zod validation the
+    direct REST routes enforce, letting the authenticated user replay a write
+    with an out-of-enum account `type`, a non-positive budget `limitAmount`, or
+    over-length strings. `features/sync/ops.js` `applySimpleOp` now validates
+    each op against the same `createSchema`/`updateSchema` exported from the
+    feature routers (recurring also re-runs `validateTransactionFields`), and
+    passes the stripped/validated data to the repo instead of the raw payload.
+  - **LOW** — CSV export (`reports/csv.js`) had no spreadsheet formula-injection
+    guard; `escapeField` now prefixes `'` to any field starting with `= + - @`,
+    tab, or CR (amounts are always positive satang, so the numeric column is
+    unaffected).
+  - **LOW (accepted)** — `lib/safeCompare.js` early-returns on length mismatch
+    before the constant-time compare, leaking secret length via timing. Standard
+    pattern; `CRON_SHARED_SECRET` is a random 32-byte value, not attacker-shaped.
+- Coverage gate met: server 88% stmts / 88% lines, web 86% stmts (both > 80%).
+- Phase 7.1 confirmed already satisfied: `app.js` exports the app with no
+  `.listen()` (Passenger provides the server), in-process cron gated to
+  production, `/api/cron` behind the shared-secret compare, built PWA served
+  same-origin with SPA fallback.
+- Tests: +3 server (sync-push schema rejection ×2, CSV formula guard). 250
+  server / 73 web passing.
+
 ## [0.2.0] - 2026-07-11
 ### Changed
 - **Web frontend rebuilt** from scratch with a leaner React-Query architecture
