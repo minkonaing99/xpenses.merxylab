@@ -31,4 +31,17 @@ describe('loadEnv', () => {
   it('throws when DB_PORT is not a valid number', () => {
     expect(() => loadEnv({ ...VALID_ENV, DB_PORT: 'not-a-number' })).toThrow('DB_PORT')
   })
+
+  it('throws when neither PASSWORD_HASH nor PASSWORD_HASH_B64 is set', () => {
+    const env = { ...VALID_ENV }
+    delete env.PASSWORD_HASH
+    expect(() => loadEnv(env)).toThrow('PASSWORD_HASH')
+  })
+
+  it('decodes PASSWORD_HASH_B64 when PASSWORD_HASH is absent', () => {
+    const env = { ...VALID_ENV }
+    delete env.PASSWORD_HASH
+    env.PASSWORD_HASH_B64 = Buffer.from(VALID_ENV.PASSWORD_HASH).toString('base64')
+    expect(loadEnv(env).passwordHash).toBe(VALID_ENV.PASSWORD_HASH)
+  })
 })
