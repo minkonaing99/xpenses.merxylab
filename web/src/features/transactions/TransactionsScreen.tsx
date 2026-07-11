@@ -3,7 +3,6 @@ import { useAccounts, useCategories, useTransactions } from "../../api/hooks";
 import type { Account, Category, Transaction, TxnType } from "../../api/types";
 import { useMonth } from "../../app/MonthContext";
 import { dayLabel } from "../../lib/format";
-import { CategoryIcon } from "../../ui/CategoryIcon";
 import { Money } from "../../ui/Money";
 import { MonthSwitcher } from "../../ui/MonthSwitcher";
 import { AddTransactionSheet } from "./AddTransactionSheet";
@@ -126,13 +125,9 @@ function TxnRow({
       ? "Transfer"
       : [catNm, names.acct.get(t.accountId ?? "")].filter(Boolean).join(" · ");
 
-  const iconId = t.type === "transfer" ? t.fromAccountId : t.categoryId ?? t.accountId;
-  const iconName = t.type === "transfer" ? "⇄" : catNm ?? title;
-
   return (
     <li className="txn-item">
       <button className="txn" onClick={onOpen} aria-label={`Edit ${title}`}>
-        <CategoryIcon id={iconId} name={iconName} icon={t.type === "transfer" ? "⇄" : null} size={42} />
         <div className="txn__meta">
           <span className="txn__title">{title}</span>
           {sub && <span className="txn__sub">{sub}</span>}
