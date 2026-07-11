@@ -233,37 +233,58 @@
 .bud__fill--warn { background: var(--cat-e); }
 .bud__fill--over { background: var(--danger); }
 
-/* Where it went */
+/* Where it went — no icons; a category-colored share bar carries proportion */
 .spend {
   display: flex;
   flex-direction: column;
-  gap: var(--sp-1);
+  gap: var(--sp-4);
   list-style: none;
 }
 
 .spend__row {
   display: flex;
-  align-items: center;
-  gap: var(--sp-3);
-  padding: var(--sp-2) 0;
-}
-
-.spend__meta {
-  flex: 1;
-  display: flex;
-  align-items: center;
+  flex-direction: column;
   gap: var(--sp-2);
 }
 
-.spend__name {
-  font-weight: 550;
+.spend__line {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
 }
 
-.spend__share {
-  font-size: var(--t-caption);
-  color: var(--ink-faint);
+.spend__name {
+  font-weight: 600;
 }
 
 .spend__amt {
   font-weight: 650;
+}
+
+.spend__barrow {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+}
+
+.spend__track {
+  flex: 1;
+  height: 8px;
+  border-radius: var(--r-full);
+  background: var(--paper-sunken);
+  overflow: hidden;
+}
+
+.spend__fill {
+  display: block;
+  height: 100%;
+  border-radius: var(--r-full);
+  transition: width var(--dur-3) var(--ease-out);
+}
+
+.spend__pct {
+  min-width: 3.5ch;
+  text-align: right;
+  font-size: var(--t-caption);
+  color: var(--ink-faint);
 }

@@ -8,9 +8,9 @@ import {
 } from "../../api/hooks";
 import type { BudgetStatus, Category, CategorySpend } from "../../api/types";
 import { useMonth } from "../../app/MonthContext";
+import { categoryColor } from "../../lib/categoryColor";
 import { useEntrance } from "../../lib/useEntrance";
 import { AnimatedMoney } from "../../ui/AnimatedMoney";
-import { CategoryIcon } from "../../ui/CategoryIcon";
 import { LogoMark } from "../../ui/Logo";
 import { Money } from "../../ui/Money";
 import { MonthSwitcher } from "../../ui/MonthSwitcher";
@@ -182,23 +182,31 @@ function BudgetRow({ b, name }: { b: BudgetStatus; name: string }) {
 }
 
 function SpendList({ items }: { items: CategorySpend[] }) {
-  const total = items.reduce((s, i) => s + i.total, 0);
+  const total = items.reduce((s, i) => s + i.total, 0) || 1;
   return (
     <ol className="spend">
       {[...items]
         .sort((a, b) => b.total - a.total)
-        .map((i) => (
-          <li key={i.categoryId} className="spend__row">
-            <CategoryIcon id={i.categoryId} name={i.name} size={38} />
-            <div className="spend__meta">
-              <span className="spend__name">{i.name}</span>
-              <span className="spend__share num">
-                {total > 0 ? Math.round((i.total / total) * 100) : 0}%
-              </span>
-            </div>
-            <Money amount={i.total} className="spend__amt" />
-          </li>
-        ))}
+        .map((i) => {
+          const pct = Math.round((i.total / total) * 100);
+          return (
+            <li key={i.categoryId} className="spend__row">
+              <div className="spend__line">
+                <span className="spend__name">{i.name}</span>
+                <Money amount={i.total} className="spend__amt" />
+              </div>
+              <div className="spend__barrow">
+                <span className="spend__track">
+                  <span
+                    className="spend__fill"
+                    style={{ width: `${pct}%`, background: categoryColor(i.categoryId) }}
+                  />
+                </span>
+                <span className="spend__pct num">{pct}%</span>
+              </div>
+            </li>
+          );
+        })}
     </ol>
   );
 }
