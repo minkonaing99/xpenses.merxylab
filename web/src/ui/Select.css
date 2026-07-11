@@ -12,7 +12,7 @@
   background: var(--paper-sunken);
   border: 1px solid transparent;
   border-radius: var(--r-md);
-  font-size: var(--t-body);
+  font-size: 1rem; /* >=16px: stops iOS auto-zoom on focus */
   font-weight: 500;
   color: var(--ink);
   transition: border-color var(--dur-1) var(--ease-out);
