@@ -1,0 +1,9 @@
+.wordmark {
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+/* Leading "x" in amber to tie the wordmark to the bicolor mark. */
+.wordmark::first-letter {
+  color: var(--accent);
+}

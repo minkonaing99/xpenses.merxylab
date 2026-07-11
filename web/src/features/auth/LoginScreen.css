@@ -17,10 +17,7 @@
   width: 4.5rem;
   height: 4.5rem;
   margin-bottom: var(--sp-5);
-  font-size: 2.5rem;
-  font-weight: 600;
-  color: var(--accent-ink);
-  background: var(--accent);
+  background: var(--paper-sunken);
   border-radius: var(--r-lg);
   box-shadow: var(--shadow-2);
 }

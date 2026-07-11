@@ -7,6 +7,21 @@
   padding: var(--sp-6) 0 var(--sp-5);
 }
 
+.dash__brandrow {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-4);
+}
+
+.dash__brand {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+  font-size: var(--t-body);
+}
+
 .dash__month {
   margin-bottom: var(--sp-2);
 }

@@ -8,6 +8,7 @@ import {
 } from "../../api/hooks";
 import type { BudgetStatus, Category, CategorySpend } from "../../api/types";
 import { useMonth } from "../../app/MonthContext";
+import { LogoMark, Wordmark } from "../../ui/Logo";
 import { Money } from "../../ui/Money";
 import { MonthSwitcher } from "../../ui/MonthSwitcher";
 import "./DashboardScreen.css";
@@ -33,8 +34,14 @@ export function DashboardScreen() {
   return (
     <div className="dash">
       <header className="dash__hero">
-        <div className="dash__month">
-          <MonthSwitcher />
+        <div className="dash__brandrow">
+          <span className="dash__brand">
+            <LogoMark size={22} />
+            <Wordmark />
+          </span>
+          <div className="dash__month">
+            <MonthSwitcher />
+          </div>
         </div>
         <p className="dash__net-label">Net balance</p>
         <Money amount={netWorth} className="dash__net" />
