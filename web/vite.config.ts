@@ -14,8 +14,8 @@ export default defineConfig({
         name: "xpenses",
         short_name: "xpenses",
         description: "Personal expense tracker",
-        theme_color: "#f3ede1",
-        background_color: "#f3ede1",
+        theme_color: "#f4f2fa",
+        background_color: "#f4f2fa",
         display: "standalone",
         orientation: "portrait",
         icons: [

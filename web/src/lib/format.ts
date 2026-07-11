@@ -24,6 +24,14 @@ export function today(now = new Date()): string {
   }).format(now);
 }
 
+/** Previous calendar month for a YYYY-MM. "2026-01" -> "2025-12". */
+export function prevMonth(month: string): string {
+  const [y, m] = month.split("-").map(Number);
+  const py = m === 1 ? y - 1 : y;
+  const pm = m === 1 ? 12 : m - 1;
+  return `${py}-${String(pm).padStart(2, "0")}`;
+}
+
 /** "July 2026" for a YYYY-MM. */
 export function monthLabel(month: string): string {
   const [y, m] = month.split("-").map(Number);

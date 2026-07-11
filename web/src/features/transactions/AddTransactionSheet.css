@@ -4,6 +4,47 @@
   gap: var(--sp-5);
 }
 
+/* One-tap "repeat" chips for recent transactions. */
+.add__repeat {
+  display: flex;
+  gap: var(--sp-2);
+  overflow-x: auto;
+  padding-bottom: var(--sp-1);
+  scrollbar-width: none;
+}
+
+.add__repeat::-webkit-scrollbar {
+  display: none;
+}
+
+.add__chip {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 2px;
+  flex: 0 0 auto;
+  padding: var(--sp-2) var(--sp-3);
+  background: var(--paper-sunken);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  transition: border-color var(--dur-1) var(--ease-out);
+}
+
+.add__chip:active {
+  border-color: var(--accent);
+}
+
+.add__chip-label {
+  font-size: var(--t-label);
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.add__chip-amt {
+  font-size: var(--t-caption);
+  color: var(--ink-faint);
+}
+
 /* Amount is the hero of the sheet. */
 .add__amount {
   display: flex;

@@ -1,6 +1,7 @@
 import { useState, type FormEvent } from "react";
 import { api, ApiError } from "../../lib/api";
 import { Button } from "../../ui/Button";
+import { LogoMark, Wordmark } from "../../ui/Logo";
 import "./LoginScreen.css";
 
 export function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
@@ -28,8 +29,12 @@ export function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
 
   return (
     <div className="login">
-      <div className="login__mark" aria-hidden="true">฿</div>
-      <h1 className="login__title">xpenses</h1>
+      <div className="login__mark">
+        <LogoMark size={56} />
+      </div>
+      <h1 className="login__title">
+        <Wordmark />
+      </h1>
       <p className="login__sub">Your ledger, locked to one key.</p>
 
       <form className="login__form" onSubmit={submit}>

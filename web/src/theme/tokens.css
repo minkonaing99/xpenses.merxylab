@@ -1,43 +1,57 @@
 /*
- * xpenses design tokens — "warm paper, one ink accent"
- * Scene: solo owner logging a THB expense on their phone in a bright cafe.
- * Color strategy: Restrained. Cream paper + warm ink + one amber accent.
- * Money sign lives in muted ledger tints, never in the brand color.
- * All color in OKLCH; neutrals tinted toward the paper hue (~85).
+ * xpenses design tokens — "violet finance"
+ * Scene: modern finance app, light lavender-white canvas, white cards,
+ * one violet accent with a purple gradient hero, colored category chips.
+ * All color in OKLCH; neutrals tinted toward the violet hue (~292).
  */
 :root {
   /* Surfaces */
-  --paper: oklch(0.968 0.008 85);        /* app background, warm cream */
-  --paper-raised: oklch(0.992 0.006 85); /* sheets, elevated rows */
-  --paper-sunken: oklch(0.945 0.009 84); /* inset fields, track */
+  --paper: oklch(0.975 0.007 292);       /* app background, lavender white */
+  --paper-raised: oklch(1 0 0);          /* cards, sheets, elevated rows — white */
+  --paper-sunken: oklch(0.955 0.011 292);/* inset fields, tracks */
 
   /* Ink (text) */
-  --ink: oklch(0.26 0.014 74);           /* primary text, warm near-black */
-  --ink-soft: oklch(0.47 0.012 74);      /* secondary text */
-  --ink-faint: oklch(0.63 0.010 74);     /* tertiary, placeholders */
+  --ink: oklch(0.26 0.03 285);           /* primary text, cool near-black */
+  --ink-soft: oklch(0.48 0.025 285);     /* secondary text */
+  --ink-faint: oklch(0.64 0.02 288);     /* tertiary, placeholders */
 
   /* Structure */
-  --line: oklch(0.885 0.008 82);         /* hairline dividers */
-  --line-strong: oklch(0.80 0.010 80);   /* field borders */
+  --line: oklch(0.925 0.008 292);        /* hairline dividers */
+  --line-strong: oklch(0.86 0.012 292);  /* field borders */
 
-  /* Accent — the single amber highlighter */
-  --accent: oklch(0.74 0.135 74);        /* FAB, active tab, primary fill */
-  --accent-press: oklch(0.68 0.135 68);  /* pressed state */
-  --accent-ink: oklch(0.28 0.05 68);     /* text/icon on accent */
-  --accent-wash: oklch(0.93 0.045 80);   /* faint amber background wash */
+  /* Accent — violet */
+  --accent: oklch(0.55 0.21 288);        /* FAB, active tab, primary fill */
+  --accent-press: oklch(0.49 0.21 288);  /* pressed state */
+  --accent-ink: oklch(0.99 0.01 288);    /* text/icon on accent */
+  --accent-wash: oklch(0.95 0.03 290);   /* faint violet background wash */
+  --accent-soft: oklch(0.90 0.05 290);   /* soft violet fill for chips/icons */
 
-  /* Money sign — muted ledger, low chroma */
-  --pos: oklch(0.52 0.09 158);           /* income / in the black */
-  --neg: oklch(0.50 0.11 32);            /* expense / in the red */
-  --pos-wash: oklch(0.93 0.03 158);
-  --neg-wash: oklch(0.93 0.035 32);
+  /* Gradient hero (violet -> purple, top-left to bottom-right) */
+  --grad-from: oklch(0.62 0.19 288);
+  --grad-to: oklch(0.50 0.22 300);
+
+  /* Money sign */
+  --pos: oklch(0.60 0.15 155);           /* income */
+  --neg: oklch(0.58 0.20 22);            /* expense */
+  --pos-wash: oklch(0.94 0.04 155);
+  --neg-wash: oklch(0.94 0.045 22);
 
   /* Danger — over budget, destructive */
-  --danger: oklch(0.53 0.15 28);
-  --danger-wash: oklch(0.93 0.04 28);
+  --danger: oklch(0.57 0.21 22);
+  --danger-wash: oklch(0.94 0.05 22);
+
+  /* Category palette — colored icon tiles (assigned by categoryColor()) */
+  --cat-a: oklch(0.60 0.19 288); /* violet */
+  --cat-b: oklch(0.62 0.16 245); /* blue */
+  --cat-c: oklch(0.66 0.13 195); /* teal */
+  --cat-d: oklch(0.66 0.15 155); /* green */
+  --cat-e: oklch(0.74 0.14 75);  /* amber */
+  --cat-f: oklch(0.68 0.17 45);  /* orange */
+  --cat-g: oklch(0.62 0.20 20);  /* red */
+  --cat-h: oklch(0.66 0.18 350); /* pink */
 
   /* Focus */
-  --focus: oklch(0.62 0.13 74);
+  --focus: oklch(0.55 0.18 288);
 
   /* Type */
   --font-ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
@@ -53,7 +67,7 @@
   --t-figure: 2.125rem;   /* 34, big money */
   --t-hero: 2.75rem;      /* 44, headline balance */
 
-  /* Spacing rhythm (non-uniform on purpose) */
+  /* Spacing rhythm */
   --sp-1: 0.25rem;
   --sp-2: 0.5rem;
   --sp-3: 0.75rem;
@@ -62,20 +76,22 @@
   --sp-6: 2rem;
   --sp-7: 3rem;
 
-  /* Radii */
-  --r-sm: 0.5rem;
-  --r-md: 0.875rem;
-  --r-lg: 1.25rem;
+  /* Radii — rounder, card-forward */
+  --r-sm: 0.625rem;
+  --r-md: 1rem;
+  --r-lg: 1.5rem;
+  --r-xl: 1.75rem;
   --r-full: 999px;
 
-  /* Elevation — soft, warm-tinted, never gray */
-  --shadow-1: 0 1px 2px oklch(0.26 0.014 74 / 0.06);
-  --shadow-2: 0 6px 20px oklch(0.26 0.014 74 / 0.10);
-  --shadow-sheet: 0 -8px 40px oklch(0.26 0.014 74 / 0.16);
+  /* Elevation — soft, cool violet-tinted */
+  --shadow-1: 0 1px 3px oklch(0.45 0.10 288 / 0.08);
+  --shadow-2: 0 10px 30px oklch(0.45 0.14 288 / 0.12);
+  --shadow-accent: 0 12px 30px oklch(0.52 0.22 292 / 0.35);
+  --shadow-sheet: 0 -8px 40px oklch(0.30 0.06 288 / 0.18);
 
   /* Motion */
-  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);      /* ease-out-quint */
-  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);  /* ease-out-expo-ish */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);
   --dur-1: 120ms;
   --dur-2: 220ms;
   --dur-3: 360ms;

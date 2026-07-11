@@ -6,6 +6,7 @@ const { ok, ApiError } = require('../../lib/apiResponse')
 const accountsRepo = require('../accounts/repo')
 const { mapAccountRow } = require('../accounts/service')
 const { computeNet } = require('./service')
+const { toCsv } = require('./csv')
 const repo = require('./repo')
 
 const monthQuerySchema = z.object({ month: z.string().regex(/^\d{4}-\d{2}$/) })
@@ -57,6 +58,24 @@ function createReportsRouter(pool) {
           monthNet: computeNet(totals.income, totals.expense),
         }),
       )
+    } catch (err) {
+      next(err)
+    }
+  })
+
+  router.get('/export', async (req, res, next) => {
+    const parsed = monthQuerySchema.safeParse(req.query)
+    if (!parsed.success) {
+      next(new ApiError('VALIDATION_ERROR', parsed.error.issues[0].message))
+      return
+    }
+
+    try {
+      const rows = await repo.monthTransactions(pool, parsed.data.month)
+      const csv = toCsv(rows)
+      res.setHeader('Content-Type', 'text/csv; charset=utf-8')
+      res.setHeader('Content-Disposition', `attachment; filename="xpenses-${parsed.data.month}.csv"`)
+      res.send(csv)
     } catch (err) {
       next(err)
     }

@@ -1,6 +1,6 @@
 import { useMemo, useState } from "react";
 import { useAccounts, useCategories, useTransactions } from "../../api/hooks";
-import type { Account, Category, Transaction } from "../../api/types";
+import type { Account, Category, Transaction, TxnType } from "../../api/types";
 import { useMonth } from "../../app/MonthContext";
 import { dayLabel } from "../../lib/format";
 import { Money } from "../../ui/Money";
@@ -8,9 +8,20 @@ import { MonthSwitcher } from "../../ui/MonthSwitcher";
 import { AddTransactionSheet } from "./AddTransactionSheet";
 import "./TransactionsScreen.css";
 
+type Filter = "all" | TxnType;
+
+const FILTERS: { value: Filter; label: string }[] = [
+  { value: "all", label: "All" },
+  { value: "income", label: "Income" },
+  { value: "expense", label: "Expenses" },
+  { value: "transfer", label: "Transfers" },
+];
+
 export function TransactionsScreen() {
   const { month } = useMonth();
   const [editing, setEditing] = useState<Transaction | null>(null);
+  const [query, setQuery] = useState("");
+  const [filter, setFilter] = useState<Filter>("all");
   const txns = useTransactions(month);
   const accounts = useAccounts();
   const categories = useCategories();
@@ -23,22 +34,55 @@ export function TransactionsScreen() {
     return { acct, cat };
   }, [accounts.data, categories.data]);
 
-  const groups = useMemo(() => groupByDay(txns.data ?? []), [txns.data]);
+  const filtered = useMemo(
+    () => filterTxns(txns.data ?? [], query, filter, names),
+    [txns.data, query, filter, names],
+  );
+  const groups = useMemo(() => groupByDay(filtered), [filtered]);
 
   return (
     <div className="ledger">
       <header className="ledger__head">
-        <h1 className="ledger__title">Ledger</h1>
+        <h1 className="ledger__title">Transactions</h1>
         <MonthSwitcher />
       </header>
+
+      <input
+        className="ledger__search"
+        type="search"
+        placeholder="Search notes, categories, accounts"
+        aria-label="Search transactions"
+        value={query}
+        onChange={(e) => setQuery(e.target.value)}
+      />
+
+      <div className="ledger__filters" role="tablist" aria-label="Filter by type">
+        {FILTERS.map((f) => (
+          <button
+            key={f.value}
+            role="tab"
+            aria-selected={filter === f.value}
+            className={`chip${filter === f.value ? " chip--on" : ""}`}
+            onClick={() => setFilter(f.value)}
+          >
+            {f.label}
+          </button>
+        ))}
+      </div>
 
       {txns.isLoading && <p className="ledger__note">Loading…</p>}
 
       {!txns.isLoading && groups.length === 0 && (
         <div className="ledger__empty">
           <p className="ledger__empty-mark" aria-hidden="true">฿</p>
-          <p className="ledger__empty-title">No transactions yet</p>
-          <p className="ledger__empty-sub">Tap the + below to log your first one.</p>
+          <p className="ledger__empty-title">
+            {query.trim() || filter !== "all" ? "No matches" : "No transactions yet"}
+          </p>
+          <p className="ledger__empty-sub">
+            {query.trim() || filter !== "all"
+              ? "Try a different search or filter."
+              : "Tap the + below to log your first one."}
+          </p>
         </div>
       )}
 
@@ -70,20 +114,20 @@ function TxnRow({
   names: { acct: Map<string, string>; cat: Map<string, string> };
   onOpen: () => void;
 }) {
+  const catNm = names.cat.get(t.categoryId ?? "");
   const title =
     t.type === "transfer"
       ? `${names.acct.get(t.fromAccountId ?? "") ?? "?"} → ${names.acct.get(t.toAccountId ?? "") ?? "?"}`
-      : t.note?.trim() || names.cat.get(t.categoryId ?? "") || (t.type === "income" ? "Income" : "Expense");
+      : t.note?.trim() || catNm || (t.type === "income" ? "Income" : "Expense");
 
   const sub =
     t.type === "transfer"
       ? "Transfer"
-      : [names.cat.get(t.categoryId ?? ""), names.acct.get(t.accountId ?? "")].filter(Boolean).join(" · ");
+      : [catNm, names.acct.get(t.accountId ?? "")].filter(Boolean).join(" · ");
 
   return (
     <li className="txn-item">
       <button className="txn" onClick={onOpen} aria-label={`Edit ${title}`}>
-        <span className={`txn__dot txn__dot--${t.type}`} aria-hidden="true" />
         <div className="txn__meta">
           <span className="txn__title">{title}</span>
           {sub && <span className="txn__sub">{sub}</span>}
@@ -96,6 +140,28 @@ function TxnRow({
       </button>
     </li>
   );
+}
+
+// Client-side search + type filter over the loaded month.
+function filterTxns(
+  txns: Transaction[],
+  query: string,
+  filter: Filter,
+  names: { acct: Map<string, string>; cat: Map<string, string> },
+): Transaction[] {
+  const q = query.trim().toLowerCase();
+  return txns.filter((t) => {
+    if (filter !== "all" && t.type !== filter) return false;
+    if (!q) return true;
+    const parts = [
+      t.note ?? "",
+      names.cat.get(t.categoryId ?? "") ?? "",
+      names.acct.get(t.accountId ?? "") ?? "",
+      names.acct.get(t.fromAccountId ?? "") ?? "",
+      names.acct.get(t.toAccountId ?? "") ?? "",
+    ];
+    return parts.join(" ").toLowerCase().includes(q);
+  });
 }
 
 function groupByDay(txns: Transaction[]): Array<[string, Transaction[]]> {

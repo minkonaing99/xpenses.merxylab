@@ -1,23 +1,59 @@
 import { useCategorySpend, useSummary } from "../../api/hooks";
 import { useMonth } from "../../app/MonthContext";
+import { prevMonth } from "../../lib/format";
+import { Donut } from "../../ui/Donut";
 import { Money } from "../../ui/Money";
 import { MonthSwitcher } from "../../ui/MonthSwitcher";
 import { PageHeader } from "../../ui/PageHeader";
 import "./ReportsScreen.css";
 
+// Violet-shade ramp: darkest for the biggest slice, lighter down the list.
+// Keeps the chart on-theme while still telling segments apart.
+function shade(index: number, count: number): string {
+  const l = count > 1 ? 0.52 + (index / (count - 1)) * 0.24 : 0.55;
+  return `oklch(${l.toFixed(3)} 0.16 288)`;
+}
+
 export function ReportsScreen() {
   const { month } = useMonth();
   const summary = useSummary(month);
+  const prev = useSummary(prevMonth(month));
   const spend = useCategorySpend(month);
 
   const s = summary.data;
   const items = [...(spend.data ?? [])].sort((a, b) => b.total - a.total);
-  const max = Math.max(1, ...items.map((i) => i.total));
   const total = items.reduce((sum, i) => sum + i.total, 0);
+  const segments = items.map((i, idx) => ({ value: i.total, color: shade(idx, items.length) }));
+
+  const expenseDelta = s && prev.data ? s.monthExpense - prev.data.monthExpense : null;
 
   return (
     <div className="reports">
       <PageHeader title="Reports" action={<MonthSwitcher />} />
+
+      <section className="rcard">
+        <div className="donut">
+          <Donut segments={segments} thickness={16} />
+          <div className="donut__center">
+            <Money amount={total} className="donut__total" />
+            <span className="donut__cap">Total spent</span>
+          </div>
+        </div>
+
+        {expenseDelta !== null && (
+          <p className="rmom">
+            {expenseDelta === 0 ? (
+              "Flat vs last month"
+            ) : (
+              <>
+                {expenseDelta > 0 ? "▲" : "▼"}{" "}
+                <Money amount={Math.abs(expenseDelta)} tone={expenseDelta > 0 ? "neg" : "pos"} className="rmom__amt" />{" "}
+                vs last month
+              </>
+            )}
+          </p>
+        )}
+      </section>
 
       <div className="rstats">
         <Stat label="In" amount={s?.monthIncome ?? 0} tone="pos" />
@@ -25,35 +61,29 @@ export function ReportsScreen() {
         <Stat label="Net" amount={s?.monthNet ?? 0} signed />
       </div>
 
-      <section className="rsec">
-        <h2 className="rsec__title">Accounts</h2>
+      <section className="rcard">
+        <h2 className="rcard__title">By category</h2>
+        {items.length === 0 && <p className="rcard__empty">Nothing spent this month.</p>}
+        <ol className="legend">
+          {items.map((i, idx) => (
+            <li key={i.categoryId} className="legend__row">
+              <span className="legend__dot" style={{ background: shade(idx, items.length) }} aria-hidden="true" />
+              <span className="legend__name">{i.name}</span>
+              <span className="legend__pct num">{total > 0 ? Math.round((i.total / total) * 100) : 0}%</span>
+              <Money amount={i.total} className="legend__amt" />
+            </li>
+          ))}
+        </ol>
+      </section>
+
+      <section className="rcard">
+        <h2 className="rcard__title">Accounts</h2>
         {(s?.accounts ?? []).map((a) => (
           <div key={a.id} className="rbal">
             <span className="rbal__name">{a.name}</span>
             <Money amount={a.balance} className="rbal__amt" />
           </div>
         ))}
-      </section>
-
-      <section className="rsec">
-        <h2 className="rsec__title">Spending by category</h2>
-        {items.length === 0 && <p className="rsec__empty">Nothing spent this month.</p>}
-        <ol className="rspend">
-          {items.map((i) => (
-            <li key={i.categoryId} className="rspend__row">
-              <div className="rspend__meta">
-                <span className="rspend__name">{i.name}</span>
-                <span className="rspend__vals">
-                  <Money amount={i.total} className="rspend__amt" />
-                  <span className="rspend__pct num">
-                    {total > 0 ? Math.round((i.total / total) * 100) : 0}%
-                  </span>
-                </span>
-              </div>
-              <span className="rspend__bar" style={{ width: `${(i.total / max) * 100}%` }} />
-            </li>
-          ))}
-        </ol>
       </section>
     </div>
   );

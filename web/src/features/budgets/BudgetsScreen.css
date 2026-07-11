@@ -60,3 +60,10 @@
 .brow__fill--ok { background: var(--pos); }
 .brow__fill--warn { background: var(--accent); }
 .brow__fill--over { background: var(--danger); }
+
+.brow__pace {
+  display: block;
+  margin-top: var(--sp-2);
+  font-size: var(--t-caption);
+  color: var(--ink-faint);
+}

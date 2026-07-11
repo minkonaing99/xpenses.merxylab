@@ -281,6 +281,7 @@ Transaction body:
 |---|---|---|---|---|
 | GET | /api/reports/category-spend | `?month=YYYY-MM` | Yes | `[{ categoryId, name, total }]` for the chart. |
 | GET | /api/reports/summary | `?month=YYYY-MM` | Yes | `{ accounts:[{id,name,type,balance}], monthIncome, monthExpense, monthNet }` (satang). |
+| GET | /api/reports/export | `?month=YYYY-MM` | Yes | CSV attachment (`text/csv`) of the month's transactions: `date,type,category,account,amount_thb,note`. Amount in baht (2dp). |
 
 ### Cron (Plan B, optional)
 | Method | Path | Auth Required | Notes |

@@ -1,5 +1,6 @@
 import { Link } from "react-router-dom";
 import { useLogout } from "../../api/hooks";
+import { useMonth } from "../../app/MonthContext";
 import { PageHeader } from "../../ui/PageHeader";
 import "./SettingsScreen.css";
 
@@ -12,6 +13,7 @@ const MANAGE = [
 
 export function SettingsScreen() {
   const logout = useLogout();
+  const { month } = useMonth();
 
   async function signOut() {
     await logout.mutateAsync().catch(() => {});
@@ -37,6 +39,10 @@ export function SettingsScreen() {
       <button className="settings__logout" onClick={signOut} disabled={logout.isPending}>
         {logout.isPending ? "Signing out…" : "Sign out"}
       </button>
+
+      <a className="settings__export" href={`/api/reports/export?month=${month}`} download>
+        Export {month} as CSV
+      </a>
     </div>
   );
 }

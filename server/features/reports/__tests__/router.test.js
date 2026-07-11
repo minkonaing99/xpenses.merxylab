@@ -92,4 +92,21 @@ describe('reports router', () => {
     const res = await request(app).get('/api/reports/summary')
     expect(res.status).toBe(400)
   })
+
+  it('GET /export returns a CSV attachment for the month', async () => {
+    await makeTxn('expense', 4250, '2026-07-05', { note: 'lunch' })
+
+    const res = await request(app).get('/api/reports/export').query({ month: '2026-07' })
+    expect(res.status).toBe(200)
+    expect(res.headers['content-type']).toMatch(/text\/csv/)
+    expect(res.headers['content-disposition']).toContain('xpenses-2026-07.csv')
+    expect(res.text.split('\r\n')[0]).toBe('date,type,category,account,amount_thb,note')
+    expect(res.text).toContain('2026-07-05,expense,')
+    expect(res.text).toContain(',42.50,lunch')
+  })
+
+  it('GET /export requires a month param', async () => {
+    const res = await request(app).get('/api/reports/export')
+    expect(res.status).toBe(400)
+  })
 })
