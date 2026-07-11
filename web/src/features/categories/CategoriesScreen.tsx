@@ -1,112 +1,138 @@
-import { useState, type FormEvent } from 'react'
-import { Trash } from '@phosphor-icons/react'
-import { Panel } from '../../ui/Panel'
-import { Button } from '../../ui/Button'
-import { EmptyState } from '../../ui/EmptyState'
-import { Banner } from '../../ui/Banner'
-import { useCategories } from '../../offline/hooks'
-import { createCategory, updateCategory, deleteCategory } from '../../offline/mutations'
-import { countTransactionsUsingCategory } from '../../offline/references'
-import type { XpensesDb } from '../../offline/db'
-import './CategoriesScreen.css'
+import { useEffect, useState } from "react";
+import {
+  useCategories,
+  useCreateCategory,
+  useDeleteCategory,
+  useUpdateCategory,
+} from "../../api/hooks";
+import type { Category } from "../../api/types";
+import { ApiError } from "../../lib/api";
+import { Button } from "../../ui/Button";
+import { PageHeader } from "../../ui/PageHeader";
+import { Sheet } from "../../ui/Sheet";
+import "../../ui/form.css";
+import "./CategoriesScreen.css";
 
-interface CategoriesScreenProps {
-  db: XpensesDb
+export function CategoriesScreen() {
+  const categories = useCategories();
+  const [form, setForm] = useState<Category | "new" | null>(null);
+
+  return (
+    <div className="cats">
+      <PageHeader
+        title="Categories"
+        back="/settings"
+        action={
+          <Button variant="ghost" className="crud-add" onClick={() => setForm("new")}>
+            Add
+          </Button>
+        }
+      />
+
+      <ul className="crud-list">
+        {(categories.data ?? []).map((c) => (
+          <li key={c.id}>
+            <button className="crow" onClick={() => setForm(c)}>
+              <span className="cats__name">{c.name}</span>
+              <Chevron />
+            </button>
+          </li>
+        ))}
+      </ul>
+
+      <CategoryForm target={form} onClose={() => setForm(null)} />
+    </div>
+  );
 }
 
-export function CategoriesScreen({ db }: CategoriesScreenProps) {
-  const categories = useCategories(db)
-  const [name, setName] = useState('')
-  const [editingId, setEditingId] = useState<string | null>(null)
-  const [blockedDelete, setBlockedDelete] = useState<{ name: string; count: number } | null>(null)
+function CategoryForm({ target, onClose }: { target: Category | "new" | null; onClose: () => void }) {
+  const editing = target && target !== "new" ? target : null;
+  const create = useCreateCategory();
+  const update = useUpdateCategory();
+  const remove = useDeleteCategory();
 
-  function startEdit(id: string, currentName: string) {
-    setEditingId(id)
-    setName(currentName)
+  const [name, setName] = useState("");
+  const [err, setErr] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!target) return;
+    setErr(null);
+    setName(editing?.name ?? "");
+  }, [target, editing]);
+
+  const valid = name.trim().length > 0;
+  const busy = create.isPending || update.isPending || remove.isPending;
+
+  async function save() {
+    if (!valid) return;
+    try {
+      setErr(null);
+      if (editing) await update.mutateAsync({ id: editing.id, patch: { name: name.trim() } });
+      else await create.mutateAsync({ id: crypto.randomUUID(), name: name.trim() });
+      onClose();
+    } catch (e) {
+      setErr(
+        e instanceof ApiError && e.code === "CONFLICT"
+          ? "A category with that name already exists."
+          : "Couldn't save.",
+      );
+    }
   }
 
-  async function handleDelete(id: string, categoryName: string) {
-    const referenced = await countTransactionsUsingCategory(db, id)
-    if (referenced > 0) {
-      setBlockedDelete({ name: categoryName, count: referenced })
-      return
+  async function del() {
+    if (!editing) return;
+    try {
+      setErr(null);
+      await remove.mutateAsync(editing.id);
+      onClose();
+    } catch (e) {
+      setErr(
+        e instanceof ApiError && e.code === "CONFLICT"
+          ? "This category is used by transactions, so it can't be deleted."
+          : "Couldn't delete.",
+      );
     }
-    setBlockedDelete(null)
-    await deleteCategory(db, id)
-  }
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-    const trimmed = name.trim()
-    if (!trimmed) return
-    if (editingId) {
-      await updateCategory(db, editingId, { name: trimmed })
-      setEditingId(null)
-    } else {
-      await createCategory(db, { name: trimmed })
-    }
-    setName('')
   }
 
   return (
-    <div className="screen">
-      <div className="screen__header">
-        <div className="text-screen-title">Categories</div>
-      </div>
-      <div className="screen__body">
-        <Panel>
-          <form className="categories__form" onSubmit={handleSubmit}>
-            <label className="categories__field" htmlFor="category-name">
-              <span className="text-caption-strong">Category name</span>
-              <input
-                id="category-name"
-                className="categories__input text-body"
-                value={name}
-                onChange={(event) => setName(event.target.value)}
-              />
-            </label>
-            <Button type="submit" disabled={name.trim().length === 0}>
-              {editingId ? 'Save' : 'Add'}
-            </Button>
-          </form>
-        </Panel>
+    <Sheet open={!!target} onClose={onClose} title={editing ? "Edit category" : "New category"}>
+      <div className="aform">
+        <label className="aform__field">
+          <span className="fld__label">Name</span>
+          <input
+            className="aform__input"
+            value={name}
+            maxLength={80}
+            placeholder="e.g. Groceries"
+            onChange={(e) => setName(e.target.value)}
+            autoFocus={!editing}
+          />
+        </label>
 
-        {blockedDelete && (
-          <div className="screen__banner">
-            <Banner
-              tone="warning"
-              message={`Can't delete ${blockedDelete.name} — used by ${blockedDelete.count} transaction${blockedDelete.count === 1 ? '' : 's'}.`}
-              onDismiss={() => setBlockedDelete(null)}
-            />
-          </div>
+        {err && (
+          <p className="aform__error" role="alert">
+            {err}
+          </p>
         )}
 
-        {categories !== undefined && categories.length === 0 ? (
-          <EmptyState title="No categories yet" description="Add your first category above." />
-        ) : (
-          <Panel>
-            {categories?.map((category) => (
-              <div key={category.id} className="categories__row">
-                <button
-                  type="button"
-                  className="categories__row-label text-body"
-                  onClick={() => startEdit(category.id, category.name)}
-                >
-                  {category.name}
-                </button>
-                <button
-                  type="button"
-                  className="categories__delete"
-                  aria-label={`Delete ${category.name}`}
-                  onClick={() => handleDelete(category.id, category.name)}
-                >
-                  <Trash size={18} aria-hidden="true" />
-                </button>
-              </div>
-            ))}
-          </Panel>
+        <Button block disabled={!valid || busy} onClick={save}>
+          {busy ? "Saving…" : editing ? "Save changes" : "Add category"}
+        </Button>
+
+        {editing && (
+          <button className="aform__del" onClick={del} disabled={busy}>
+            Delete category
+          </button>
         )}
       </div>
-    </div>
-  )
+    </Sheet>
+  );
+}
+
+function Chevron() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--ink-faint)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 5l7 7-7 7" />
+    </svg>
+  );
 }

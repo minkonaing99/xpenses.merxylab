@@ -1,0 +1,39 @@
+.sel {
+  position: relative;
+  display: flex;
+}
+
+.sel__field {
+  width: 100%;
+  height: 2.75rem;
+  padding: 0 2.5rem 0 var(--sp-3);
+  appearance: none;
+  -webkit-appearance: none;
+  background: var(--paper-sunken);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  font-size: var(--t-body);
+  font-weight: 500;
+  color: var(--ink);
+  transition: border-color var(--dur-1) var(--ease-out);
+}
+
+.sel__field:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+/* Grey out the placeholder until a real value is picked. */
+.sel__field:invalid,
+.sel__field:has(option[value=""]:checked) {
+  color: var(--ink-faint);
+}
+
+.sel__chev {
+  position: absolute;
+  top: 50%;
+  right: var(--sp-3);
+  transform: translateY(-50%);
+  color: var(--ink-faint);
+  pointer-events: none;
+}

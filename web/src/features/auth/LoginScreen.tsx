@@ -1,63 +1,62 @@
-import { useState, type FormEvent } from 'react'
-import { Panel } from '../../ui/Panel'
-import { Button } from '../../ui/Button'
-import { Banner } from '../../ui/Banner'
-import { ApiClientError } from '../../lib/fetchClient'
-import { login } from './api'
-import './LoginScreen.css'
+import { useState, type FormEvent } from "react";
+import { api, ApiError } from "../../lib/api";
+import { Button } from "../../ui/Button";
+import "./LoginScreen.css";
 
-interface LoginScreenProps {
-  onSuccess: () => void
-}
+export function LoginScreen({ onSuccess }: { onSuccess: () => void }) {
+  const [password, setPassword] = useState("");
+  const [error, setError] = useState<string | null>(null);
+  const [busy, setBusy] = useState(false);
 
-export function LoginScreen({ onSuccess }: LoginScreenProps) {
-  const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [submitting, setSubmitting] = useState(false)
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-    setError(null)
-    setSubmitting(true)
+  async function submit(e: FormEvent) {
+    e.preventDefault();
+    if (!password || busy) return;
+    setBusy(true);
+    setError(null);
     try {
-      await login(password)
-      onSuccess()
+      await api.post("/auth/login", { password });
+      onSuccess();
     } catch (err) {
-      setError(err instanceof ApiClientError ? err.message : 'Something went wrong. Try again.')
-    } finally {
-      setSubmitting(false)
+      setError(
+        err instanceof ApiError && err.code === "RATE_LIMITED"
+          ? "Too many attempts. Wait a moment, then try again."
+          : "That password didn't work.",
+      );
+      setBusy(false);
     }
   }
 
   return (
-    <div className="screen">
-      <div className="screen__header">
-        <div className="text-screen-title">xpenses</div>
-      </div>
-      <div className="screen__body">
-        <Panel>
-          <form className="login-form" onSubmit={handleSubmit}>
-            {error && <Banner tone="error" message={error} />}
-            <div className="login-form__field">
-              <label htmlFor="password" className="text-caption-strong">
-                Password
-              </label>
-              <input
-                id="password"
-                className="login-form__input"
-                type="password"
-                autoComplete="current-password"
-                autoFocus
-                value={password}
-                onChange={(event) => setPassword(event.target.value)}
-              />
-            </div>
-            <Button type="submit" disabled={submitting || password.trim().length === 0}>
-              {submitting ? 'Signing in…' : 'Sign in'}
-            </Button>
-          </form>
-        </Panel>
-      </div>
+    <div className="login">
+      <div className="login__mark" aria-hidden="true">฿</div>
+      <h1 className="login__title">xpenses</h1>
+      <p className="login__sub">Your ledger, locked to one key.</p>
+
+      <form className="login__form" onSubmit={submit}>
+        <input
+          className="login__input"
+          type="password"
+          inputMode="text"
+          autoComplete="current-password"
+          placeholder="Password"
+          value={password}
+          onChange={(e) => {
+            setPassword(e.target.value);
+            setError(null);
+          }}
+          aria-label="Password"
+          aria-invalid={!!error}
+          autoFocus
+        />
+        {error && (
+          <p className="login__error" role="alert">
+            {error}
+          </p>
+        )}
+        <Button type="submit" block disabled={!password || busy}>
+          {busy ? "Checking…" : "Unlock"}
+        </Button>
+      </form>
     </div>
-  )
+  );
 }

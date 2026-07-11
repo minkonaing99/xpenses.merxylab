@@ -1,97 +1,124 @@
-.sheet-backdrop {
-  position: fixed;
-  inset: 0;
-  background: rgba(0, 0, 0, 0.32);
+.add {
   display: flex;
-  align-items: flex-end;
+  flex-direction: column;
+  gap: var(--sp-5);
+}
+
+/* Amount is the hero of the sheet. */
+.add__amount {
+  display: flex;
+  align-items: baseline;
   justify-content: center;
-  z-index: 20;
+  gap: var(--sp-2);
+  padding: var(--sp-4) 0 var(--sp-2);
 }
 
-.sheet {
-  width: 100%;
-  max-width: 480px;
-  background: var(--color-surface, #fff);
-  border-radius: var(--radius-lg, 18px) var(--radius-lg, 18px) 0 0;
-  box-shadow: 0 -4px 24px rgba(29, 29, 31, 0.12);
-  padding-bottom: var(--sp-lg, 24px);
-}
-
-.sheet__handle {
-  width: 36px;
-  height: 5px;
-  border-radius: var(--radius-pill, 999px);
-  background: var(--color-hairline-strong, #e0e0e0);
-  margin: 12px auto 8px;
-}
-
-.sheet__header {
-  display: flex;
-  align-items: center;
-  justify-content: space-between;
-  padding: 0 var(--sp-lg, 24px) var(--sp-sm, 12px);
-}
-
-.sheet__header button {
-  min-height: 44px;
-}
-
-.sheet__save {
-  color: var(--color-primary, #0066cc);
-}
-
-.sheet__type-toggle {
-  display: flex;
-  gap: var(--sp-xs, 8px);
-  padding: 4px var(--sp-lg, 24px) var(--sp-md, 17px);
-  background: var(--color-canvas, #f5f5f7);
-  margin: 0 var(--sp-lg, 24px) var(--sp-md, 17px);
-  border-radius: var(--radius-pill, 999px);
-}
-
-.sheet__type-btn {
-  flex: 1;
-  min-height: 36px;
-  border-radius: var(--radius-pill, 999px);
-  font-size: 14px;
+.add__baht {
+  font-size: var(--t-title);
   font-weight: 600;
-  color: var(--color-muted, #7a7a7a);
+  color: var(--ink-faint);
 }
 
-.sheet__type-btn--active {
-  background: #fff;
-  color: var(--color-ink, #1d1d1f);
-  box-shadow: 0 1px 2px rgba(0, 0, 0, 0.08);
-}
-
-.sheet__amount {
-  text-align: center;
-  padding-bottom: var(--sp-lg, 24px);
-}
-
-.sheet__field {
-  padding: 0 var(--sp-lg, 24px) var(--sp-md, 17px);
-}
-
-.sheet__field > .text-caption-strong {
-  color: var(--color-muted, #7a7a7a);
-  margin-bottom: var(--sp-xs, 8px);
-  display: block;
-}
-
-.sheet__delete {
+.add__amount input {
   width: 100%;
-  text-align: center;
-  color: var(--color-error, #d70015);
-  min-height: var(--touch-min, 44px);
-}
-
-.sheet__note-input {
-  width: 100%;
-  min-height: var(--touch-min, 44px);
-  border-radius: var(--radius-md, 14px);
-  background: var(--color-canvas, #f5f5f7);
-  padding: 0 var(--sp-md, 17px);
+  max-width: 9ch;
   border: none;
+  background: none;
+  font-size: var(--t-hero);
+  font-weight: 700;
+  letter-spacing: -0.03em;
+  text-align: left;
+}
+
+.add__amount input:focus {
   outline: none;
+}
+
+.add__amount input::placeholder {
+  color: var(--ink-faint);
+}
+
+.fld {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+}
+
+.fld--grow {
+  flex: 1;
+}
+
+.fld__label {
+  font-size: var(--t-caption);
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.03em;
+  color: var(--ink-faint);
+}
+
+.add__input {
+  height: 2.75rem;
+  padding: 0 var(--sp-3);
+  background: var(--paper-sunken);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  font-size: var(--t-body);
+  transition: border-color var(--dur-1) var(--ease-out);
+}
+
+.add__input:focus {
+  outline: none;
+  border-color: var(--accent);
+}
+
+.add__date {
+  min-width: 8.5rem;
+}
+
+.add__row {
+  display: flex;
+  gap: var(--sp-3);
+  align-items: flex-end;
+}
+
+.add__error {
+  color: var(--danger);
+  font-size: var(--t-label);
+  margin-top: calc(-1 * var(--sp-2));
+}
+
+.add__del {
+  min-height: 2.75rem;
+  padding: 0 var(--sp-4);
+  font-weight: 600;
+  color: var(--danger);
+  border-radius: var(--r-full);
+}
+
+.add__del--full {
+  width: 100%;
+  background: var(--danger-wash);
+}
+
+.add__del:disabled {
+  opacity: 0.5;
+  pointer-events: none;
+}
+
+.add__confirm {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-2);
+  padding: var(--sp-3) var(--sp-4);
+  background: var(--danger-wash);
+  border-radius: var(--r-md);
+  font-size: var(--t-body);
+  font-weight: 600;
+  color: var(--danger);
+}
+
+.add__confirm-actions {
+  display: flex;
+  justify-content: flex-end;
+  gap: var(--sp-2);
 }

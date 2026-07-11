@@ -1,0 +1,43 @@
+.crash {
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  gap: var(--sp-2);
+  padding: var(--sp-6);
+  text-align: center;
+}
+
+.crash__mark {
+  display: grid;
+  place-items: center;
+  width: 3rem;
+  height: 3rem;
+  margin-bottom: var(--sp-3);
+  font-size: 1.5rem;
+  font-weight: 700;
+  color: var(--danger);
+  background: var(--danger-wash);
+  border-radius: var(--r-full);
+}
+
+.crash__title {
+  font-size: var(--t-lead);
+  font-weight: 700;
+}
+
+.crash__sub {
+  color: var(--ink-soft);
+  max-width: 22rem;
+}
+
+.crash__btn {
+  margin-top: var(--sp-4);
+  padding: var(--sp-2) var(--sp-5);
+  min-height: 2.75rem;
+  font-weight: 600;
+  color: var(--accent-ink);
+  background: var(--accent);
+  border-radius: var(--r-full);
+}

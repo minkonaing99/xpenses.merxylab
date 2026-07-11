@@ -1,45 +1,31 @@
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { describe, expect, it, vi } from 'vitest'
-import { LoginScreen } from './LoginScreen'
-import { ApiClientError } from '../../lib/fetchClient'
-import * as api from './api'
+import { fireEvent, render, screen, waitFor } from "@testing-library/react";
+import { afterEach, describe, expect, it, vi } from "vitest";
+import { LoginScreen } from "./LoginScreen";
+import { api } from "../../lib/api";
+import { ApiError } from "../../lib/api";
 
-vi.mock('./api')
+afterEach(() => vi.restoreAllMocks());
 
-describe('LoginScreen', () => {
-  it('calls onSuccess after a successful login', async () => {
-    vi.mocked(api.login).mockResolvedValue(undefined)
-    const onSuccess = vi.fn()
-    render(<LoginScreen onSuccess={onSuccess} />)
+describe("LoginScreen", () => {
+  it("submits the password and calls onSuccess", async () => {
+    const post = vi.spyOn(api, "post").mockResolvedValue({});
+    const onSuccess = vi.fn();
+    render(<LoginScreen onSuccess={onSuccess} />);
 
-    await userEvent.type(screen.getByLabelText(/password/i), 'changeme123')
-    await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "hunter2" } });
+    fireEvent.click(screen.getByRole("button", { name: "Unlock" }));
 
-    expect(api.login).toHaveBeenCalledWith('changeme123')
-    expect(onSuccess).toHaveBeenCalledOnce()
-  })
+    await waitFor(() => expect(onSuccess).toHaveBeenCalled());
+    expect(post).toHaveBeenCalledWith("/auth/login", { password: "hunter2" });
+  });
 
-  it('shows the server error message on a failed login and does not call onSuccess', async () => {
-    vi.mocked(api.login).mockRejectedValue(new ApiClientError(401, 'UNAUTHORIZED', 'invalid password'))
-    const onSuccess = vi.fn()
-    render(<LoginScreen onSuccess={onSuccess} />)
+  it("shows an error on a bad password", async () => {
+    vi.spyOn(api, "post").mockRejectedValue(new ApiError("UNAUTHORIZED", "no", 401));
+    render(<LoginScreen onSuccess={() => {}} />);
 
-    await userEvent.type(screen.getByLabelText(/password/i), 'wrong')
-    await userEvent.click(screen.getByRole('button', { name: /sign in/i }))
+    fireEvent.change(screen.getByLabelText("Password"), { target: { value: "wrong" } });
+    fireEvent.click(screen.getByRole("button", { name: "Unlock" }));
 
-    expect(await screen.findByText('invalid password')).toBeInTheDocument()
-    expect(onSuccess).not.toHaveBeenCalled()
-  })
-
-  it('disables the submit button while the password field is empty', () => {
-    render(<LoginScreen onSuccess={vi.fn()} />)
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeDisabled()
-  })
-
-  it('disables the submit button when the password is whitespace only', async () => {
-    render(<LoginScreen onSuccess={vi.fn()} />)
-    await userEvent.type(screen.getByLabelText(/password/i), '   ')
-    expect(screen.getByRole('button', { name: /sign in/i })).toBeDisabled()
-  })
-})
+    expect(await screen.findByRole("alert")).toHaveTextContent("didn't work");
+  });
+});

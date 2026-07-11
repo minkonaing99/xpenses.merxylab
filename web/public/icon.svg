@@ -1,0 +1,6 @@
+<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 512 512" role="img" aria-label="xpenses">
+  <rect width="512" height="512" rx="112" fill="#f3ede1" />
+  <rect x="96" y="150" width="320" height="16" rx="8" fill="#e0b64a" />
+  <text x="256" y="360" font-family="ui-sans-serif, system-ui, -apple-system, sans-serif"
+        font-size="300" font-weight="600" text-anchor="middle" fill="#26221c">฿</text>
+</svg>

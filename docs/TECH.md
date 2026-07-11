@@ -2,13 +2,12 @@
 
 ## 1. High-Level Shape
 ```
-[ PWA (React+Vite) ]  --HTTPS/JSON-->  [ Express API (Passenger) ]  -->  [ MySQL ]
-        |                                        |
-   Service Worker                          node-cron (daily)
-   IndexedDB outbox                     recurring auto-insert
+[ API client ]  --HTTPS/JSON-->  [ Express API (Passenger) ]  -->  [ MySQL ]
+                                          |
+                                    node-cron (daily)
+                                 recurring auto-insert
 ```
-Single subdomain: `xpenses.merxylab.com`. Frontend served as static build;
-API under `/api/*` on the same origin (cookie auth needs same-site).
+Single subdomain: `xpenses.merxylab.com`. API under `/api/*`.
 
 ## 2. Deployment Topology (Hostinger Business shared)
 - Backend runs in Hostinger's Node.js App slot, managed by Phusion Passenger.
@@ -17,10 +16,8 @@ API under `/api/*` on the same origin (cookie auth needs same-site).
   - No always-on worker process guaranteed — cron runs inside the same app via
     node-cron; the app must stay warm. (Fallback: Hostinger cron job hitting a
     protected `/api/cron/run` endpoint — see SCHEMA.md Plan B.)
-- Frontend Vite `dist/` rsynced to the subdomain's public web root.
 - MySQL hosted by Hostinger; credentials via env (never in repo).
-- `deploy.sh` (SSH): `git pull` + `npm ci --omit=dev` on server for backend;
-  local `npm run build` then `rsync dist/` for frontend.
+- `deploy.sh` (SSH): `git pull` + `npm ci --omit=dev` on server.
 
 ## 3. Backend Structure (organize by feature)
 ```
@@ -45,42 +42,16 @@ server/
   cron/index.js          # schedule recurring job
 ```
 
-## 4. Frontend Structure (organize by feature)
-```
-web/src/
-  app/        # router, layout, providers
-  ui/         # design-token primitives (Button, Card, Chip, Field...)
-  theme/      # tokens.ts (from root DESIGN.md), globals.css
-  features/
-    auth/         (LoginScreen, api, hooks)
-    transactions/ (List, Row, TxnForm, api, hooks)
-    accounts/     (AccountsScreen, AccountPicker, api)
-    categories/   (CategoryPicker chips, api)
-    budgets/      (BudgetBanner, BudgetsScreen, api)
-    reports/      (CategoryChart, SummaryCards)
-    nav/          (BottomTabBar)
-  offline/
-    db.ts         # dexie schema (outbox + cached tables)
-    outbox.ts     # enqueue/replay writes
-    sync.ts       # pull + push reconcile
-  lib/            money, date, fetchClient (credentials: include)
-  sw/             # service worker (vite-plugin-pwa)
-```
+## 4. Data Flow — Writes
+1. Client builds txn with a UUID + updated_at (now), calls `POST /api/transactions`.
+2. Server upserts by UUID (idempotent on retry/conflict).
 
-## 5. Data Flow — Writes (offline-first)
-1. UI action -> build txn with client UUID + updated_at (now).
-2. Optimistically update local Dexie cache.
-3. Enqueue op in Dexie outbox.
-4. If online, `sync.push()` sends queued ops; server upserts by UUID.
-5. On success, mark op done; on 4xx-validation, mark op failed (surface to user).
-6. On reconnect (`online` event / periodic), replay outbox in FIFO order.
+## 5. Data Flow — Reads / Sync
+- `GET /api/sync?since=<updated_at>` returns changed rows (accounts,
+  categories, transactions, budgets, recurring), incl. tombstones, for any
+  client that needs incremental sync.
 
-## 6. Data Flow — Reads / Pull Sync
-- On load/online: `GET /api/sync?since=<updated_at>` returns changed rows.
-- Client merges by UUID, last-write-wins on updated_at, hides deleted_at rows.
-- Cached in Dexie so cold offline start shows last-known data.
-
-## 7. Sync Reconciliation Rules
+## 6. Sync Reconciliation Rules
 - Create: idempotent upsert on primary key = client UUID (`INSERT ... ON
   DUPLICATE KEY UPDATE` guarded by updated_at).
 - Update/Delete: apply only if incoming updated_at >= stored updated_at.
@@ -93,76 +64,64 @@ web/src/
   the client made later. Accepted: same-second conflicting edits from a
   single solo user are rare enough not to warrant microsecond timestamps.
 
-## 8. Auth Flow
+## 7. Auth Flow
 - `POST /api/auth/login {password}` -> bcrypt.compare vs env hash -> set
   httpOnly, Secure, SameSite=Lax cookie with signed JWT (short-ish exp + silent
   re-issue on activity). All `/api/*` (except login) require the cookie.
 
-## 9. Recurring Job
+## 8. Recurring Job
 - node-cron daily at a fixed hour (server TZ = Asia/Bangkok).
 - Query rules where `active=1 AND next_run_date <= today`.
 - For each: insert txn from template, advance next_run_date by interval,
   wrap per-rule in try/catch, log outcome. Idempotency: unique
   (rule_id, run_date) guard row prevents double-insert if job runs twice.
 
-## 10. Technical Goals / NFRs
-- Performance: sub-5s add-expense interaction on a phone (client-side only,
-  optimistic write — no server round-trip required to feel "done").
+## 9. Technical Goals / NFRs
+- Performance: sub-5s add-expense round-trip (no unnecessary server work).
 - Availability: best-effort on shared hosting; no uptime SLA (solo personal tool).
 - Scale: single user, low write volume — no horizontal scaling needed.
 - Latency: API responses target <300ms on Hostinger shared MySQL for simple
   CRUD; sync pull bounded by `since` filtering (indexed on updated_at).
 
-## 11. System Constraints
+## 10. System Constraints
 - Hostinger Business shared plan: Node runs only via Passenger App slot (no
   custom port, no guaranteed long-lived background process).
 - MySQL version/features limited to what Hostinger shared MySQL supports —
   avoid MySQL 8-only syntax unless confirmed available.
 - No dedicated Redis/cache tier available — no caching layer planned for v1.
 
-## 12. Integration Points
+## 11. Integration Points
 - None external in v1 (no bank APIs, no OAuth, no push notification service).
 - Hostinger cron (Plan B fallback) is the only "external" trigger, authenticated
   via a shared secret header on `/api/cron/run`.
 
-## 13. Scalability Plan
+## 12. Scalability Plan
 - Not applicable at solo-user scale. If revisited: vertical scaling on
   Hostinger plan tier, or migrate to a VPS with a persistent Node process
   (removing the Passenger/cron-warmth constraint).
 
-## 14. Deployment Target
+## 13. Deployment Target
 - Hostinger Business shared hosting, subdomain `xpenses.merxylab.com`.
 - Backend: Node.js App slot (Phusion Passenger managed).
-- Frontend: static `dist/` build served from the subdomain web root.
 - Database: Hostinger-provided MySQL instance.
 
-## 15. Observability
+## 14. Observability
 - Logging: server-side console logs (stdout, captured by Passenger/Hostinger
   logs) for request errors and cron run outcomes.
-- Metrics/alerting: none in v1 (no APM budget for a solo personal tool) —
-  budget-limit banner in-app is the only "alerting" surface, and it's
-  user-facing, not operational.
+- Metrics/alerting: none in v1 (no APM budget for a solo personal tool).
 
-## 16. Testing Architecture
+## 15. Testing Architecture
 - Backend: unit (services, money, sync reconciler) + integration (supertest on
   routes against a test MySQL schema / or mysql2 with a disposable test DB).
-- Frontend: unit (money/date/reducers, outbox logic) + component (RTL) + E2E
-  (Playwright: add txn online, add offline then reconnect, budget banner).
 
-## 17. Key Libraries (rationale)
+## 16. Key Libraries (rationale)
 - **express** — minimal, huge MySQL/Passenger compatibility.
 - **mysql2** — promise-based MySQL driver, prepared statements.
 - **zod** — schema validation at API boundary.
 - **jsonwebtoken + bcrypt** — standard JWT/password hashing pair.
 - **node-cron** — in-process scheduling for recurring job (Plan B: external
   Hostinger cron hitting `/api/cron/run`).
-- **vite + vite-plugin-pwa** — PWA manifest/service-worker generation, minimal config.
-- **dexie** — ergonomic IndexedDB wrapper for the offline outbox/cache.
 - **uuid** — client-generated transaction IDs.
-- Chart: a small dependency-light approach (e.g. a minimal bar list or a tiny
-  lib like `recharts` only if built-in SVG bars prove insufficient) — decide
-  at implementation time against actual data density; avoid a heavy charting
-  dependency for a single current-month bar breakdown.
 
 ---
 
@@ -185,9 +144,8 @@ cron in-process via `node-cron` with a documented Plan B fallback
 in case the app process isn't kept warm reliably.
 
 **Consequences:**
-- Positive: single language (JS/TS) across client and server; team/user
-  familiarity with the Node ecosystem preserved; zod/Express/mysql2 stack is
-  well-documented and simple.
+- Positive: user familiarity with the Node ecosystem preserved; zod/Express/mysql2
+  stack is well-documented and simple.
 - Negative: in-process cron reliability is not guaranteed on shared hosting —
   mitigated by the Plan B external-cron fallback, which must be kept in sync
   with the primary path (same idempotency guard table covers both).
@@ -218,6 +176,6 @@ in case the app process isn't kept warm reliably.
     public; treat as a second credential to rotate if exposed.
   - Error responses -> central `middleware/error.js` maps all errors to the
     standard envelope, stripping stack traces/SQL details from client responses.
-- **Dependency audit process**: run `npm audit` (server + web) before each
-  deploy; address CRITICAL/HIGH findings before shipping (see SETUP.md testing
+- **Dependency audit process**: run `npm audit` (server) before each deploy;
+  address CRITICAL/HIGH findings before shipping (see SETUP.md testing
   workflow and PLAN.md Phase 7 hardening task).

@@ -1,238 +1,249 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
-import { AmountInput } from '../../ui/AmountInput'
-import { Chip } from '../../ui/Chip'
-import { AccountPicker } from '../accounts/AccountPicker'
-import { CategoryPicker } from '../categories/CategoryPicker'
-import { createRecurringRule } from '../../offline/mutations'
-import { useAccounts, useCategories } from '../../offline/hooks'
-import { validateTransactionFields } from '../transactions/validateTransactionFields'
-import type { XpensesDb } from '../../offline/db'
-import type { TxnType } from '../../ui/TxnRow'
-import '../transactions/AddTransactionSheet.css'
-import './RecurringForm.css'
+import { useEffect, useMemo, useState } from "react";
+import {
+  useAccounts,
+  useCategories,
+  useCreateRecurring,
+  useDeleteRecurring,
+  useUpdateRecurring,
+} from "../../api/hooks";
+import type { IntervalUnit, RecurringRule, TxnType } from "../../api/types";
+import { ApiError } from "../../lib/api";
+import { bahtToSatang } from "../../lib/money";
+import { today } from "../../lib/format";
+import { Button } from "../../ui/Button";
+import { Segmented } from "../../ui/Segmented";
+import { MoneyInput } from "../../ui/MoneyInput";
+import { Sheet } from "../../ui/Sheet";
+import { Select } from "../../ui/Select";
+import { Chips } from "../transactions/Chips";
+import "../transactions/AddTransactionSheet.css";
+import "../../ui/form.css";
 
 const TYPES: { value: TxnType; label: string }[] = [
-  { value: 'expense', label: 'Expense' },
-  { value: 'income', label: 'Income' },
-  { value: 'transfer', label: 'Transfer' },
-]
+  { value: "expense", label: "Expense" },
+  { value: "income", label: "Income" },
+  { value: "transfer", label: "Transfer" },
+];
+const UNITS: { value: IntervalUnit; label: string }[] = [
+  { value: "day", label: "Day" },
+  { value: "week", label: "Week" },
+  { value: "month", label: "Month" },
+];
 
-const INTERVAL_UNITS = [
-  { value: 'day', label: 'Day' },
-  { value: 'week', label: 'Week' },
-  { value: 'month', label: 'Month' },
-]
-
-interface RecurringFormProps {
-  db: XpensesDb
-  onClose: () => void
+interface Props {
+  target: RecurringRule | "new" | null;
+  onClose: () => void;
 }
 
-export function RecurringForm({ db, onClose }: RecurringFormProps) {
-  const [type, setType] = useState<TxnType>('expense')
-  const [accountId, setAccountId] = useState<string | null>(null)
-  const [categoryId, setCategoryId] = useState<string | null>(null)
-  const [fromAccountId, setFromAccountId] = useState<string | null>(null)
-  const [toAccountId, setToAccountId] = useState<string | null>(null)
-  const [amountSatang, setAmountSatang] = useState(0)
-  const [note, setNote] = useState('')
-  const [intervalUnit, setIntervalUnit] = useState('month')
-  const [intervalCount, setIntervalCount] = useState(1)
-  const [nextRunDate, setNextRunDate] = useState('')
-  const todayStr = useMemo(() => new Date().toISOString().slice(0, 10), [])
+export function RecurringForm({ target, onClose }: Props) {
+  const editing = target && target !== "new" ? target : null;
+  const accounts = useAccounts();
+  const categories = useCategories();
+  const create = useCreateRecurring();
+  const update = useUpdateRecurring();
+  const remove = useDeleteRecurring();
 
-  // A rule's nextRunDate in the past isn't just "invalid" — the server's
-  // catch-up scheduler generates one real transaction per missed scheduled
-  // occurrence the next time cron runs, so a backdated date here can flood
-  // the account with transactions on the very next tick.
-  const isPastDate = nextRunDate !== '' && nextRunDate < todayStr
+  const [type, setType] = useState<TxnType>("expense");
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+  const [unit, setUnit] = useState<IntervalUnit>("month");
+  const [count, setCount] = useState("1");
+  const [nextRun, setNextRun] = useState(today());
+  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [accountId, setAccountId] = useState<string | null>(null);
+  const [fromId, setFromId] = useState<string | null>(null);
+  const [toId, setToId] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
 
-  // Mirrors AddTransactionSheet's stale-selection guard: a picker only ever
-  // lists live rows, but the id in state can go stale if another tab
-  // deletes the selected account/category while this sheet is open.
-  const liveAccounts = useAccounts(db)
-  const liveCategories = useCategories(db)
-  const accountIds = new Set(liveAccounts?.map((a) => a.id))
-  const categoryIds = new Set(liveCategories?.map((c) => c.id))
-  const staleSelection =
-    (accountId != null && !accountIds.has(accountId)) ||
-    (categoryId != null && !categoryIds.has(categoryId)) ||
-    (fromAccountId != null && !accountIds.has(fromAccountId)) ||
-    (toAccountId != null && !accountIds.has(toAccountId))
-
-  const fieldError = validateTransactionFields({
-    type,
-    categoryId: type === 'expense' ? categoryId : null,
-    accountId: type === 'expense' || type === 'income' ? accountId : null,
-    fromAccountId: type === 'transfer' ? fromAccountId : null,
-    toAccountId: type === 'transfer' ? toAccountId : null,
-  })
-  const isValid =
-    amountSatang > 0 &&
-    fieldError === null &&
-    nextRunDate !== '' &&
-    !isPastDate &&
-    intervalCount >= 1 &&
-    !staleSelection
-
-  const dialogRef = useRef<HTMLDivElement>(null)
+  const acctOpts = (accounts.data ?? []).map((a) => ({ value: a.id, label: a.name }));
+  const catOpts = (categories.data ?? []).map((c) => ({ value: c.id, label: c.name }));
 
   useEffect(() => {
-    dialogRef.current?.focus()
-  }, [])
-
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose()
+    if (!target) return;
+    setErr(null);
+    if (editing) {
+      setType(editing.type);
+      setAmount((editing.amount / 100).toString());
+      setNote(editing.note ?? "");
+      setUnit(editing.intervalUnit);
+      setCount(String(editing.intervalCount));
+      setNextRun(editing.nextRunDate);
+      setCategoryId(editing.categoryId ?? null);
+      setAccountId(editing.accountId ?? null);
+      setFromId(editing.fromAccountId ?? null);
+      setToId(editing.toAccountId ?? null);
+      return;
     }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+    setType("expense");
+    setAmount("");
+    setNote("");
+    setUnit("month");
+    setCount("1");
+    setNextRun(today());
+    setCategoryId(null);
+    setAccountId(null);
+    setFromId(null);
+    setToId(null);
+  }, [target, editing]);
 
-  async function handleSave() {
-    if (!isValid) return
-    await createRecurringRule(db, {
+  // Fill account defaults for a new rule once they load, without overwriting a choice.
+  useEffect(() => {
+    if (!target || editing) return;
+    setAccountId((v) => v ?? accounts.data?.[0]?.id ?? null);
+    setFromId((v) => v ?? accounts.data?.[0]?.id ?? null);
+    setToId((v) => v ?? accounts.data?.[1]?.id ?? null);
+  }, [target, editing, accounts.data]);
+
+  const satang = bahtToSatang(amount);
+  const n = Number(count);
+  const valid = useMemo(() => {
+    if (!satang || satang <= 0) return false;
+    if (!Number.isInteger(n) || n < 1) return false;
+    if (!nextRun) return false;
+    if (type === "expense") return !!categoryId && !!accountId;
+    if (type === "income") return !!accountId;
+    return !!fromId && !!toId && fromId !== toId;
+  }, [satang, n, nextRun, type, categoryId, accountId, fromId, toId]);
+
+  const busy = create.isPending || update.isPending || remove.isPending;
+
+  async function save() {
+    if (!valid || !satang) return;
+    const body = {
       type,
-      amount: amountSatang,
-      note: note || null,
-      categoryId: type === 'expense' ? categoryId : null,
-      accountId: type === 'expense' || type === 'income' ? accountId : null,
-      fromAccountId: type === 'transfer' ? fromAccountId : null,
-      toAccountId: type === 'transfer' ? toAccountId : null,
-      intervalUnit,
-      intervalCount,
-      nextRunDate,
-    })
-    onClose()
+      amount: satang,
+      note: note.trim() || null,
+      categoryId: type === "expense" ? categoryId : null,
+      accountId: type === "transfer" ? null : accountId,
+      fromAccountId: type === "transfer" ? fromId : null,
+      toAccountId: type === "transfer" ? toId : null,
+      intervalUnit: unit,
+      intervalCount: n,
+      nextRunDate: nextRun,
+    };
+    try {
+      setErr(null);
+      if (editing) await update.mutateAsync({ id: editing.id, patch: body });
+      else await create.mutateAsync({ id: crypto.randomUUID(), ...body });
+      onClose();
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : "Couldn't save.");
+    }
+  }
+
+  async function del() {
+    if (!editing) return;
+    try {
+      await remove.mutateAsync(editing.id);
+      onClose();
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : "Couldn't delete.");
+    }
   }
 
   return (
-    <div className="sheet-backdrop">
-      <div className="sheet" role="dialog" aria-label="Recurring Rule" tabIndex={-1} ref={dialogRef}>
-        <div className="sheet__handle" />
-        <div className="sheet__header">
-          <button type="button" className="text-body" onClick={onClose}>
-            Cancel
-          </button>
-          <span className="text-body-strong">New Recurring</span>
-          <button
-            type="button"
-            className="text-body-strong sheet__save"
-            onClick={handleSave}
-            disabled={!isValid}
-          >
-            Save
-          </button>
-        </div>
+    <Sheet open={!!target} onClose={onClose} title={editing ? "Edit rule" : "New recurring rule"}>
+      <div className="add">
+        <Segmented options={TYPES} value={type} onChange={setType} label="Transaction type" />
 
-        <div className="sheet__type-toggle">
-          {TYPES.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              className={`sheet__type-btn${type === value ? ' sheet__type-btn--active' : ''}`}
-              aria-pressed={type === value}
-              onClick={() => setType(value)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
+        <label className="add__amount">
+          <span className="add__baht" aria-hidden="true">฿</span>
+          <MoneyInput
+            className="num"
+            value={amount}
+            onChange={setAmount}
+            ariaLabel="Amount in baht"
+          />
+        </label>
 
-        <div className="sheet__amount">
-          <div className="text-caption">Amount</div>
-          <AmountInput valueSatang={amountSatang} onChange={setAmountSatang} />
-        </div>
-
-        {type === 'expense' && (
-          <>
-            <div className="sheet__field">
-              <div className="text-caption-strong">Account</div>
-              <AccountPicker db={db} value={accountId} onChange={setAccountId} />
-            </div>
-            <div className="sheet__field">
-              <div className="text-caption-strong">Category</div>
-              <CategoryPicker db={db} value={categoryId} onChange={setCategoryId} />
-            </div>
-          </>
-        )}
-
-        {type === 'income' && (
-          <div className="sheet__field">
-            <div className="text-caption-strong">Account</div>
-            <AccountPicker db={db} value={accountId} onChange={setAccountId} />
-          </div>
-        )}
-
-        {type === 'transfer' && (
-          <>
-            <div className="sheet__field">
-              <div className="text-caption-strong">From</div>
-              <AccountPicker db={db} value={fromAccountId} onChange={setFromAccountId} exclude={toAccountId ?? undefined} />
-            </div>
-            <div className="sheet__field">
-              <div className="text-caption-strong">To</div>
-              <AccountPicker db={db} value={toAccountId} onChange={setToAccountId} exclude={fromAccountId ?? undefined} />
-            </div>
-          </>
-        )}
-
-        <div className="sheet__field">
-          <div className="text-caption-strong">Repeats every</div>
-          <div className="chip-row">
-            <input
-              type="number"
-              min={1}
-              step={1}
-              className="sheet__note-input text-body recurring-form__interval-count"
-              value={intervalCount}
-              onChange={(e) => {
-                const parsed = Math.trunc(Number(e.target.value))
-                setIntervalCount(Number.isFinite(parsed) ? Math.max(1, parsed) : 1)
-              }}
-              aria-label="Interval count"
+        {type === "expense" && (
+          <div className="fld">
+            <span className="fld__label">Category</span>
+            <Select
+              options={catOpts}
+              value={categoryId}
+              onChange={setCategoryId}
+              label="Category"
+              placeholder="Select category"
             />
-            {INTERVAL_UNITS.map((u) => (
-              <Chip key={u.value} selected={intervalUnit === u.value} onClick={() => setIntervalUnit(u.value)}>
-                {u.label}
-              </Chip>
-            ))}
+          </div>
+        )}
+
+        {type !== "transfer" && (
+          <div className="fld">
+            <span className="fld__label">{type === "income" ? "To account" : "Paid from"}</span>
+            <Chips options={acctOpts} value={accountId} onChange={setAccountId} />
+          </div>
+        )}
+
+        {type === "transfer" && (
+          <>
+            <div className="fld">
+              <span className="fld__label">From</span>
+              <Chips options={acctOpts} value={fromId} onChange={setFromId} />
+            </div>
+            <div className="fld">
+              <span className="fld__label">To</span>
+              <Chips options={acctOpts} value={toId} onChange={setToId} disabledValue={fromId} />
+            </div>
+          </>
+        )}
+
+        <div className="fld">
+          <span className="fld__label">Repeat every</span>
+          <div className="add__row">
+            <input
+              className="add__input num"
+              inputMode="numeric"
+              value={count}
+              onChange={(e) => setCount(e.target.value.replace(/\D/g, ""))}
+              aria-label="Interval count"
+              style={{ maxWidth: "4rem" }}
+            />
+            <div style={{ flex: 1 }}>
+              <Segmented options={UNITS} value={unit} onChange={setUnit} label="Interval unit" />
+            </div>
           </div>
         </div>
 
-        <div className="sheet__field">
-          <label className="text-caption-strong" htmlFor="recurring-next-run">
-            Next run date
-          </label>
-          <input
-            id="recurring-next-run"
-            type="date"
-            min={todayStr}
-            className="sheet__note-input text-body"
-            value={nextRunDate}
-            onChange={(e) => setNextRunDate(e.target.value)}
-          />
-          {isPastDate && (
-            <p className="text-caption recurring-form__error">
-              Next run date can't be in the past — the server would generate a
-              transaction for every missed date.
-            </p>
-          )}
+        <div className="add__row">
+          <div className="fld fld--grow">
+            <span className="fld__label">Note</span>
+            <input
+              className="add__input"
+              placeholder="Optional"
+              maxLength={255}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </div>
+          <div className="fld">
+            <span className="fld__label">Next run</span>
+            <input
+              className="add__input add__date"
+              type="date"
+              value={nextRun}
+              onChange={(e) => setNextRun(e.target.value)}
+            />
+          </div>
         </div>
 
-        <div className="sheet__field">
-          <label className="text-caption-strong" htmlFor="recurring-note">
-            Note
-          </label>
-          <input
-            id="recurring-note"
-            type="text"
-            className="sheet__note-input text-body"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
-          />
-        </div>
+        {err && (
+          <p className="add__error" role="alert">
+            {err}
+          </p>
+        )}
+
+        <Button block disabled={!valid || busy} onClick={save}>
+          {busy ? "Saving…" : editing ? "Save changes" : "Create rule"}
+        </Button>
+
+        {editing && (
+          <button className="aform__del" onClick={del} disabled={busy}>
+            Delete rule
+          </button>
+        )}
       </div>
-    </div>
-  )
+    </Sheet>
+  );
 }

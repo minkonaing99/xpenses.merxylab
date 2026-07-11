@@ -1,83 +1,67 @@
-import { render, screen } from '@testing-library/react'
-import userEvent from '@testing-library/user-event'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { createXpensesDb, type XpensesDb } from '../../offline/db'
-import { AccountsScreen } from './AccountsScreen'
+import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-function jsonResponse(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status })
-}
+vi.mock("../../lib/api", async (orig) => {
+  const actual = await orig<typeof import("../../lib/api")>();
+  return { ...actual, api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn() } };
+});
 
-describe('AccountsScreen', () => {
-  let db: XpensesDb
+import { api, ApiError } from "../../lib/api";
+import { AccountsScreen } from "./AccountsScreen";
+import { fakeGet, renderApp } from "../../test/utils";
 
-  beforeEach(() => {
-    vi.stubGlobal(
-      'fetch',
-      vi.fn().mockImplementation(() =>
-        Promise.resolve(jsonResponse({ ok: true, data: { results: [{ id: 'x', status: 'applied' }] } })),
+const accounts = [
+  { id: "a1", name: "Cash", type: "cash", startingBalance: 0, balance: 12000 },
+  { id: "a2", name: "Bank", type: "bank", startingBalance: 0, balance: 0 },
+];
+
+beforeEach(() => {
+  vi.mocked(api.get).mockImplementation(fakeGet({ "/accounts": accounts }) as never);
+  vi.mocked(api.post).mockResolvedValue({} as never);
+  vi.mocked(api.patch).mockResolvedValue({} as never);
+  vi.mocked(api.del).mockResolvedValue({} as never);
+});
+afterEach(() => vi.clearAllMocks());
+
+describe("AccountsScreen", () => {
+  it("creates a new account with the typed values", async () => {
+    renderApp(<AccountsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Add" }));
+
+    fireEvent.change(screen.getByPlaceholderText("e.g. Cash"), { target: { value: "Wallet" } });
+    fireEvent.change(screen.getByPlaceholderText("0.00"), { target: { value: "150" } });
+    fireEvent.click(screen.getByRole("button", { name: "Add account" }));
+
+    await waitFor(() =>
+      expect(api.post).toHaveBeenCalledWith(
+        "/accounts",
+        expect.objectContaining({ name: "Wallet", type: "cash", startingBalance: 15000 }),
       ),
-    )
-  })
+    );
+  });
 
-  afterEach(async () => {
-    vi.unstubAllGlobals()
-    await db?.delete()
-  })
+  it("edits an existing account", async () => {
+    renderApp(<AccountsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: /Cash/ }));
 
-  it('shows an empty state when there are no accounts', async () => {
-    db = createXpensesDb('test-accountsscreen-empty')
-    render(<AccountsScreen db={db} />)
+    const nameInput = screen.getByDisplayValue("Cash");
+    fireEvent.change(nameInput, { target: { value: "Pocket" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
 
-    expect(await screen.findByText(/no accounts yet/i)).toBeInTheDocument()
-  })
+    await waitFor(() =>
+      expect(api.patch).toHaveBeenCalledWith(
+        "/accounts/a1",
+        expect.objectContaining({ name: "Pocket" }),
+      ),
+    );
+  });
 
-  it('lists existing accounts with their balance', async () => {
-    db = createXpensesDb('test-accountsscreen-list')
-    await db.accounts.put({ id: 'a1', name: 'Cash', type: 'cash', startingBalance: 0, balance: 64200, sortOrder: 0, updatedAt: 'x', deletedAt: null })
-    render(<AccountsScreen db={db} />)
+  it("surfaces a 409 when deleting an account with transactions", async () => {
+    vi.mocked(api.del).mockRejectedValue(new ApiError("CONFLICT", "no", 409));
+    renderApp(<AccountsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: /Cash/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Delete account" }));
 
-    // 'Cash' also matches the account-type chip, so target the delete
-    // button (unique per account row) plus the formatted balance.
-    expect(await screen.findByRole('button', { name: /delete cash/i })).toBeInTheDocument()
-    expect(screen.getByText('฿642')).toBeInTheDocument()
-  })
-
-  it('adds a new account', async () => {
-    db = createXpensesDb('test-accountsscreen-add')
-    render(<AccountsScreen db={db} />)
-
-    await userEvent.type(screen.getByLabelText(/account name/i), 'Savings')
-    await userEvent.click(screen.getByRole('button', { name: /add/i }))
-
-    expect(await screen.findByRole('button', { name: /delete savings/i })).toBeInTheDocument()
-  })
-
-  it('deletes an account', async () => {
-    db = createXpensesDb('test-accountsscreen-delete')
-    await db.accounts.put({ id: 'a1', name: 'Cash', type: 'cash', startingBalance: 0, balance: 0, sortOrder: 0, updatedAt: 'x', deletedAt: null })
-    render(<AccountsScreen db={db} />)
-
-    const deleteButton = await screen.findByRole('button', { name: /delete cash/i })
-    await userEvent.click(deleteButton)
-
-    expect(await screen.findByText(/no accounts yet/i)).toBeInTheDocument()
-  })
-
-  it('blocks deleting an account still referenced by transactions and shows why', async () => {
-    db = createXpensesDb('test-accountsscreen-delete-blocked')
-    await db.accounts.put({ id: 'a1', name: 'Cash', type: 'cash', startingBalance: 0, balance: 0, sortOrder: 0, updatedAt: 'x', deletedAt: null })
-    await db.transactions.put({
-      id: 't1', type: 'expense', amount: 100, note: null, categoryId: null, accountId: 'a1',
-      fromAccountId: null, toAccountId: null, txnDate: '2026-07-01', updatedAt: 'x', deletedAt: null,
-    })
-    render(<AccountsScreen db={db} />)
-
-    const deleteButton = await screen.findByRole('button', { name: /delete cash/i })
-    await userEvent.click(deleteButton)
-
-    expect(await screen.findByText(/used by 1 transaction/i)).toBeInTheDocument()
-    expect(await db.accounts.get('a1')).not.toBeUndefined()
-    expect((await db.accounts.get('a1'))?.deletedAt).toBeNull()
-  })
-})
+    expect(await screen.findByRole("alert")).toHaveTextContent("can't be deleted");
+  });
+});

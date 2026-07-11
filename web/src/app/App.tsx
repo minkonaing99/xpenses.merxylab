@@ -1,83 +1,51 @@
-import { useEffect, useState } from 'react'
-import { Routes, Route, Navigate, Outlet, useNavigate } from 'react-router-dom'
-import { Layout } from './Layout'
-import { TransactionsScreen } from '../features/transactions/TransactionsScreen'
-import { BudgetsScreen } from '../features/budgets/BudgetsScreen'
-import { ReportsScreen } from '../features/reports/ReportsScreen'
-import { SettingsScreen } from '../features/settings/SettingsScreen'
-import { CategoriesScreen } from '../features/categories/CategoriesScreen'
-import { AccountsScreen } from '../features/accounts/AccountsScreen'
-import { RecurringScreen } from '../features/recurring/RecurringScreen'
-import { LoginScreen } from '../features/auth/LoginScreen'
-import { me } from '../features/auth/api'
-import { ApiClientError } from '../lib/fetchClient'
-import { Skeleton } from '../ui/Skeleton'
-import { Banner } from '../ui/Banner'
-import { SyncBoot } from '../offline/SyncBoot'
-import { db } from '../offline/db'
+import { Route, Routes } from "react-router-dom";
+import { useMe } from "../api/hooks";
+import { ApiError } from "../lib/api";
+import { LoginScreen } from "../features/auth/LoginScreen";
+import { Shell } from "./Shell";
+import { ErrorBoundary } from "./ErrorBoundary";
+import { OfflineBanner } from "./OfflineBanner";
+import { MonthProvider } from "./MonthContext";
+import { DashboardScreen } from "../features/dashboard/DashboardScreen";
+import { TransactionsScreen } from "../features/transactions/TransactionsScreen";
+import { ReportsScreen } from "../features/reports/ReportsScreen";
+import { SettingsScreen } from "../features/settings/SettingsScreen";
+import { AccountsScreen } from "../features/accounts/AccountsScreen";
+import { CategoriesScreen } from "../features/categories/CategoriesScreen";
+import { BudgetsScreen } from "../features/budgets/BudgetsScreen";
+import { RecurringScreen } from "../features/recurring/RecurringScreen";
+import "./App.css";
 
-type AuthStatus = 'loading' | 'authed' | 'unauthed' | 'error'
+export function App() {
+  const me = useMe();
 
-function RequireAuth() {
-  const [status, setStatus] = useState<AuthStatus>('loading')
-
-  useEffect(() => {
-    let cancelled = false
-    me()
-      .then(() => {
-        if (!cancelled) setStatus('authed')
-      })
-      .catch((err: unknown) => {
-        if (cancelled) return
-        setStatus(err instanceof ApiClientError && err.status === 401 ? 'unauthed' : 'error')
-      })
-    return () => {
-      cancelled = true
-    }
-  }, [])
-
-  if (status === 'loading') {
-    return (
-      <div className="screen screen__body">
-        <Skeleton width="100%" height="120px" />
-      </div>
-    )
+  if (me.isLoading) {
+    return <div className="boot" aria-busy="true" aria-label="Loading" />;
   }
 
-  if (status === 'unauthed') {
-    return <Navigate to="/login" replace />
+  const unauthorized = me.error instanceof ApiError && me.error.code === "UNAUTHORIZED";
+  if (unauthorized || !me.data) {
+    return <LoginScreen onSuccess={() => me.refetch()} />;
   }
-
-  if (status === 'error') {
-    return (
-      <div className="screen screen__body">
-        <Banner tone="error" message="Couldn't reach the server. Check your connection and try again." />
-      </div>
-    )
-  }
-
-  return <Outlet />
-}
-
-export function AppRoutes() {
-  const navigate = useNavigate()
 
   return (
-    <Routes>
-      <Route path="/login" element={<LoginScreen onSuccess={() => navigate('/', { replace: true })} />} />
-      <Route element={<RequireAuth />}>
-        <Route element={<SyncBoot db={db} />}>
-          <Route element={<Layout />}>
-            <Route index element={<TransactionsScreen db={db} />} />
-            <Route path="reports" element={<ReportsScreen />} />
-            <Route path="budgets" element={<BudgetsScreen db={db} />} />
-            <Route path="settings" element={<SettingsScreen db={db} />} />
-            <Route path="categories" element={<CategoriesScreen db={db} />} />
-            <Route path="accounts" element={<AccountsScreen db={db} />} />
-            <Route path="recurring" element={<RecurringScreen db={db} />} />
-          </Route>
-        </Route>
-      </Route>
-    </Routes>
-  )
+    <ErrorBoundary>
+      <OfflineBanner />
+      <MonthProvider>
+        <Shell>
+          <Routes>
+            <Route path="/" element={<DashboardScreen />} />
+            <Route path="/ledger" element={<TransactionsScreen />} />
+            <Route path="/reports" element={<ReportsScreen />} />
+            <Route path="/settings" element={<SettingsScreen />} />
+            <Route path="/settings/accounts" element={<AccountsScreen />} />
+            <Route path="/settings/categories" element={<CategoriesScreen />} />
+            <Route path="/settings/budgets" element={<BudgetsScreen />} />
+            <Route path="/settings/recurring" element={<RecurringScreen />} />
+            <Route path="*" element={<DashboardScreen />} />
+          </Routes>
+        </Shell>
+      </MonthProvider>
+    </ErrorBoundary>
+  );
 }

@@ -1,0 +1,6 @@
+.boot {
+  min-height: 100dvh;
+  background:
+    radial-gradient(120% 60% at 50% 0%, var(--accent-wash), transparent 70%),
+    var(--paper);
+}

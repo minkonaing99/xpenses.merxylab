@@ -153,7 +153,7 @@ TBD — not needed for v1 (no receipt photos/attachments in scope).
 
 ## Caching Layer
 None in v1. No Redis/CDN tier on Hostinger shared hosting; reads go straight
-to MySQL. Client-side Dexie cache serves as the only "cache," for offline reads.
+to MySQL.
 
 ## Background Jobs
 | Job | Trigger | Retry policy |
@@ -263,7 +263,7 @@ Transaction body:
 ### Budgets
 | Method | Path | Body | Auth Required | Notes |
 |---|---|---|---|---|
-| GET    | /api/budgets | `?month=YYYY-MM` | Yes | Each: categoryId, limit, spent, over (bool). Drives banner. |
+| GET    | /api/budgets | `?month=YYYY-MM` | Yes | Each: id, categoryId, limitAmount, spent, over (bool). Drives banner. |
 | POST   | /api/budgets | `{ id, categoryId, limitAmount }` | Yes | One per category (409 on dup). |
 | PATCH  | /api/budgets/:id | `{ limitAmount }` | Yes | |
 | DELETE | /api/budgets/:id | — | Yes | Soft delete. |
@@ -280,7 +280,7 @@ Transaction body:
 | Method | Path | Query | Auth Required | Notes |
 |---|---|---|---|---|
 | GET | /api/reports/category-spend | `?month=YYYY-MM` | Yes | `[{ categoryId, name, total }]` for the chart. |
-| GET | /api/reports/summary | `?month=YYYY-MM` | Yes | Account balances + net total. |
+| GET | /api/reports/summary | `?month=YYYY-MM` | Yes | `{ accounts:[{id,name,type,balance}], monthIncome, monthExpense, monthNet }` (satang). |
 
 ### Cron (Plan B, optional)
 | Method | Path | Auth Required | Notes |

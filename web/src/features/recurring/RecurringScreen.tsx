@@ -1,107 +1,70 @@
-import { useMemo, useState } from 'react'
-import { Plus, Play, Pause, Trash } from '@phosphor-icons/react'
-import { Panel } from '../../ui/Panel'
-import { EmptyState } from '../../ui/EmptyState'
-import { TXN_ICON_COMPONENTS } from '../../ui/TxnRow'
-import { formatTHB } from '../../lib/money'
-import { useRecurringRules, useCategories, useAccounts } from '../../offline/hooks'
-import { updateRecurringRule, deleteRecurringRule } from '../../offline/mutations'
-import { iconForTxn } from '../transactions/txnMapping'
-import { RecurringForm } from './RecurringForm'
-import type { XpensesDb } from '../../offline/db'
-import './RecurringScreen.css'
+import { useState } from "react";
+import { useRecurring, useUpdateRecurring } from "../../api/hooks";
+import type { RecurringRule } from "../../api/types";
+import { Money } from "../../ui/Money";
+import { Button } from "../../ui/Button";
+import { PageHeader } from "../../ui/PageHeader";
+import { RecurringForm } from "./RecurringForm";
+import "../../ui/form.css";
+import "./RecurringScreen.css";
 
-interface RecurringScreenProps {
-  db: XpensesDb
-}
-
-export function RecurringScreen({ db }: RecurringScreenProps) {
-  const rules = useRecurringRules(db)
-  const categories = useCategories(db)
-  const accounts = useAccounts(db)
-  const [formOpen, setFormOpen] = useState(false)
-
-  const categoriesById = useMemo(() => new Map((categories ?? []).map((c) => [c.id, c])), [categories])
-  const accountsById = useMemo(() => new Map((accounts ?? []).map((a) => [a.id, a])), [accounts])
-
-  function labelFor(rule: NonNullable<typeof rules>[number]): string {
-    if (rule.type === 'expense') return categoriesById.get(rule.categoryId ?? '')?.name ?? 'Uncategorized'
-    if (rule.type === 'income') return accountsById.get(rule.accountId ?? '')?.name ?? 'Income'
-    const from = accountsById.get(rule.fromAccountId ?? '')?.name ?? '?'
-    const to = accountsById.get(rule.toAccountId ?? '')?.name ?? '?'
-    return `${from} → ${to}`
-  }
-
-  // Pausing never advances nextRunDate server-side. Resuming a rule whose
-  // nextRunDate has drifted into the past would hit the server's catch-up
-  // scheduler on the next cron tick, generating one real transaction per
-  // missed occurrence — surprising and hard to undo for a solo user with no
-  // confirmation step. Reschedule to today on resume instead of catching up.
-  function toggleActive(ruleId: string, active: boolean, nextRunDate: string) {
-    const today = new Date().toISOString().slice(0, 10)
-    if (!active && nextRunDate < today) {
-      updateRecurringRule(db, ruleId, { active: true, nextRunDate: today })
-      return
-    }
-    updateRecurringRule(db, ruleId, { active: !active })
-  }
+export function RecurringScreen() {
+  const rules = useRecurring();
+  const toggle = useUpdateRecurring();
+  const [form, setForm] = useState<RecurringRule | "new" | null>(null);
 
   return (
-    <div className="screen">
-      <div className="screen__header">
-        <div className="text-screen-title">Recurring</div>
-      </div>
+    <div className="rec">
+      <PageHeader
+        title="Recurring"
+        back="/settings"
+        action={
+          <Button variant="ghost" className="crud-add" onClick={() => setForm("new")}>
+            Add
+          </Button>
+        }
+      />
 
-      <div className="screen__body">
-        {rules !== undefined && rules.length === 0 ? (
-          <EmptyState title="No recurring transactions" description="Tap the + button to set up a repeating bill or income." />
-        ) : (
-          <Panel>
-            {rules?.map((rule) => {
-              const label = labelFor(rule)
-              const categoryName = rule.type === 'expense' ? categoriesById.get(rule.categoryId ?? '')?.name : undefined
-              const Icon = TXN_ICON_COMPONENTS[iconForTxn(rule.type as 'expense' | 'income' | 'transfer', categoryName)]
-              const intervalLabel = `Every ${rule.intervalCount > 1 ? `${rule.intervalCount} ${rule.intervalUnit}s` : rule.intervalUnit}`
-              return (
-                <div key={rule.id} className="recurring-row">
-                  <div className="recurring-row__icon">
-                    <Icon size={18} weight="fill" aria-hidden={true} />
-                  </div>
-                  <div className="recurring-row__text">
-                    <span className="text-body-strong">{label}</span>
-                    <span className="text-caption">
-                      {intervalLabel} · next {rule.nextRunDate}
-                    </span>
-                  </div>
-                  <span className="text-body-strong tabular">{formatTHB(rule.amount)}</span>
-                  <button
-                    type="button"
-                    className="recurring-row__action"
-                    aria-label={`${rule.active ? 'Pause' : 'Resume'} ${label}`}
-                    onClick={() => toggleActive(rule.id, rule.active, rule.nextRunDate)}
-                  >
-                    {rule.active ? <Pause size={16} aria-hidden="true" /> : <Play size={16} aria-hidden="true" />}
-                  </button>
-                  <button
-                    type="button"
-                    className="recurring-row__action"
-                    aria-label={`Delete ${label}`}
-                    onClick={() => deleteRecurringRule(db, rule.id)}
-                  >
-                    <Trash size={16} aria-hidden="true" />
-                  </button>
-                </div>
-              )
-            })}
-          </Panel>
-        )}
-      </div>
+      {(rules.data ?? []).length === 0 && !rules.isLoading && (
+        <p className="rec__empty">No rules yet. Add one to auto-insert transactions.</p>
+      )}
 
-      <button type="button" className="screen__fab" aria-label="Add recurring" onClick={() => setFormOpen(true)}>
-        <Plus size={24} weight="bold" aria-hidden="true" />
-      </button>
+      <ul className="crud-list">
+        {(rules.data ?? []).map((r) => (
+          <li key={r.id} className="rrow">
+            <button className="rrow__main" onClick={() => setForm(r)}>
+              <div className="rrow__text">
+                <span className="rrow__title">{r.note?.trim() || labelType(r.type)}</span>
+                <span className="rrow__meta">
+                  {cadence(r)} · next {r.nextRunDate}
+                </span>
+              </div>
+              <Money amount={r.amount} className="rrow__amt" />
+            </button>
+            <button
+              className={`rrow__toggle${r.active ? " is-on" : ""}`}
+              role="switch"
+              aria-checked={r.active}
+              aria-label={r.active ? "Pause rule" : "Resume rule"}
+              disabled={toggle.isPending}
+              onClick={() => toggle.mutate({ id: r.id, patch: { active: !r.active } })}
+            >
+              <span className="rrow__knob" />
+            </button>
+          </li>
+        ))}
+      </ul>
 
-      {formOpen && <RecurringForm db={db} onClose={() => setFormOpen(false)} />}
+      <RecurringForm target={form} onClose={() => setForm(null)} />
     </div>
-  )
+  );
+}
+
+function labelType(t: RecurringRule["type"]): string {
+  return t.charAt(0).toUpperCase() + t.slice(1);
+}
+
+function cadence(r: RecurringRule): string {
+  const n = r.intervalCount;
+  return n === 1 ? `Every ${r.intervalUnit}` : `Every ${n} ${r.intervalUnit}s`;
 }

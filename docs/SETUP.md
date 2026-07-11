@@ -1,7 +1,7 @@
 # xpenses — Setup + Testing + Changelog
 
-No code exists yet (Phase 0 of `docs/PLAN.md` not started). This doc is
-forward-looking, based on the stack decided in `docs/TECH.md`.
+Backend + web frontend both implemented. Frontend architecture: see
+`docs/WEB.md`. This doc covers setup, testing, and the changelog.
 
 ## Setup
 
@@ -43,8 +43,16 @@ cd server && npm run dev
 # terminal 2 — frontend
 cd web && npm run dev
 ```
-Frontend dev server proxies `/api/*` to the backend (Vite proxy config, TBD
-at Phase 4).
+Frontend dev server (`:5173`) proxies `/api/*` to the backend (`:3001`).
+
+### Production Build (same-origin)
+```bash
+cd web && npm run build      # emits to server/public/
+```
+`server/app.js` serves `server/public/` with an SPA fallback in production, so
+the frontend is same-origin with the API (first-party auth cookie, no CORS).
+Deploy: build web -> rsync `server/` (incl. `public/`) to Hostinger; Passenger
+runs `app.js`. `server/.env` and `server/public/` are gitignored.
 
 ### Common Errors + Fixes
 TBD — will be filled in as real errors are hit during Phase 0-1 implementation.
@@ -93,9 +101,38 @@ per project testing standard (avoids mock/prod divergence).
 
 ## Changelog
 
-Current version: `0.1.0`
+Current version: `0.2.0`
 
 Format: [Keep a Changelog](https://keepachangelog.com)
+
+## [0.2.0] - 2026-07-11
+### Changed
+- **Web frontend rebuilt** from scratch with a leaner React-Query architecture
+  (replacing the prior custom offline-engine build). Full detail in
+  `docs/WEB.md`. Mobile-first PWA, warm-paper/one-ink-accent design system
+  (`theme/tokens.css`), online-only fetch upgraded to offline-capable (below).
+- All write hooks refactored to keyed **mutation defaults** in
+  `app/queryClient.ts` so offline writes are resumable.
+### Added
+- Screens: Login, Dashboard, Ledger (+ edit/delete via tap), Add/Edit
+  transaction sheet (expense/income/transfer), Reports, Settings hub, and CRUD
+  for Accounts / Categories / Budgets / Recurring. Shared month navigation
+  (`MonthContext`), `ErrorBoundary`, `OfflineBanner`.
+- **Offline sync** via React Query: cache persisted to `localStorage`
+  (offline reads); writes pause offline and auto-replay on reconnect, surviving
+  reload. No hand-rolled sync engine.
+- **Same-origin serving**: Vite builds into `server/public/`; `app.js` serves
+  it with SPA fallback in production (first-party cookie, no CORS).
+- PWA icons (SVG + PNG 192/512/maskable via `sharp`).
+- 54 web tests (Vitest + RTL), ~85% coverage, incl. offline pause/replay.
+### Security
+- Real `PASSWORD_HASH` set (bcrypt cost 12). Auth cookie confirmed `Secure` in
+  production. `server/.gitignore` added (`.env`, `node_modules`, `public`).
+### Fixed
+- API-doc drift corrected in `docs/SCHEMA.md`: budgets return `limitAmount`
+  (not `limit`); `/reports/summary` returns `monthIncome/monthExpense/monthNet`.
+- Form prefill effect no longer wiped a typed amount when accounts loaded late.
+- Amount fields force the mobile decimal numpad; category is a native selector.
 
 ## [0.1.0] - 2026-07-10
 ### Added

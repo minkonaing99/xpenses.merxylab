@@ -1,0 +1,28 @@
+.ph {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-3);
+  padding: calc(var(--safe-t) + var(--sp-5)) 0 var(--sp-4);
+}
+
+.ph__back {
+  display: grid;
+  place-items: center;
+  width: 2.25rem;
+  height: 2.25rem;
+  margin-left: calc(-1 * var(--sp-1));
+  color: var(--ink);
+  background: var(--paper-sunken);
+  border-radius: var(--r-full);
+}
+
+.ph__title {
+  flex: 1;
+  font-size: var(--t-title);
+  font-weight: 700;
+  letter-spacing: -0.02em;
+}
+
+.ph__action {
+  flex: 0 0 auto;
+}

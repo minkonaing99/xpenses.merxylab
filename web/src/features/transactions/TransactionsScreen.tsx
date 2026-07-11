@@ -1,104 +1,116 @@
-import { useMemo, useState } from 'react'
-import { MagnifyingGlass, Plus } from '@phosphor-icons/react'
-import { Panel } from '../../ui/Panel'
-import { TxnRow } from '../../ui/TxnRow'
-import { EmptyState } from '../../ui/EmptyState'
-import { formatTHB } from '../../lib/money'
-import { useTransactions, useCategories, useAccounts } from '../../offline/hooks'
-import { calculateNet, toTxnRowProps } from './txnMapping'
-import { AddTransactionSheet } from './AddTransactionSheet'
-import type { XpensesDb, CachedTransaction } from '../../offline/db'
-import './TransactionsScreen.css'
+import { useMemo, useState } from "react";
+import { useAccounts, useCategories, useTransactions } from "../../api/hooks";
+import type { Account, Category, Transaction } from "../../api/types";
+import { useMonth } from "../../app/MonthContext";
+import { dayLabel } from "../../lib/format";
+import { Money } from "../../ui/Money";
+import { MonthSwitcher } from "../../ui/MonthSwitcher";
+import { AddTransactionSheet } from "./AddTransactionSheet";
+import "./TransactionsScreen.css";
 
-const MONTHS = [
-  'January', 'February', 'March', 'April', 'May', 'June',
-  'July', 'August', 'September', 'October', 'November', 'December',
-]
+export function TransactionsScreen() {
+  const { month } = useMonth();
+  const [editing, setEditing] = useState<Transaction | null>(null);
+  const txns = useTransactions(month);
+  const accounts = useAccounts();
+  const categories = useCategories();
 
-interface TransactionsScreenProps {
-  db: XpensesDb
-}
+  const names = useMemo(() => {
+    const acct = new Map<string, string>();
+    (accounts.data ?? []).forEach((a: Account) => acct.set(a.id, a.name));
+    const cat = new Map<string, string>();
+    (categories.data ?? []).forEach((c: Category) => cat.set(c.id, c.name));
+    return { acct, cat };
+  }, [accounts.data, categories.data]);
 
-export function TransactionsScreen({ db }: TransactionsScreenProps) {
-  const today = useMemo(() => new Date().toISOString().slice(0, 10), [])
-  const month = today.slice(0, 7)
-  const transactions = useTransactions(db, { month })
-  const categories = useCategories(db)
-  const accounts = useAccounts(db)
-  const [sheetOpen, setSheetOpen] = useState(false)
-  const [editingTxn, setEditingTxn] = useState<CachedTransaction | undefined>(undefined)
-
-  const netThisMonthSatang = transactions ? calculateNet(transactions) : 0
-  const categoriesById = useMemo(() => new Map((categories ?? []).map((c) => [c.id, c])), [categories])
-  const accountsById = useMemo(() => new Map((accounts ?? []).map((a) => [a.id, a])), [accounts])
-
-  function openAdd() {
-    setEditingTxn(undefined)
-    setSheetOpen(true)
-  }
-
-  function openEdit(txn: CachedTransaction) {
-    setEditingTxn(txn)
-    setSheetOpen(true)
-  }
+  const groups = useMemo(() => groupByDay(txns.data ?? []), [txns.data]);
 
   return (
-    <div className="screen">
-      <div className="screen__header">
-        <div className="screen__title-row">
-          <button type="button" className="screen__month">
-            {MONTHS[Number(month.slice(5, 7)) - 1]}
-          </button>
-          <button type="button" className="screen__icon-btn" aria-label="Search transactions">
-            <MagnifyingGlass size={20} aria-hidden="true" />
-          </button>
-        </div>
-        <div className="text-caption">Net this month</div>
-        <div
-          className="text-amount tabular screen__net"
-          style={{ color: netThisMonthSatang >= 0 ? 'var(--color-success)' : 'var(--color-error)' }}
-        >
-          {netThisMonthSatang >= 0 ? '+' : ''}
-          {formatTHB(netThisMonthSatang)}
-        </div>
-      </div>
+    <div className="ledger">
+      <header className="ledger__head">
+        <h1 className="ledger__title">Ledger</h1>
+        <MonthSwitcher />
+      </header>
 
-      {transactions !== undefined && transactions.length === 0 ? (
-        <div className="screen__body">
-          <EmptyState
-            title="No transactions yet"
-            description="Tap the + button to log your first expense or income for this month."
-          />
-        </div>
-      ) : (
-        <div className="screen__body">
-          <Panel>
-            <div className="screen__section-header text-section-header">Recent</div>
-            {transactions?.map((t) => {
-              const rowProps = toTxnRowProps(t, { categoriesById, accountsById, today })
-              return (
-                <button
-                  key={t.id}
-                  type="button"
-                  className="transactions__row-btn"
-                  onClick={() => openEdit(t)}
-                  aria-label={`Edit ${rowProps.note}`}
-                >
-                  <TxnRow {...rowProps} />
-                </button>
-              )
-            })}
-          </Panel>
+      {txns.isLoading && <p className="ledger__note">Loading…</p>}
+
+      {!txns.isLoading && groups.length === 0 && (
+        <div className="ledger__empty">
+          <p className="ledger__empty-mark" aria-hidden="true">฿</p>
+          <p className="ledger__empty-title">No transactions yet</p>
+          <p className="ledger__empty-sub">Tap the + below to log your first one.</p>
         </div>
       )}
 
-      <button type="button" className="screen__fab" aria-label="Add transaction" onClick={openAdd}>
-        <Plus size={24} weight="bold" aria-hidden="true" />
-      </button>
+      {groups.map(([day, rows]) => (
+        <section key={day} className="day">
+          <div className="day__head">
+            <h2 className="day__label">{day}</h2>
+            <Money amount={dayNet(rows)} signed className="day__net" />
+          </div>
+          <ul className="day__list">
+            {rows.map((t) => (
+              <TxnRow key={t.id} t={t} names={names} onOpen={() => setEditing(t)} />
+            ))}
+          </ul>
+        </section>
+      ))}
 
-      {sheetOpen && (
-        <AddTransactionSheet db={db} onClose={() => setSheetOpen(false)} editingTxn={editingTxn} />
-      )}
+      <AddTransactionSheet open={!!editing} editing={editing} onClose={() => setEditing(null)} />
     </div>
-  )
+  );
+}
+
+function TxnRow({
+  t,
+  names,
+  onOpen,
+}: {
+  t: Transaction;
+  names: { acct: Map<string, string>; cat: Map<string, string> };
+  onOpen: () => void;
+}) {
+  const title =
+    t.type === "transfer"
+      ? `${names.acct.get(t.fromAccountId ?? "") ?? "?"} → ${names.acct.get(t.toAccountId ?? "") ?? "?"}`
+      : t.note?.trim() || names.cat.get(t.categoryId ?? "") || (t.type === "income" ? "Income" : "Expense");
+
+  const sub =
+    t.type === "transfer"
+      ? "Transfer"
+      : [names.cat.get(t.categoryId ?? ""), names.acct.get(t.accountId ?? "")].filter(Boolean).join(" · ");
+
+  return (
+    <li className="txn-item">
+      <button className="txn" onClick={onOpen} aria-label={`Edit ${title}`}>
+        <span className={`txn__dot txn__dot--${t.type}`} aria-hidden="true" />
+        <div className="txn__meta">
+          <span className="txn__title">{title}</span>
+          {sub && <span className="txn__sub">{sub}</span>}
+        </div>
+        {t.type === "transfer" ? (
+          <Money amount={t.amount} tone="ink" className="txn__amt" />
+        ) : (
+          <Money amount={t.type === "expense" ? -t.amount : t.amount} signed className="txn__amt" />
+        )}
+      </button>
+    </li>
+  );
+}
+
+function groupByDay(txns: Transaction[]): Array<[string, Transaction[]]> {
+  const byDate = new Map<string, Transaction[]>();
+  for (const t of [...txns].sort((a, b) => (a.txnDate < b.txnDate ? 1 : -1))) {
+    const arr = byDate.get(t.txnDate) ?? [];
+    byDate.set(t.txnDate, [...arr, t]);
+  }
+  return [...byDate.entries()].map(([date, rows]) => [dayLabel(date), rows]);
+}
+
+function dayNet(rows: Transaction[]): number {
+  return rows.reduce((s, t) => {
+    if (t.type === "expense") return s - t.amount;
+    if (t.type === "income") return s + t.amount;
+    return s;
+  }, 0);
 }

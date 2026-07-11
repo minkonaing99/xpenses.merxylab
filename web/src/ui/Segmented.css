@@ -1,0 +1,37 @@
+.seg {
+  position: relative;
+  display: grid;
+  grid-template-columns: repeat(var(--seg-count), 1fr);
+  padding: 4px;
+  background: var(--paper-sunken);
+  border-radius: var(--r-full);
+  isolation: isolate;
+}
+
+.seg__thumb {
+  position: absolute;
+  z-index: 0;
+  top: 4px;
+  bottom: 4px;
+  left: 4px;
+  width: calc((100% - 8px) / var(--seg-count));
+  background: var(--paper-raised);
+  border-radius: var(--r-full);
+  box-shadow: var(--shadow-1);
+  transform: translateX(calc(var(--seg-index) * 100%));
+  transition: transform var(--dur-2) var(--ease-out);
+}
+
+.seg__opt {
+  position: relative;
+  z-index: 1;
+  padding: var(--sp-2) 0;
+  font-size: var(--t-body);
+  font-weight: 600;
+  color: var(--ink-faint);
+  transition: color var(--dur-2) var(--ease-out);
+}
+
+.seg__opt.is-active {
+  color: var(--ink);
+}

@@ -1,198 +1,163 @@
-import { useEffect, useMemo, useState, type FormEvent } from 'react'
-import { Trash } from '@phosphor-icons/react'
-import { Panel } from '../../ui/Panel'
-import { Button } from '../../ui/Button'
-import { ProgressBar } from '../../ui/ProgressBar'
-import { EmptyState } from '../../ui/EmptyState'
-import { AmountInput } from '../../ui/AmountInput'
-import { TXN_ICON_COMPONENTS } from '../../ui/TxnRow'
-import { formatTHB } from '../../lib/money'
-import { useBudgets, useCategories } from '../../offline/hooks'
-import { createBudget, updateBudget, deleteBudget } from '../../offline/mutations'
-import { iconForTxn } from '../transactions/txnMapping'
-import { CategoryPicker } from '../categories/CategoryPicker'
-import { BudgetBanner } from './BudgetBanner'
-import { getBudgets, type ApiBudget } from './api'
-import type { XpensesDb } from '../../offline/db'
-import './BudgetsScreen.css'
+import { useEffect, useMemo, useState } from "react";
+import {
+  useBudgets,
+  useCategories,
+  useCreateBudget,
+  useDeleteBudget,
+  useUpdateBudget,
+} from "../../api/hooks";
+import type { BudgetStatus, Category } from "../../api/types";
+import { useMonth } from "../../app/MonthContext";
+import { ApiError } from "../../lib/api";
+import { bahtToSatang } from "../../lib/money";
+import { Button } from "../../ui/Button";
+import { Money } from "../../ui/Money";
+import { MoneyInput } from "../../ui/MoneyInput";
+import { MonthSwitcher } from "../../ui/MonthSwitcher";
+import { PageHeader } from "../../ui/PageHeader";
+import { Sheet } from "../../ui/Sheet";
+import "../../ui/form.css";
+import "./BudgetsScreen.css";
 
-const LIVE_REFRESH_MS = 30_000
+export function BudgetsScreen() {
+  const { month } = useMonth();
+  const categories = useCategories();
+  const budgets = useBudgets(month);
+  const [editCat, setEditCat] = useState<Category | null>(null);
 
-function amountColor(spentSatang: number, limitSatang: number): string {
-  const ratio = spentSatang / limitSatang
-  if (ratio > 1) return 'var(--color-error)'
-  if (ratio >= 0.9) return 'var(--color-warning)'
-  return 'var(--color-muted-strong)'
+  const byCat = useMemo(() => {
+    const m = new Map<string, BudgetStatus>();
+    (budgets.data ?? []).forEach((b) => m.set(b.categoryId, b));
+    return m;
+  }, [budgets.data]);
+
+  return (
+    <div className="buds">
+      <PageHeader title="Budgets" back="/settings" action={<MonthSwitcher />} />
+
+      <ul className="crud-list">
+        {(categories.data ?? []).map((c) => {
+          const b = byCat.get(c.id);
+          const pct = b && b.limitAmount > 0 ? Math.min(100, (b.spent / b.limitAmount) * 100) : 0;
+          const tone = b?.over ? "over" : pct >= 80 ? "warn" : "ok";
+          return (
+            <li key={c.id}>
+              <button className="brow" onClick={() => setEditCat(c)}>
+                <div className="brow__top">
+                  <span className="brow__name">{c.name}</span>
+                  {b ? (
+                    <span className="brow__nums">
+                      <Money amount={b.spent} tone={b.over ? "neg" : "ink"} className="num" />
+                      <span className="brow__limit num"> / ฿{(b.limitAmount / 100).toLocaleString()}</span>
+                    </span>
+                  ) : (
+                    <span className="brow__set">Set limit</span>
+                  )}
+                </div>
+                {b && (
+                  <div className="brow__track">
+                    <span className={`brow__fill brow__fill--${tone}`} style={{ width: `${pct}%` }} />
+                  </div>
+                )}
+              </button>
+            </li>
+          );
+        })}
+      </ul>
+
+      <BudgetForm
+        category={editCat}
+        existing={editCat ? byCat.get(editCat.id) ?? null : null}
+        onClose={() => setEditCat(null)}
+      />
+    </div>
+  );
 }
 
-interface BudgetsScreenProps {
-  db: XpensesDb
-}
+function BudgetForm({
+  category,
+  existing,
+  onClose,
+}: {
+  category: Category | null;
+  existing: BudgetStatus | null;
+  onClose: () => void;
+}) {
+  const create = useCreateBudget();
+  const update = useUpdateBudget();
+  const remove = useDeleteBudget();
 
-export function BudgetsScreen({ db }: BudgetsScreenProps) {
-  const month = useMemo(() => new Date().toISOString().slice(0, 7), [])
-  const cachedBudgets = useBudgets(db)
-  const categories = useCategories(db)
-  const [liveBudgets, setLiveBudgets] = useState<ApiBudget[] | null>(null)
-  const [bannerDismissed, setBannerDismissed] = useState(false)
-  const [categoryId, setCategoryId] = useState<string | null>(null)
-  const [limitAmount, setLimitAmount] = useState(0)
-  const [editingId, setEditingId] = useState<string | null>(null)
+  const [limit, setLimit] = useState("");
+  const [err, setErr] = useState<string | null>(null);
 
   useEffect(() => {
-    let cancelled = false
-    function refetch() {
-      getBudgets(month)
-        .then((rows) => {
-          if (!cancelled) setLiveBudgets(rows)
-        })
-        .catch(() => undefined) // offline: fall back to cached limits below, spent unknown
-    }
-    // Refetch immediately on any local budget write (create/delete/limit
-    // edit), AND on a fixed interval — spent/over changes whenever a
-    // transaction is added/edited/deleted anywhere in the app, which never
-    // touches the budgets table itself, so a cachedBudgets-only trigger
-    // would leave this screen showing a stale (or masked over-budget)
-    // spent/over indefinitely between budget edits.
-    refetch()
-    const interval = setInterval(refetch, LIVE_REFRESH_MS)
-    return () => {
-      cancelled = true
-      clearInterval(interval)
-    }
-  }, [month, cachedBudgets])
+    if (!category) return;
+    setErr(null);
+    setLimit(existing ? (existing.limitAmount / 100).toString() : "");
+  }, [category, existing]);
 
-  const categoriesById = useMemo(() => new Map((categories ?? []).map((c) => [c.id, c])), [categories])
-  const liveById = useMemo(() => new Map((liveBudgets ?? []).map((b) => [b.id, b])), [liveBudgets])
-  const budgetsWithCategoriesTaken = new Set((cachedBudgets ?? []).map((b) => b.categoryId))
+  const satang = bahtToSatang(limit);
+  const valid = satang !== null && satang > 0;
+  const busy = create.isPending || update.isPending || remove.isPending;
 
-  const displayBudgets = (cachedBudgets ?? []).map((b) => {
-    const live = liveById.get(b.id)
-    return {
-      id: b.id,
-      categoryId: b.categoryId,
-      categoryName: categoriesById.get(b.categoryId)?.name ?? 'Category',
-      limitAmount: b.limitAmount,
-      spent: live?.spent ?? 0,
-      over: live?.over ?? false,
+  async function save() {
+    if (!valid || satang === null || !category) return;
+    try {
+      setErr(null);
+      if (existing) await update.mutateAsync({ id: existing.id, limitAmount: satang });
+      else
+        await create.mutateAsync({
+          id: crypto.randomUUID(),
+          categoryId: category.id,
+          limitAmount: satang,
+        });
+      onClose();
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : "Couldn't save.");
     }
-  })
-
-  const overBudget = displayBudgets.find((b) => b.over)
-
-  async function handleSubmit(event: FormEvent) {
-    event.preventDefault()
-    if (limitAmount <= 0) return
-    if (editingId) {
-      await updateBudget(db, editingId, limitAmount)
-      setEditingId(null)
-    } else {
-      if (!categoryId) return
-      await createBudget(db, { categoryId, limitAmount })
-    }
-    setCategoryId(null)
-    setLimitAmount(0)
   }
 
-  function startEdit(budgetId: string, currentLimit: number) {
-    setEditingId(budgetId)
-    setLimitAmount(currentLimit)
-  }
-
-  function cancelEdit() {
-    setEditingId(null)
-    setCategoryId(null)
-    setLimitAmount(0)
+  async function del() {
+    if (!existing) return;
+    try {
+      setErr(null);
+      await remove.mutateAsync(existing.id);
+      onClose();
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : "Couldn't remove.");
+    }
   }
 
   return (
-    <div className="screen">
-      <div className="screen__header">
-        <div className="text-screen-title">Budgets</div>
-        <div className="text-caption">
-          {month} · {displayBudgets.length} categories tracked
-        </div>
-      </div>
-
-      {overBudget && !bannerDismissed && (
-        <div className="screen__banner">
-          <BudgetBanner
-            categoryName={overBudget.categoryName}
-            spent={overBudget.spent}
-            limitAmount={overBudget.limitAmount}
-            onDismiss={() => setBannerDismissed(true)}
+    <Sheet open={!!category} onClose={onClose} title={category?.name ?? "Budget"}>
+      <div className="aform">
+        <label className="aform__field">
+          <span className="fld__label">Monthly limit (฿)</span>
+          <MoneyInput
+            className="aform__input num"
+            value={limit}
+            onChange={setLimit}
+            ariaLabel="Monthly limit in baht"
+            autoFocus
           />
-        </div>
-      )}
+        </label>
 
-      <div className="screen__body">
-        <Panel>
-          <form className="budgets__form" onSubmit={handleSubmit}>
-            {!editingId && (
-              <>
-                <div className="text-caption-strong">Category</div>
-                <CategoryPicker
-                  db={db}
-                  value={categoryId}
-                  onChange={setCategoryId}
-                  excludeIds={budgetsWithCategoriesTaken}
-                />
-              </>
-            )}
-            <div className="text-caption-strong">Monthly limit</div>
-            <AmountInput valueSatang={limitAmount} onChange={setLimitAmount} variant="field" />
-            <div className="budgets__form-actions">
-              <Button type="submit" disabled={(!editingId && !categoryId) || limitAmount <= 0}>
-                {editingId ? 'Save' : 'Add'}
-              </Button>
-              {editingId && (
-                <Button type="button" variant="secondary" onClick={cancelEdit}>
-                  Cancel
-                </Button>
-              )}
-            </div>
-          </form>
-        </Panel>
+        {err && (
+          <p className="aform__error" role="alert">
+            {err}
+          </p>
+        )}
 
-        {displayBudgets.length === 0 ? (
-          <EmptyState title="No budgets yet" description="Set a monthly limit for a category above." />
-        ) : (
-          <Panel>
-            <div className="screen__section-header text-section-header">Category limits</div>
-            {displayBudgets.map((b) => {
-              const Icon = TXN_ICON_COMPONENTS[iconForTxn('expense', b.categoryName)]
-              const color = amountColor(b.spent, b.limitAmount)
-              return (
-                <div key={b.id} className="budget-row">
-                  <div className="budget-row__top">
-                    <button
-                      type="button"
-                      className="budget-row__label"
-                      aria-label={`Edit ${b.categoryName} budget`}
-                      onClick={() => startEdit(b.id, b.limitAmount)}
-                    >
-                      <Icon size={18} weight="fill" color={color} aria-hidden={true} />
-                      <span className="text-body-strong">{b.categoryName}</span>
-                    </button>
-                    <span className="text-caption-strong tabular" style={{ color }}>
-                      {formatTHB(b.spent)} / {formatTHB(b.limitAmount)}
-                    </span>
-                    <button
-                      type="button"
-                      className="budget-row__delete"
-                      aria-label={`Delete ${b.categoryName} budget`}
-                      onClick={() => deleteBudget(db, b.id)}
-                    >
-                      <Trash size={16} aria-hidden="true" />
-                    </button>
-                  </div>
-                  <ProgressBar value={b.spent} max={b.limitAmount} color={color} />
-                </div>
-              )
-            })}
-          </Panel>
+        <Button block disabled={!valid || busy} onClick={save}>
+          {busy ? "Saving…" : existing ? "Save limit" : "Set limit"}
+        </Button>
+
+        {existing && (
+          <button className="aform__del" onClick={del} disabled={busy}>
+            Remove budget
+          </button>
         )}
       </div>
-    </div>
-  )
+    </Sheet>
+  );
 }

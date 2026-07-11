@@ -489,13 +489,19 @@ Keep updated. Claude reads this before starting work.
   surface): the account-balance `฿NaN` sync bug and the unstyled
   `AmountInput` reuse — both fixed, tested, and re-verified live in-browser.
 
-**Current status pointer:** Phase 6 (Vertical Feature Slices) complete —
-the app is feature-complete against PRD.md's Success Criteria: all six
-screens (Transactions, Accounts, Categories, Budgets, Recurring, Reports)
-run against the real server + offline engine, verified both by the
-automated suite and a manual in-browser walkthrough. `server/.env`'s
-`PASSWORD_HASH` is still a placeholder for "changeme123" — replace with a
-real hash (`node -e "console.log(require('bcrypt').hashSync('yourpassword', 10))"`)
-before relying on this for anything beyond local dev. Next action: Phase 7
-(Deploy + Hardening) — `deploy.sh`, security-reviewer pass, 80%+ coverage
-gate, or address the Backlog items above first if the user prefers.
+**Current status pointer (updated 2026-07-11):** the web frontend was
+**rebuilt from scratch** with a leaner React-Query architecture, replacing the
+Phase-6 custom offline-engine build described above. Current frontend is
+authoritative in `docs/WEB.md`; the Phase 6 notes are retained as history of
+the prior approach. Feature parity holds: all six screens + login run against
+the real server. Production-readiness done this session:
+- `PASSWORD_HASH` set to a real bcrypt hash (cost 12); old placeholder rejected.
+- Same-origin serving: web builds into `server/public/`, `app.js` serves it
+  with SPA fallback in production (first-party cookie, no CORS).
+- Auth cookie confirmed `Secure` in production (HTTPS via Hostinger TLS).
+- Offline sync via React Query persistence (offline reads + resumable writes).
+- 54 web tests (~85% cov) + 236 server tests passing.
+
+Remaining Phase 7: `deploy.sh` (build web -> rsync `server/` -> restart
+Passenger), security-reviewer pass, optional optimistic-UI + `/api/sync`
+bidirectional pull (only if multi-device), and Backlog items above.

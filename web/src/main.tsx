@@ -1,13 +1,31 @@
-import { StrictMode } from 'react'
-import { createRoot } from 'react-dom/client'
-import { BrowserRouter } from 'react-router-dom'
-import { AppRoutes } from './app/App'
-import './theme/globals.css'
+import { StrictMode } from "react";
+import { createRoot } from "react-dom/client";
+import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client";
+import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
+import { BrowserRouter } from "react-router-dom";
+import { App } from "./app/App";
+import { makeQueryClient } from "./app/queryClient";
+import "./theme/globals.css";
 
-createRoot(document.getElementById('root')!).render(
+const queryClient = makeQueryClient();
+
+// Persist the cache to localStorage: reads show offline, and writes queued
+// while offline (paused mutations) survive a reload and replay on reconnect.
+const persister = createSyncStoragePersister({ storage: window.localStorage, key: "xpenses-cache" });
+
+createRoot(document.getElementById("root")!).render(
   <StrictMode>
-    <BrowserRouter>
-      <AppRoutes />
-    </BrowserRouter>
+    <PersistQueryClientProvider
+      client={queryClient}
+      persistOptions={{ persister, maxAge: 1000 * 60 * 60 * 24 * 7 }}
+      onSuccess={() => {
+        // Fire any writes that were paused offline before this session.
+        queryClient.resumePausedMutations();
+      }}
+    >
+      <BrowserRouter>
+        <App />
+      </BrowserRouter>
+    </PersistQueryClientProvider>
   </StrictMode>,
-)
+);

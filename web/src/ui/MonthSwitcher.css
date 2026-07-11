@@ -1,0 +1,33 @@
+.msw {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--sp-2);
+}
+
+.msw__nav {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  color: var(--ink-soft);
+  background: var(--paper-sunken);
+  border-radius: var(--r-full);
+  transition: color var(--dur-1) var(--ease-out), opacity var(--dur-1) var(--ease-out);
+}
+
+.msw__nav:active {
+  color: var(--ink);
+}
+
+.msw__nav:disabled {
+  opacity: 0.3;
+  pointer-events: none;
+}
+
+.msw__label {
+  min-width: 9ch;
+  text-align: center;
+  font-size: var(--t-label);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}

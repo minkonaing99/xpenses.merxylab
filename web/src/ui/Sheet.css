@@ -1,0 +1,70 @@
+.sheet {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: flex-end;
+  justify-content: center;
+}
+
+.sheet__scrim {
+  position: absolute;
+  inset: 0;
+  background: oklch(0.26 0.014 74 / 0.32);
+  opacity: 0;
+  transition: opacity var(--dur-2) var(--ease-out);
+}
+
+.sheet.is-shown .sheet__scrim {
+  opacity: 1;
+}
+
+.sheet__panel {
+  position: relative;
+  width: 100%;
+  max-width: 32rem;
+  max-height: 92dvh;
+  overflow-y: auto;
+  padding: var(--sp-2) var(--sp-5) calc(var(--sp-6) + var(--safe-b));
+  background: var(--paper-raised);
+  border-radius: var(--r-lg) var(--r-lg) 0 0;
+  box-shadow: var(--shadow-sheet);
+  transform: translateY(100%);
+  transition: transform var(--dur-3) var(--ease-out-soft);
+}
+
+.sheet.is-shown .sheet__panel {
+  transform: translateY(0);
+}
+
+.sheet__grip {
+  width: 2.25rem;
+  height: 0.3125rem;
+  margin: var(--sp-2) auto var(--sp-1);
+  background: var(--line-strong);
+  border-radius: var(--r-full);
+}
+
+.sheet__head {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-2) 0 var(--sp-4);
+}
+
+.sheet__title {
+  font-size: var(--t-lead);
+  font-weight: 650;
+  letter-spacing: -0.01em;
+}
+
+.sheet__close {
+  display: grid;
+  place-items: center;
+  width: 2rem;
+  height: 2rem;
+  font-size: 1.5rem;
+  line-height: 1;
+  color: var(--ink-faint);
+  border-radius: var(--r-full);
+}

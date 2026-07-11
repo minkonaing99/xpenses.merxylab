@@ -1,0 +1,15 @@
+.offline {
+  position: fixed;
+  top: 0;
+  left: 50%;
+  transform: translateX(-50%);
+  z-index: 60;
+  width: 100%;
+  max-width: 32rem;
+  padding: calc(var(--safe-t) + var(--sp-2)) var(--sp-4) var(--sp-2);
+  text-align: center;
+  font-size: var(--t-label);
+  font-weight: 600;
+  color: var(--accent-ink);
+  background: var(--accent);
+}

@@ -1,192 +1,251 @@
-import { useEffect, useRef, useState } from 'react'
-import { AmountInput } from '../../ui/AmountInput'
-import { AccountPicker } from '../accounts/AccountPicker'
-import { CategoryPicker } from '../categories/CategoryPicker'
-import { createTransaction, updateTransaction, deleteTransaction } from '../../offline/mutations'
-import { useAccounts, useCategories } from '../../offline/hooks'
-import { validateTransactionFields } from './validateTransactionFields'
-import type { XpensesDb, CachedTransaction } from '../../offline/db'
-import type { TxnType } from '../../ui/TxnRow'
-import './AddTransactionSheet.css'
+import { useEffect, useMemo, useState, type ReactNode } from "react";
+import {
+  useAccounts,
+  useCategories,
+  useCreateTransaction,
+  useDeleteTransaction,
+  useUpdateTransaction,
+} from "../../api/hooks";
+import type { Transaction, TxnType } from "../../api/types";
+import { ApiError } from "../../lib/api";
+import { bahtToSatang } from "../../lib/money";
+import { today } from "../../lib/format";
+import { Button } from "../../ui/Button";
+import { Segmented } from "../../ui/Segmented";
+import { MoneyInput } from "../../ui/MoneyInput";
+import { Sheet } from "../../ui/Sheet";
+import { Select } from "../../ui/Select";
+import { Chips } from "./Chips";
+import "./AddTransactionSheet.css";
 
 const TYPES: { value: TxnType; label: string }[] = [
-  { value: 'expense', label: 'Expense' },
-  { value: 'income', label: 'Income' },
-  { value: 'transfer', label: 'Transfer' },
-]
+  { value: "expense", label: "Expense" },
+  { value: "income", label: "Income" },
+  { value: "transfer", label: "Transfer" },
+];
 
-interface AddTransactionSheetProps {
-  db: XpensesDb
-  onClose: () => void
-  editingTxn?: CachedTransaction
+interface Props {
+  open: boolean;
+  onClose: () => void;
+  /** when set, the sheet edits this txn instead of creating a new one */
+  editing?: Transaction | null;
 }
 
-export function AddTransactionSheet({ db, onClose, editingTxn }: AddTransactionSheetProps) {
-  const [type, setType] = useState<TxnType>((editingTxn?.type as TxnType) ?? 'expense')
-  const [accountId, setAccountId] = useState<string | null>(editingTxn?.accountId ?? null)
-  const [categoryId, setCategoryId] = useState<string | null>(editingTxn?.categoryId ?? null)
-  const [fromAccountId, setFromAccountId] = useState<string | null>(editingTxn?.fromAccountId ?? null)
-  const [toAccountId, setToAccountId] = useState<string | null>(editingTxn?.toAccountId ?? null)
-  const [amountSatang, setAmountSatang] = useState(editingTxn?.amount ?? 0)
-  const [note, setNote] = useState(editingTxn?.note ?? '')
-  const [txnDate] = useState(editingTxn?.txnDate ?? new Date().toISOString().slice(0, 10))
+export function AddTransactionSheet({ open, onClose, editing }: Props) {
+  const accounts = useAccounts();
+  const categories = useCategories();
+  const create = useCreateTransaction();
+  const update = useUpdateTransaction();
+  const remove = useDeleteTransaction();
 
-  // Live-checked against the current cache so a selection that was
-  // soft-deleted by another tab/device while this sheet was open (or was
-  // already gone when an existing transaction was opened for edit) can't be
-  // silently resubmitted — validateTransactionFields only checks
-  // presence/absence of the ids, not whether they still resolve to a row.
-  const liveAccounts = useAccounts(db)
-  const liveCategories = useCategories(db)
-  const accountIds = new Set(liveAccounts?.map((a) => a.id))
-  const categoryIds = new Set(liveCategories?.map((c) => c.id))
-  const staleSelection =
-    (accountId != null && !accountIds.has(accountId)) ||
-    (categoryId != null && !categoryIds.has(categoryId)) ||
-    (fromAccountId != null && !accountIds.has(fromAccountId)) ||
-    (toAccountId != null && !accountIds.has(toAccountId))
+  const [type, setType] = useState<TxnType>("expense");
+  const [amount, setAmount] = useState("");
+  const [note, setNote] = useState("");
+  const [date, setDate] = useState(today());
+  const [categoryId, setCategoryId] = useState<string | null>(null);
+  const [accountId, setAccountId] = useState<string | null>(null);
+  const [fromId, setFromId] = useState<string | null>(null);
+  const [toId, setToId] = useState<string | null>(null);
+  const [err, setErr] = useState<string | null>(null);
+  const [confirmDel, setConfirmDel] = useState(false);
 
-  const fieldError = validateTransactionFields({
-    type,
-    categoryId: type === 'expense' ? categoryId : null,
-    accountId: type === 'expense' || type === 'income' ? accountId : null,
-    fromAccountId: type === 'transfer' ? fromAccountId : null,
-    toAccountId: type === 'transfer' ? toAccountId : null,
-  })
-  const isValid = amountSatang > 0 && fieldError === null && !staleSelection
+  const acctOpts = (accounts.data ?? []).map((a) => ({ value: a.id, label: a.name }));
+  const catOpts = (categories.data ?? []).map((c) => ({ value: c.id, label: c.name }));
 
-  const dialogRef = useRef<HTMLDivElement>(null)
-
+  // Prefill on open: from the edited txn, else fresh defaults.
+  // Deps are only open/editing so late-arriving account data never clobbers edits.
   useEffect(() => {
-    dialogRef.current?.focus()
-  }, [])
-
-  useEffect(() => {
-    function handleKeyDown(event: KeyboardEvent) {
-      if (event.key === 'Escape') onClose()
+    if (!open) return;
+    setErr(null);
+    setConfirmDel(false);
+    if (editing) {
+      setType(editing.type);
+      setAmount((editing.amount / 100).toString());
+      setNote(editing.note ?? "");
+      setDate(editing.txnDate);
+      setCategoryId(editing.categoryId ?? null);
+      setAccountId(editing.accountId ?? null);
+      setFromId(editing.fromAccountId ?? null);
+      setToId(editing.toAccountId ?? null);
+      return;
     }
-    document.addEventListener('keydown', handleKeyDown)
-    return () => document.removeEventListener('keydown', handleKeyDown)
-  }, [onClose])
+    setType("expense");
+    setAmount("");
+    setNote("");
+    setDate(today());
+    setCategoryId(null);
+    setAccountId(null);
+    setFromId(null);
+    setToId(null);
+  }, [open, editing]);
 
-  async function handleSave() {
-    if (!isValid) return
-    const input = {
+  // Fill account defaults for a new txn once they load, without overwriting a choice.
+  useEffect(() => {
+    if (!open || editing) return;
+    setAccountId((v) => v ?? accounts.data?.[0]?.id ?? null);
+    setFromId((v) => v ?? accounts.data?.[0]?.id ?? null);
+    setToId((v) => v ?? accounts.data?.[1]?.id ?? null);
+  }, [open, editing, accounts.data]);
+
+  const satang = bahtToSatang(amount);
+  const valid = useMemo(() => {
+    if (!satang || satang <= 0) return false;
+    if (type === "expense") return !!categoryId && !!accountId;
+    if (type === "income") return !!accountId;
+    return !!fromId && !!toId && fromId !== toId;
+  }, [satang, type, categoryId, accountId, fromId, toId]);
+
+  const busy = create.isPending || update.isPending || remove.isPending;
+
+  async function submit() {
+    if (!valid || !satang) return;
+    const fields = {
       type,
-      amount: amountSatang,
-      note: note || null,
-      categoryId: type === 'expense' ? categoryId : null,
-      accountId: type === 'expense' || type === 'income' ? accountId : null,
-      fromAccountId: type === 'transfer' ? fromAccountId : null,
-      toAccountId: type === 'transfer' ? toAccountId : null,
-      txnDate,
+      amount: satang,
+      note: note.trim() || null,
+      categoryId: type === "expense" ? categoryId : null,
+      accountId: type === "transfer" ? null : accountId,
+      fromAccountId: type === "transfer" ? fromId : null,
+      toAccountId: type === "transfer" ? toId : null,
+      txnDate: date,
+      updatedAt: new Date().toISOString(),
+    };
+    try {
+      setErr(null);
+      if (editing) {
+        await update.mutateAsync({ id: editing.id, patch: fields });
+      } else {
+        await create.mutateAsync({ id: crypto.randomUUID(), ...fields } as Transaction);
+      }
+      onClose();
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : "Couldn't save. Try again.");
     }
-    if (editingTxn) {
-      await updateTransaction(db, editingTxn.id, input)
-    } else {
-      await createTransaction(db, input)
-    }
-    onClose()
   }
 
-  async function handleDelete() {
-    if (!editingTxn) return
-    await deleteTransaction(db, editingTxn.id)
-    onClose()
+  async function del() {
+    if (!editing) return;
+    try {
+      setErr(null);
+      await remove.mutateAsync({ id: editing.id, updatedAt: new Date().toISOString() });
+      onClose();
+    } catch (e) {
+      setErr(e instanceof ApiError ? e.message : "Couldn't delete. Try again.");
+    }
   }
 
   return (
-    <div className="sheet-backdrop">
-      <div className="sheet" role="dialog" aria-label="Transaction" tabIndex={-1} ref={dialogRef}>
-        <div className="sheet__handle" />
-        <div className="sheet__header">
-          <button type="button" className="text-body" onClick={onClose}>
-            Cancel
-          </button>
-          <span className="text-body-strong">{editingTxn ? 'Edit Transaction' : 'New Transaction'}</span>
-          <button
-            type="button"
-            className="text-body-strong sheet__save"
-            onClick={handleSave}
-            disabled={!isValid}
-          >
-            Save
-          </button>
-        </div>
+    <Sheet open={open} onClose={onClose} title={editing ? "Edit transaction" : "New transaction"}>
+      <div className="add">
+        <Segmented options={TYPES} value={type} onChange={setType} label="Transaction type" />
 
-        <div className="sheet__type-toggle">
-          {TYPES.map(({ value, label }) => (
-            <button
-              key={value}
-              type="button"
-              className={`sheet__type-btn${type === value ? ' sheet__type-btn--active' : ''}`}
-              aria-pressed={type === value}
-              onClick={() => setType(value)}
-            >
-              {label}
-            </button>
-          ))}
-        </div>
-
-        <div className="sheet__amount">
-          <div className="text-caption">Amount</div>
-          <AmountInput valueSatang={amountSatang} onChange={setAmountSatang} />
-        </div>
-
-        {type === 'expense' && (
-          <>
-            <div className="sheet__field">
-              <div className="text-caption-strong">Account</div>
-              <AccountPicker db={db} value={accountId} onChange={setAccountId} />
-            </div>
-            <div className="sheet__field">
-              <div className="text-caption-strong">Category</div>
-              <CategoryPicker db={db} value={categoryId} onChange={setCategoryId} />
-            </div>
-          </>
-        )}
-
-        {type === 'income' && (
-          <div className="sheet__field">
-            <div className="text-caption-strong">Account</div>
-            <AccountPicker db={db} value={accountId} onChange={setAccountId} />
-          </div>
-        )}
-
-        {type === 'transfer' && (
-          <>
-            <div className="sheet__field">
-              <div className="text-caption-strong">From</div>
-              <AccountPicker db={db} value={fromAccountId} onChange={setFromAccountId} exclude={toAccountId ?? undefined} />
-            </div>
-            <div className="sheet__field">
-              <div className="text-caption-strong">To</div>
-              <AccountPicker db={db} value={toAccountId} onChange={setToAccountId} exclude={fromAccountId ?? undefined} />
-            </div>
-          </>
-        )}
-
-        <div className="sheet__field">
-          <label className="text-caption-strong" htmlFor="txn-note">
-            Note
-          </label>
-          <input
-            id="txn-note"
-            type="text"
-            className="sheet__note-input text-body"
-            value={note}
-            onChange={(e) => setNote(e.target.value)}
+        <label className="add__amount">
+          <span className="add__baht" aria-hidden="true">฿</span>
+          <MoneyInput
+            className="num"
+            value={amount}
+            onChange={setAmount}
+            ariaLabel="Amount in baht"
+            autoFocus={!editing}
           />
+        </label>
+
+        {type === "expense" && (
+          <Field label="Category">
+            <Select
+              options={catOpts}
+              value={categoryId}
+              onChange={setCategoryId}
+              label="Category"
+              placeholder="Select category"
+            />
+          </Field>
+        )}
+
+        {type !== "transfer" && (
+          <Field label={type === "income" ? "To account" : "Paid from"}>
+            <Chips options={acctOpts} value={accountId} onChange={setAccountId} />
+          </Field>
+        )}
+
+        {type === "transfer" && (
+          <>
+            <Field label="From">
+              <Chips options={acctOpts} value={fromId} onChange={setFromId} />
+            </Field>
+            <Field label="To">
+              <Chips options={acctOpts} value={toId} onChange={setToId} disabledValue={fromId} />
+            </Field>
+          </>
+        )}
+
+        <div className="add__row">
+          <Field label="Note" grow>
+            <input
+              className="add__input"
+              placeholder="Optional"
+              maxLength={255}
+              value={note}
+              onChange={(e) => setNote(e.target.value)}
+            />
+          </Field>
+          <Field label="Date">
+            <input
+              className="add__input add__date"
+              type="date"
+              value={date}
+              max={today()}
+              onChange={(e) => setDate(e.target.value)}
+            />
+          </Field>
         </div>
 
-        {editingTxn && (
-          <div className="sheet__field">
-            <button type="button" className="sheet__delete text-body-strong" onClick={handleDelete}>
+        {err && (
+          <p className="add__error" role="alert">
+            {err}
+          </p>
+        )}
+
+        <Button block disabled={!valid || busy} onClick={submit}>
+          {busy ? "Saving…" : editing ? "Save changes" : "Save"}
+        </Button>
+
+        {editing &&
+          (confirmDel ? (
+            <div className="add__confirm">
+              <span>Delete this transaction?</span>
+              <div className="add__confirm-actions">
+                <Button variant="quiet" onClick={() => setConfirmDel(false)}>
+                  Cancel
+                </Button>
+                <button className="add__del" onClick={del} disabled={busy}>
+                  Delete
+                </button>
+              </div>
+            </div>
+          ) : (
+            <button className="add__del add__del--full" onClick={() => setConfirmDel(true)}>
               Delete
             </button>
-          </div>
-        )}
+          ))}
       </div>
+    </Sheet>
+  );
+}
+
+function Field({
+  label,
+  children,
+  grow,
+}: {
+  label: string;
+  children: ReactNode;
+  grow?: boolean;
+}) {
+  return (
+    <div className={`fld${grow ? " fld--grow" : ""}`}>
+      <span className="fld__label">{label}</span>
+      {children}
     </div>
-  )
+  );
 }

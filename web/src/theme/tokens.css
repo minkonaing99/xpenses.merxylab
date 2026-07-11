@@ -1,0 +1,87 @@
+/*
+ * xpenses design tokens — "warm paper, one ink accent"
+ * Scene: solo owner logging a THB expense on their phone in a bright cafe.
+ * Color strategy: Restrained. Cream paper + warm ink + one amber accent.
+ * Money sign lives in muted ledger tints, never in the brand color.
+ * All color in OKLCH; neutrals tinted toward the paper hue (~85).
+ */
+:root {
+  /* Surfaces */
+  --paper: oklch(0.968 0.008 85);        /* app background, warm cream */
+  --paper-raised: oklch(0.992 0.006 85); /* sheets, elevated rows */
+  --paper-sunken: oklch(0.945 0.009 84); /* inset fields, track */
+
+  /* Ink (text) */
+  --ink: oklch(0.26 0.014 74);           /* primary text, warm near-black */
+  --ink-soft: oklch(0.47 0.012 74);      /* secondary text */
+  --ink-faint: oklch(0.63 0.010 74);     /* tertiary, placeholders */
+
+  /* Structure */
+  --line: oklch(0.885 0.008 82);         /* hairline dividers */
+  --line-strong: oklch(0.80 0.010 80);   /* field borders */
+
+  /* Accent — the single amber highlighter */
+  --accent: oklch(0.74 0.135 74);        /* FAB, active tab, primary fill */
+  --accent-press: oklch(0.68 0.135 68);  /* pressed state */
+  --accent-ink: oklch(0.28 0.05 68);     /* text/icon on accent */
+  --accent-wash: oklch(0.93 0.045 80);   /* faint amber background wash */
+
+  /* Money sign — muted ledger, low chroma */
+  --pos: oklch(0.52 0.09 158);           /* income / in the black */
+  --neg: oklch(0.50 0.11 32);            /* expense / in the red */
+  --pos-wash: oklch(0.93 0.03 158);
+  --neg-wash: oklch(0.93 0.035 32);
+
+  /* Danger — over budget, destructive */
+  --danger: oklch(0.53 0.15 28);
+  --danger-wash: oklch(0.93 0.04 28);
+
+  /* Focus */
+  --focus: oklch(0.62 0.13 74);
+
+  /* Type */
+  --font-ui: ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto,
+    "Helvetica Neue", Arial, sans-serif;
+  --num: "tnum" 1, "lnum" 1; /* tabular, lining figures */
+
+  /* Scale (major, ~1.25) */
+  --t-caption: 0.75rem;   /* 12 */
+  --t-label: 0.8125rem;   /* 13 */
+  --t-body: 0.9375rem;    /* 15 */
+  --t-lead: 1.0625rem;    /* 17 */
+  --t-title: 1.375rem;    /* 22 */
+  --t-figure: 2.125rem;   /* 34, big money */
+  --t-hero: 2.75rem;      /* 44, headline balance */
+
+  /* Spacing rhythm (non-uniform on purpose) */
+  --sp-1: 0.25rem;
+  --sp-2: 0.5rem;
+  --sp-3: 0.75rem;
+  --sp-4: 1rem;
+  --sp-5: 1.5rem;
+  --sp-6: 2rem;
+  --sp-7: 3rem;
+
+  /* Radii */
+  --r-sm: 0.5rem;
+  --r-md: 0.875rem;
+  --r-lg: 1.25rem;
+  --r-full: 999px;
+
+  /* Elevation — soft, warm-tinted, never gray */
+  --shadow-1: 0 1px 2px oklch(0.26 0.014 74 / 0.06);
+  --shadow-2: 0 6px 20px oklch(0.26 0.014 74 / 0.10);
+  --shadow-sheet: 0 -8px 40px oklch(0.26 0.014 74 / 0.16);
+
+  /* Motion */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);      /* ease-out-quint */
+  --ease-out-soft: cubic-bezier(0.16, 1, 0.3, 1);  /* ease-out-expo-ish */
+  --dur-1: 120ms;
+  --dur-2: 220ms;
+  --dur-3: 360ms;
+
+  /* Safe-area aware chrome heights */
+  --tabbar-h: 4rem;
+  --safe-b: env(safe-area-inset-bottom, 0px);
+  --safe-t: env(safe-area-inset-top, 0px);
+}

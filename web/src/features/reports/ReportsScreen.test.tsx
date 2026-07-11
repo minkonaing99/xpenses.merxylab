@@ -1,45 +1,39 @@
-import { render, screen } from '@testing-library/react'
-import { afterEach, beforeEach, describe, expect, it, vi } from 'vitest'
-import { ReportsScreen } from './ReportsScreen'
+import { screen } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-function jsonResponse(body: unknown, status = 200) {
-  return new Response(JSON.stringify(body), { status })
-}
+vi.mock("../../lib/api", async (orig) => {
+  const actual = await orig<typeof import("../../lib/api")>();
+  return { ...actual, api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn() } };
+});
 
-describe('ReportsScreen', () => {
-  beforeEach(() => {
-    vi.stubGlobal('fetch', vi.fn())
-  })
+import { api } from "../../lib/api";
+import { ReportsScreen } from "./ReportsScreen";
+import { fakeGet, renderApp } from "../../test/utils";
 
-  afterEach(() => {
-    vi.unstubAllGlobals()
-  })
+const summary = {
+  accounts: [{ id: "a1", name: "Cash", type: "cash", balance: 12000 }],
+  monthIncome: 50000,
+  monthExpense: 30000,
+  monthNet: 20000,
+};
+const spend = [{ categoryId: "c1", name: "Food", total: 30000 }];
 
-  it('renders category spend and account summary from the live API', async () => {
-    vi.mocked(fetch).mockImplementation((url: unknown) => {
-      const u = String(url)
-      if (u.includes('category-spend')) {
-        return Promise.resolve(jsonResponse({ ok: true, data: [{ categoryId: 'c1', name: 'Rent', total: 1250000 }] }))
-      }
-      return Promise.resolve(
-        jsonResponse({
-          ok: true,
-          data: { accounts: [{ id: 'a1', name: 'Cash', type: 'cash', balance: 64200 }], monthIncome: 500000, monthExpense: 320000, monthNet: 180000 },
-        }),
-      )
-    })
+beforeEach(() => {
+  vi.mocked(api.get).mockImplementation(
+    fakeGet({ "/reports/summary": summary, "/reports/category-spend": spend }) as never,
+  );
+});
+afterEach(() => vi.clearAllMocks());
 
-    render(<ReportsScreen />)
+describe("ReportsScreen", () => {
+  it("renders month stats, account balances, and category spend", async () => {
+    renderApp(<ReportsScreen />);
 
-    expect(await screen.findByText('Rent')).toBeInTheDocument()
-    expect(await screen.findByText('Cash')).toBeInTheDocument()
-  })
-
-  it('shows an error banner when the reports API is unreachable', async () => {
-    vi.mocked(fetch).mockRejectedValue(new TypeError('Failed to fetch'))
-
-    render(<ReportsScreen />)
-
-    expect(await screen.findByText(/couldn.t load reports/i)).toBeInTheDocument()
-  })
-})
+    expect(await screen.findByText("Food")).toBeInTheDocument();
+    expect(screen.getByText("In")).toBeInTheDocument();
+    expect(screen.getByText("Out")).toBeInTheDocument();
+    expect(screen.getByText("Net")).toBeInTheDocument();
+    expect(screen.getByText("Cash")).toBeInTheDocument();
+    expect(screen.getByText("+฿200.00")).toBeInTheDocument(); // monthNet
+  });
+});

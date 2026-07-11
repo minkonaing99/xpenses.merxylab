@@ -1,57 +1,39 @@
-import { render, screen } from '@testing-library/react'
-import { MemoryRouter } from 'react-router-dom'
-import { afterEach, describe, expect, it } from 'vitest'
-import { createXpensesDb, type XpensesDb } from '../../offline/db'
-import { SettingsScreen } from './SettingsScreen'
+import { fireEvent, screen, waitFor } from "@testing-library/react";
+import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
-function renderSettings(db: XpensesDb) {
-  return render(
-    <MemoryRouter>
-      <SettingsScreen db={db} />
-    </MemoryRouter>,
-  )
-}
+vi.mock("../../lib/api", async (orig) => {
+  const actual = await orig<typeof import("../../lib/api")>();
+  return { ...actual, api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn() } };
+});
 
-describe('SettingsScreen', () => {
-  let db: XpensesDb
+import { api } from "../../lib/api";
+import { SettingsScreen } from "./SettingsScreen";
+import { renderApp } from "../../test/utils";
 
-  afterEach(async () => {
-    await db?.delete()
-  })
+const reload = vi.fn();
 
-  it('links to Accounts, Categories, and Recurring', () => {
-    db = createXpensesDb('test-settings-links')
-    renderSettings(db)
+beforeEach(() => {
+  vi.mocked(api.post).mockResolvedValue({} as never);
+  vi.stubGlobal("location", { ...window.location, reload });
+});
+afterEach(() => {
+  vi.clearAllMocks();
+  vi.unstubAllGlobals();
+});
 
-    expect(screen.getByRole('link', { name: 'Accounts' })).toHaveAttribute('href', '/accounts')
-    expect(screen.getByRole('link', { name: 'Categories' })).toHaveAttribute('href', '/categories')
-    expect(screen.getByRole('link', { name: 'Recurring' })).toHaveAttribute('href', '/recurring')
-  })
+describe("SettingsScreen", () => {
+  it("links to each management screen", () => {
+    renderApp(<SettingsScreen />);
+    for (const label of ["Accounts", "Categories", "Budgets", "Recurring"]) {
+      expect(screen.getByRole("link", { name: new RegExp(label) })).toBeInTheDocument();
+    }
+  });
 
-  it('shows no sync banner when the outbox is empty', async () => {
-    db = createXpensesDb('test-settings-sync-empty')
-    renderSettings(db)
+  it("signs out and reloads", async () => {
+    renderApp(<SettingsScreen />);
+    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
 
-    expect(await screen.findByRole('link', { name: 'Accounts' })).toBeInTheDocument()
-    expect(screen.queryByText(/couldn.t sync/i)).not.toBeInTheDocument()
-  })
-
-  it('warns when there are failed outbox ops', async () => {
-    db = createXpensesDb('test-settings-sync-failed')
-    await db.outbox.add({ entity: 'transactions', action: 'update', payload: { id: 't1' }, createdAt: 'x', status: 'failed' })
-    renderSettings(db)
-
-    expect(await screen.findByText(/1 change couldn.t sync/i)).toBeInTheDocument()
-  })
-
-  it('pluralizes the failed-change count', async () => {
-    db = createXpensesDb('test-settings-sync-failed-plural')
-    await db.outbox.bulkAdd([
-      { entity: 'transactions', action: 'update', payload: { id: 't1' }, createdAt: 'x', status: 'failed' },
-      { entity: 'accounts', action: 'create', payload: { id: 'a1' }, createdAt: 'x', status: 'failed' },
-    ])
-    renderSettings(db)
-
-    expect(await screen.findByText(/2 changes couldn.t sync/i)).toBeInTheDocument()
-  })
-})
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith("/auth/logout", {}));
+    await waitFor(() => expect(reload).toHaveBeenCalled());
+  });
+});

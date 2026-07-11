@@ -57,6 +57,18 @@ if (env.nodeEnv === 'production') {
   scheduleRecurringCron(pool)
 }
 
+// Production only: serve the built PWA from this same origin so the httpOnly
+// auth cookie is first-party. Dev uses the Vite proxy instead.
+if (env.nodeEnv === 'production') {
+  const path = require('path')
+  const webDist = path.join(__dirname, 'public')
+  app.use(express.static(webDist))
+  // SPA deep links (/ledger, /settings/...) fall back to index.html; /api excluded.
+  app.get(/^\/(?!api\/).*/, (req, res, next) => {
+    res.sendFile(path.join(webDist, 'index.html'), (err) => (err ? next() : undefined))
+  })
+}
+
 app.use((req, res, next) => {
   next(new ApiError('NOT_FOUND', 'route not found'))
 })

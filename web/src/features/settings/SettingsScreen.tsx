@@ -1,51 +1,50 @@
-import { Link } from 'react-router-dom'
-import { CaretRight } from '@phosphor-icons/react'
-import { Panel } from '../../ui/Panel'
-import { Banner } from '../../ui/Banner'
-import { useOutboxStatus } from '../../offline/hooks'
-import type { XpensesDb } from '../../offline/db'
-import './SettingsScreen.css'
+import { Link } from "react-router-dom";
+import { useLogout } from "../../api/hooks";
+import { PageHeader } from "../../ui/PageHeader";
+import "./SettingsScreen.css";
 
-const MANAGE_LINKS = [
-  { to: '/accounts', label: 'Accounts' },
-  { to: '/categories', label: 'Categories' },
-  { to: '/recurring', label: 'Recurring' },
-]
+const MANAGE = [
+  { to: "/settings/accounts", label: "Accounts", desc: "Cash, bank, and other balances" },
+  { to: "/settings/categories", label: "Categories", desc: "How expenses are grouped" },
+  { to: "/settings/budgets", label: "Budgets", desc: "Monthly limits per category" },
+  { to: "/settings/recurring", label: "Recurring", desc: "Auto-inserted transactions" },
+];
 
-interface SettingsScreenProps {
-  db: XpensesDb
-}
+export function SettingsScreen() {
+  const logout = useLogout();
 
-export function SettingsScreen({ db }: SettingsScreenProps) {
-  const outboxStatus = useOutboxStatus(db)
-  const failedCount = outboxStatus?.failed ?? 0
+  async function signOut() {
+    await logout.mutateAsync().catch(() => {});
+    location.reload();
+  }
 
   return (
-    <div className="screen">
-      <div className="screen__header">
-        <div className="text-screen-title">Settings</div>
-      </div>
+    <div className="settings">
+      <PageHeader title="Settings" />
 
-      {failedCount > 0 && (
-        <div className="screen__banner">
-          <Banner
-            tone="error"
-            message={`${failedCount} change${failedCount === 1 ? '' : 's'} couldn't sync. Edit and save again to retry.`}
-          />
-        </div>
-      )}
+      <nav className="settings__list" aria-label="Manage">
+        {MANAGE.map((m) => (
+          <Link key={m.to} to={m.to} className="srow">
+            <div className="srow__text">
+              <span className="srow__label">{m.label}</span>
+              <span className="srow__desc">{m.desc}</span>
+            </div>
+            <Chevron />
+          </Link>
+        ))}
+      </nav>
 
-      <div className="screen__body">
-        <Panel>
-          <div className="screen__section-header text-section-header">Manage</div>
-          {MANAGE_LINKS.map(({ to, label }) => (
-            <Link key={to} to={to} className="settings__row">
-              <span className="text-body">{label}</span>
-              <CaretRight size={18} aria-hidden="true" />
-            </Link>
-          ))}
-        </Panel>
-      </div>
+      <button className="settings__logout" onClick={signOut} disabled={logout.isPending}>
+        {logout.isPending ? "Signing out…" : "Sign out"}
+      </button>
     </div>
-  )
+  );
+}
+
+function Chevron() {
+  return (
+    <svg viewBox="0 0 24 24" width="18" height="18" fill="none" stroke="var(--ink-faint)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" aria-hidden="true">
+      <path d="M9 5l7 7-7 7" />
+    </svg>
+  );
 }
