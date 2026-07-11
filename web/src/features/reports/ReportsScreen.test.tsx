@@ -37,11 +37,9 @@ describe("ReportsScreen", () => {
     expect(screen.getByText("+฿200.00")).toBeInTheDocument(); // monthNet
   });
 
-  it("shows a month-over-month spend comparison and a CSV export link", async () => {
+  it("shows a month-over-month spend comparison", async () => {
     renderApp(<ReportsScreen />);
     // Both months resolve to the same mocked summary -> flat delta.
     expect(await screen.findByText(/flat vs last month/)).toBeInTheDocument();
-    const link = screen.getByRole("link", { name: /Export .* as CSV/ });
-    expect(link).toHaveAttribute("href", expect.stringContaining("/api/reports/export?month="));
   });
 });

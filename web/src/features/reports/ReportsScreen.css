@@ -24,18 +24,6 @@
   font-weight: 650;
 }
 
-.rexport {
-  display: block;
-  margin: var(--sp-5) 0 var(--sp-6);
-  padding: var(--sp-3);
-  text-align: center;
-  font-size: var(--t-body);
-  font-weight: 600;
-  color: var(--accent);
-  background: var(--paper-sunken);
-  border-radius: var(--r-md);
-}
-
 .stat {
   display: flex;
   flex-direction: column;

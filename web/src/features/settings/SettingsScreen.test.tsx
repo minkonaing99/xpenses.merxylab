@@ -29,6 +29,12 @@ describe("SettingsScreen", () => {
     }
   });
 
+  it("offers a CSV export link for the current month", () => {
+    renderApp(<SettingsScreen />);
+    const link = screen.getByRole("link", { name: /Export .* as CSV/ });
+    expect(link).toHaveAttribute("href", expect.stringContaining("/api/reports/export?month="));
+  });
+
   it("signs out and reloads", async () => {
     renderApp(<SettingsScreen />);
     fireEvent.click(screen.getByRole("button", { name: "Sign out" }));

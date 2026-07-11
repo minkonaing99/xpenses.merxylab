@@ -76,10 +76,6 @@ export function ReportsScreen() {
           ))}
         </ol>
       </section>
-
-      <a className="rexport" href={`/api/reports/export?month=${month}`} download>
-        Export {month} as CSV
-      </a>
     </div>
   );
 }

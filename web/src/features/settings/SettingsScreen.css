@@ -50,3 +50,12 @@
   opacity: 0.5;
   pointer-events: none;
 }
+
+/* Low-key: small muted text link, not a prominent row. */
+.settings__export {
+  display: block;
+  margin-top: var(--sp-5);
+  text-align: center;
+  font-size: var(--t-label);
+  color: var(--ink-faint);
+}
