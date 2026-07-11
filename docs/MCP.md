@@ -11,6 +11,34 @@ Read: `list_transactions`, `get_balances`, `get_budgets`, `get_forecast`,
 baht, category/account matched by name). No update or delete by design — fix
 mistakes in the app.
 
+## Usage (talking to it)
+
+After the client is registered (below) and approved, you don't call tools by
+name — just talk. Claude reads the request and picks the tool. Examples:
+
+| You say | Tool |
+| --- | --- |
+| "what are my account balances?" | `get_balances` |
+| "am I on track this month?" / "projected spend by end of July?" | `get_forecast` |
+| "how are my budgets doing?" | `get_budgets` |
+| "anything unusual in my spending?" | `get_anomalies` |
+| "what am I spending more on vs last month?" | `get_comparisons` |
+| "list my July transactions" | `list_transactions` |
+| "log ฿120 lunch to Cash under Food" | `create_expense` |
+
+Notes:
+- **Months** default to the current one; name another ("in June", "2026-05").
+- **Logging an expense**: amount in baht (auto-converted to satang); category
+  and account are matched by name (exact first, then partial); date defaults to
+  today (Bangkok), or say "...on 2026-07-09".
+- **Read + add-expense only.** No edit or delete through Claude — do those in
+  the app. A model misread can't overwrite or wipe data.
+- If it logs to the wrong category/account, restate the exact name.
+
+Troubleshooting: tools missing -> restart the client and approve the server;
+`authentication required` -> the server lacks the deployed Bearer-auth code or
+the `API_TOKEN`/`XPENSES_API_TOKEN` pair doesn't match.
+
 ## Server setup (one time)
 
 1. Generate a token and set it on the API server's `.env`:
