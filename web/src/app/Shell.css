@@ -75,22 +75,25 @@
   display: none;
 }
 
-/* Desktop: bottom tab bar becomes a left sidebar, content uses a wider column. */
+/* Desktop: bottom tab bar becomes a fixed left sidebar; content is centered
+   in the remaining space. Column order: brand, Add, nav links. */
 @media (min-width: 60rem) {
   .shell {
     flex-direction: row;
   }
 
   .shell__main {
-    max-width: 75rem;
-    padding: 0 var(--sp-6) var(--sp-7);
+    max-width: 62rem;
+    margin-inline: auto;
+    padding: var(--sp-5) var(--sp-7) var(--sp-7);
   }
 
   .tabbar {
+    order: -1; /* sidebar on the left */
     position: sticky;
+    top: 0;
     left: auto;
     bottom: auto;
-    top: 0;
     transform: none;
     align-self: flex-start;
     flex: none;
@@ -98,8 +101,8 @@
     height: 100dvh;
     display: flex;
     flex-direction: column;
-    gap: var(--sp-1);
-    padding: var(--sp-5) var(--sp-3);
+    gap: 2px;
+    padding: var(--sp-5) var(--sp-4);
     border-top: none;
     border-right: 1px solid var(--line);
     backdrop-filter: none;
@@ -107,10 +110,11 @@
   }
 
   .nav__brand {
+    order: -2;
     display: flex;
     align-items: center;
     gap: var(--sp-2);
-    padding: var(--sp-2) var(--sp-3) var(--sp-4);
+    padding: var(--sp-1) var(--sp-2) var(--sp-4);
   }
 
   .nav__brandname {
@@ -126,24 +130,39 @@
     width: 100%;
     padding: var(--sp-3);
     font-size: var(--t-body);
+    font-weight: 600;
+    color: var(--ink-soft);
     border-radius: var(--r-md);
     transition: color var(--dur-1) var(--ease-out), background-color var(--dur-1) var(--ease-out);
   }
 
+  .tab:hover {
+    background: var(--paper-sunken);
+    color: var(--ink);
+  }
+
   .tab.active {
+    color: var(--ink);
     background: var(--accent-wash);
   }
 
   .fab {
-    order: 1; /* push the Add button below the nav links */
+    order: -1; /* primary CTA sits just under the brand */
     flex-direction: row;
     gap: var(--sp-2);
     width: 100%;
     height: auto;
-    margin: var(--sp-4) 0 0;
+    margin: 0 0 var(--sp-4);
     padding: var(--sp-3);
     border-radius: var(--r-md);
+    font-size: var(--t-body);
     font-weight: 650;
+    box-shadow: none;
+  }
+
+  .fab svg {
+    width: 20px;
+    height: 20px;
   }
 
   .fab__label {
