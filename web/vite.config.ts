@@ -28,7 +28,9 @@ export default defineConfig({
     }),
   ],
   // Build straight into the Express app's public dir so prod serves it same-origin.
-  build: { outDir: "../server/public", emptyOutDir: true },
+  // assetsDir "static" (not the default "assets"): the host reverse-proxy reserves
+  // /assets/* for a CDN bucket, so hashed assets there 404. /static/* hits Express.
+  build: { outDir: "../server/public", emptyOutDir: true, assetsDir: "static" },
   server: {
     proxy: {
       "/api": { target: "http://localhost:3001", changeOrigin: true },
