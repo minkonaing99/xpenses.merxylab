@@ -59,3 +59,31 @@
   font-size: var(--t-label);
   color: var(--ink-faint);
 }
+
+/* Desktop: manage links become a two-column card grid. */
+@media (min-width: 60rem) {
+  .settings > .ph {
+    margin-bottom: var(--sp-3);
+  }
+
+  .settings__list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    gap: var(--sp-3);
+  }
+
+  .srow {
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    padding: var(--sp-4);
+  }
+
+  .srow:active {
+    background: var(--paper-raised);
+  }
+
+  .settings__logout {
+    width: auto;
+    padding-inline: var(--sp-6);
+  }
+}

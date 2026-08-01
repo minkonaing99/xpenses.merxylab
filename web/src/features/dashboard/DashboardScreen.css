@@ -291,3 +291,18 @@
   font-size: var(--t-caption);
   color: var(--ink-faint);
 }
+
+/* Desktop: two-column masonry-ish grid, header spans full width. */
+@media (min-width: 60rem) {
+  .dash {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: var(--sp-5);
+    padding-top: var(--sp-6);
+  }
+
+  .dash__top {
+    grid-column: 1 / -1;
+  }
+}

@@ -1,6 +1,7 @@
 import { useState, type ReactNode } from "react";
 import { NavLink } from "react-router-dom";
 import { AddTransactionSheet } from "../features/transactions/AddTransactionSheet";
+import { LogoMark } from "../ui/Logo";
 import "./Shell.css";
 
 export function Shell({ children }: { children: ReactNode }) {
@@ -11,6 +12,11 @@ export function Shell({ children }: { children: ReactNode }) {
       <main className="shell__main">{children}</main>
 
       <nav className="tabbar" aria-label="Primary">
+        <div className="nav__brand" aria-hidden="true">
+          <LogoMark size={24} />
+          <span className="nav__brandname">Xpenses</span>
+        </div>
+
         <NavLink to="/" end className="tab" aria-label="Home">
           <HomeIcon />
           <span>Home</span>
@@ -22,6 +28,7 @@ export function Shell({ children }: { children: ReactNode }) {
 
         <button className="fab" onClick={() => setAdding(true)} aria-label="Add transaction">
           <PlusIcon />
+          <span className="fab__label">Add</span>
         </button>
 
         <NavLink to="/reports" className="tab" aria-label="Reports">

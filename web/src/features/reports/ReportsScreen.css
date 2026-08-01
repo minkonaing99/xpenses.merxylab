@@ -173,3 +173,17 @@
 .rbal__amt {
   font-weight: 650;
 }
+
+/* Desktop: two-column card grid, page header spans full width. */
+@media (min-width: 60rem) {
+  .reports {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: var(--sp-4);
+  }
+
+  .reports > .ph {
+    grid-column: 1 / -1;
+  }
+}

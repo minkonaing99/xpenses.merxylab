@@ -179,3 +179,25 @@
   font-weight: 650;
   white-space: nowrap;
 }
+
+/* Desktop: controls span full width, day cards flow into two columns. */
+@media (min-width: 60rem) {
+  .ledger {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    align-items: start;
+    gap: var(--sp-3) var(--sp-4);
+  }
+
+  .ledger__head,
+  .ledger__search,
+  .ledger__filters,
+  .ledger__note,
+  .ledger__empty {
+    grid-column: 1 / -1;
+  }
+
+  .day {
+    margin-top: 0;
+  }
+}

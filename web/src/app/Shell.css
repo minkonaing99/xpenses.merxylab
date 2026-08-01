@@ -68,3 +68,85 @@
   transform: scale(0.92);
   background: var(--accent-press);
 }
+
+/* Desktop-only nav chrome — hidden in the mobile bottom bar. */
+.nav__brand,
+.fab__label {
+  display: none;
+}
+
+/* Desktop: bottom tab bar becomes a left sidebar, content uses a wider column. */
+@media (min-width: 60rem) {
+  .shell {
+    flex-direction: row;
+  }
+
+  .shell__main {
+    max-width: 75rem;
+    padding: 0 var(--sp-6) var(--sp-7);
+  }
+
+  .tabbar {
+    position: sticky;
+    left: auto;
+    bottom: auto;
+    top: 0;
+    transform: none;
+    align-self: flex-start;
+    flex: none;
+    width: 15rem;
+    height: 100dvh;
+    display: flex;
+    flex-direction: column;
+    gap: var(--sp-1);
+    padding: var(--sp-5) var(--sp-3);
+    border-top: none;
+    border-right: 1px solid var(--line);
+    backdrop-filter: none;
+    background: var(--paper-raised);
+  }
+
+  .nav__brand {
+    display: flex;
+    align-items: center;
+    gap: var(--sp-2);
+    padding: var(--sp-2) var(--sp-3) var(--sp-4);
+  }
+
+  .nav__brandname {
+    font-size: var(--t-lead);
+    font-weight: 700;
+    letter-spacing: -0.02em;
+  }
+
+  .tab {
+    flex-direction: row;
+    justify-content: flex-start;
+    gap: var(--sp-3);
+    width: 100%;
+    padding: var(--sp-3);
+    font-size: var(--t-body);
+    border-radius: var(--r-md);
+    transition: color var(--dur-1) var(--ease-out), background-color var(--dur-1) var(--ease-out);
+  }
+
+  .tab.active {
+    background: var(--accent-wash);
+  }
+
+  .fab {
+    order: 1; /* push the Add button below the nav links */
+    flex-direction: row;
+    gap: var(--sp-2);
+    width: 100%;
+    height: auto;
+    margin: var(--sp-4) 0 0;
+    padding: var(--sp-3);
+    border-radius: var(--r-md);
+    font-weight: 650;
+  }
+
+  .fab__label {
+    display: inline;
+  }
+}
