@@ -92,10 +92,6 @@
   border-left-color: var(--neg);
 }
 
-.anom--duplicate {
-  border-left-color: var(--accent);
-}
-
 .anom__icon {
   display: grid;
   place-items: center;

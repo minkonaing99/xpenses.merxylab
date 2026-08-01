@@ -15,7 +15,6 @@ const {
 } = require('./service')
 
 const MONTHS_BACK = 3
-const DUPLICATE_WINDOW_HOURS = 48
 
 const querySchema = z.object({
   month: z.string().regex(/^\d{4}-\d{2}$/),
@@ -88,10 +87,9 @@ function createInsightsRouter(pool) {
     const q = parseQuery(req, next)
     if (!q) return
     try {
-      const [history, budgets, dups] = await Promise.all([
+      const [history, budgets] = await Promise.all([
         repo.categoryHistory(pool, q.month, q.window.throughDate, MONTHS_BACK),
         repo.budgetStatus(pool, q.month, q.window.throughDate),
-        repo.duplicateCandidates(pool, q.month, DUPLICATE_WINDOW_HOURS),
       ])
 
       const velocity = flagCategoryVelocity(
@@ -114,16 +112,7 @@ function createInsightsRouter(pool) {
         q.window.monthFraction,
       )
 
-      const duplicates = dups.map((d) => ({
-        type: 'duplicate',
-        ids: [d.id1, d.id2],
-        amount: Number(d.amount),
-        name: d.category_name,
-        note: d.note,
-        txnDate: d.txn_date,
-      }))
-
-      res.json(ok([...burn, ...velocity, ...duplicates]))
+      res.json(ok([...burn, ...velocity]))
     } catch (err) {
       next(err)
     }

@@ -110,18 +110,6 @@ describe('insights router', () => {
       expect(burn).toBeTruthy()
     })
 
-    it('flags duplicate-looking expenses', async () => {
-      await makeTxn('expense', 12345, '2034-04-05')
-      await makeTxn('expense', 12345, '2034-04-05')
-
-      const res = await request(app)
-        .get('/api/insights/anomalies')
-        .query({ month: '2034-04', asOf: '2034-04-10' })
-      expect(res.status).toBe(200)
-      const dup = res.body.data.find((a) => a.type === 'duplicate' && Number(a.amount) === 12345)
-      expect(dup).toBeTruthy()
-      expect(dup.ids).toHaveLength(2)
-    })
   })
 
   describe('GET /comparisons', () => {

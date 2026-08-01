@@ -106,25 +106,6 @@ describe('insights repo', () => {
     })
   })
 
-  describe('duplicateCandidates', () => {
-    it('flags two same-amount same-category expenses created within the window', async () => {
-      await makeTxn('expense', 25000, '2033-07-05')
-      await makeTxn('expense', 25000, '2033-07-05')
-
-      const pairs = await repo.duplicateCandidates(pool, '2033-07', 48)
-      const mine = pairs.filter((p) => p.category_name && p.amount && Number(p.amount) === 25000)
-      expect(mine.length).toBeGreaterThanOrEqual(1)
-    })
-
-    it('does not flag distinct amounts', async () => {
-      await makeTxn('expense', 25000, '2033-08-05')
-      await makeTxn('expense', 26000, '2033-08-05')
-
-      const pairs = await repo.duplicateCandidates(pool, '2033-08', 48)
-      expect(pairs.filter((p) => Number(p.amount) === 25000 || Number(p.amount) === 26000)).toHaveLength(0)
-    })
-  })
-
   describe('budgetStatus', () => {
     let budgetId
     afterEach(async () => {

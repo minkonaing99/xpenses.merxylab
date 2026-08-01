@@ -51,25 +51,6 @@ async function categoryHistory(pool, month, throughDate, monthsBack) {
   return rows
 }
 
-// Pairs of non-deleted expenses in the month sharing amount + category and
-// created within `withinHours` of each other — likely accidental double entry.
-async function duplicateCandidates(pool, month, withinHours) {
-  const { start, end } = monthRange(month)
-  const [rows] = await pool.query(
-    `SELECT t1.id AS id1, t2.id AS id2, t1.amount, t1.note, t1.txn_date, c.name AS category_name
-     FROM transactions t1
-     JOIN transactions t2
-       ON t1.amount = t2.amount AND t1.category_id = t2.category_id AND t1.id < t2.id
-       AND ABS(TIMESTAMPDIFF(HOUR, t1.created_at, t2.created_at)) <= ?
-     LEFT JOIN categories c ON c.id = t1.category_id
-     WHERE t1.type = 'expense' AND t2.type = 'expense'
-       AND t1.deleted_at IS NULL AND t2.deleted_at IS NULL
-       AND t1.txn_date >= ? AND t1.txn_date < ?`,
-    [withinHours, start, end],
-  )
-  return rows
-}
-
 // Per category: this month's total, last month's total, and the total over
 // the trailing `monthsBack` months (for a trailing average).
 async function categoryComparison(pool, month, monthsBack) {
@@ -113,7 +94,6 @@ async function budgetStatus(pool, month, throughDate) {
 module.exports = {
   actualsToDate,
   categoryHistory,
-  duplicateCandidates,
   categoryComparison,
   budgetStatus,
   monthStartBefore,

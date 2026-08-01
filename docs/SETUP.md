@@ -113,9 +113,8 @@ Format: [Keep a Changelog](https://keepachangelog.com)
     days left; recurring bills still due are added at exact amounts from the rules
     (reuses `recurring/scheduler` `planDueRuns`). Optional `asOf=YYYY-MM-DD`.
   - `GET /anomalies?month=` — dismissible heads-up flags: budget burn (>=80% of
-    budget before 80% of month), category velocity (projected month spend >=2x the
-    trailing 3-month average, floor ฿500), and duplicate expenses (same amount +
-    category within 48h).
+    budget before 80% of month) and category velocity (projected month spend >=2x
+    the trailing 3-month average, floor ฿500).
   - `GET /comparisons?month=` — per-category current vs last month vs trailing
     3-month average, with deltas.
   - Web: forecast card + dismissible anomaly cards on Dashboard (dismissed state

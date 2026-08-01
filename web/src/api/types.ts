@@ -90,8 +90,7 @@ export type Anomaly =
       currentSpent: number;
       avg3mo: number;
       projectedFull: number;
-    }
-  | { type: "duplicate"; ids: string[]; amount: number; name: string | null; note: string | null; txnDate: string };
+    };
 
 export interface Comparison {
   categoryId: string;

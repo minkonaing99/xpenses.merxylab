@@ -42,7 +42,7 @@ export function ForecastCard({ forecast: f }: ForecastCardProps) {
 }
 
 function anomalyKey(a: Anomaly): string {
-  return a.type === "duplicate" ? `duplicate:${a.ids.join("-")}` : `${a.type}:${a.categoryId}`;
+  return `${a.type}:${a.categoryId}`;
 }
 
 function anomalyMessage(a: Anomaly): { icon: string; text: string } {
@@ -51,8 +51,6 @@ function anomalyMessage(a: Anomaly): { icon: string; text: string } {
       return { icon: "!", text: `${a.name} is ${Math.round(a.pct * 100)}% through its budget` };
     case "category_velocity":
       return { icon: "↑", text: `${a.name} spending is running above its usual pace` };
-    case "duplicate":
-      return { icon: "⧉", text: `Possible duplicate in ${a.name ?? "an expense"}` };
   }
 }
 
