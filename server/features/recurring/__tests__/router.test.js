@@ -7,6 +7,7 @@ const { getPool } = require('../../../db/pool')
 const accountsRepo = require('../../accounts/repo')
 const categoriesRepo = require('../../categories/repo')
 const { createRecurringRouter } = require('../router')
+const { todayInBangkok } = require('../../../cron/dateUtil')
 const errorHandler = require('../../../middleware/error')
 
 const pool = getPool()
@@ -55,6 +56,15 @@ describe('recurring router', () => {
     intervalUnit: 'month',
     intervalCount: 1,
     nextRunDate: '2026-08-01',
+  })
+
+  it('GET /upcoming projects an active rule due within the window', async () => {
+    const today = todayInBangkok()
+    await request(app).post('/api/recurring').send({ ...validRule(), nextRunDate: today })
+
+    const res = await request(app).get('/api/recurring/upcoming').query({ days: 30 })
+    expect(res.status).toBe(200)
+    expect(res.body.data.some((u) => u.id === ruleId && u.date === today)).toBe(true)
   })
 
   it('POST creates a rule, GET / lists it', async () => {

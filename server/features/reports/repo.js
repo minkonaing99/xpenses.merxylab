@@ -38,6 +38,41 @@ async function monthTransactions(pool, month) {
   return rows
 }
 
+// Expense-only spend per day over an inclusive [from, to] date range — feeds
+// the calendar heatmap. txn_date is a DATE, returned as a 'YYYY-MM-DD' string.
+async function dailySpend(pool, from, to) {
+  const [rows] = await pool.query(
+    `SELECT t.txn_date, SUM(t.amount) AS total
+     FROM transactions t
+     WHERE t.type = 'expense' AND t.deleted_at IS NULL AND t.txn_date >= ? AND t.txn_date <= ?
+     GROUP BY t.txn_date
+     ORDER BY t.txn_date ASC`,
+    [from, to],
+  )
+  return rows
+}
+
+// Same shape as monthTransactions but over an inclusive [from, to] range —
+// powers date-range export.
+async function rangeTransactions(pool, from, to) {
+  const [rows] = await pool.query(
+    `SELECT t.txn_date, t.type, t.amount, t.note,
+            c.name AS category_name,
+            a.name AS account_name,
+            fa.name AS from_account_name,
+            ta.name AS to_account_name
+     FROM transactions t
+     LEFT JOIN categories c ON c.id = t.category_id
+     LEFT JOIN accounts a ON a.id = t.account_id
+     LEFT JOIN accounts fa ON fa.id = t.from_account_id
+     LEFT JOIN accounts ta ON ta.id = t.to_account_id
+     WHERE t.deleted_at IS NULL AND t.txn_date >= ? AND t.txn_date <= ?
+     ORDER BY t.txn_date ASC, t.created_at ASC`,
+    [from, to],
+  )
+  return rows
+}
+
 async function monthlyTotals(pool, month) {
   const { start, end } = monthRange(month)
   const [rows] = await pool.query(
@@ -51,4 +86,4 @@ async function monthlyTotals(pool, month) {
   return { income: byType.income ?? 0, expense: byType.expense ?? 0 }
 }
 
-module.exports = { categorySpend, monthTransactions, monthlyTotals }
+module.exports = { categorySpend, monthTransactions, rangeTransactions, dailySpend, monthlyTotals }

@@ -7,10 +7,12 @@ import {
   useCategorySpend,
   useForecast,
   useSummary,
+  useUpcoming,
 } from "../../api/hooks";
-import type { BudgetStatus, Category, CategorySpend } from "../../api/types";
+import type { BudgetStatus, Category, CategorySpend, UpcomingRecurring } from "../../api/types";
 import { AnomalyCards, ForecastCard } from "../insights/InsightsCards";
 import { useMonth } from "../../app/MonthContext";
+import { dayLabel } from "../../lib/format";
 import { useEntrance } from "../../lib/useEntrance";
 import { AnimatedMoney } from "../../ui/AnimatedMoney";
 import { LogoMark } from "../../ui/Logo";
@@ -35,6 +37,7 @@ export function DashboardScreen() {
   const spend = useCategorySpend(month);
   const forecast = useForecast(month);
   const anomalies = useAnomalies(month);
+  const upcoming = useUpcoming(30);
 
   const catName = useMemo(() => {
     const m = new Map<string, string>();
@@ -99,6 +102,14 @@ export function DashboardScreen() {
       )}
 
       {forecast.data && <ForecastCard forecast={forecast.data} />}
+
+      {upcoming.data && upcoming.data.length > 0 && (
+        <Card title="Upcoming">
+          {upcoming.data.map((u) => (
+            <UpcomingRow key={`${u.id}-${u.date}`} u={u} name={catName.get(u.categoryId ?? "")} />
+          ))}
+        </Card>
+      )}
 
       <Card title="Accounts">
         {(accounts.data ?? []).map((a) => (
@@ -169,6 +180,18 @@ function Card({
       <h2 className="card__title">{title}</h2>
       {empty ? <p className="card__empty">{emptyText}</p> : children}
     </section>
+  );
+}
+
+function UpcomingRow({ u, name }: { u: UpcomingRecurring; name?: string }) {
+  return (
+    <div className="up">
+      <span className="up__name">{u.note || name || u.type}</span>
+      <span className="up__right">
+        <span className="up__date">{dayLabel(u.date)}</span>
+        <Money amount={u.amount} tone={u.type === "income" ? "pos" : "neg"} className="up__amt" />
+      </span>
+    </div>
   );
 }
 

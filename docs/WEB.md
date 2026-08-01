@@ -46,11 +46,13 @@ web/src/
 
 ## Screens
 
-Login · Dashboard (net balance, month flow, budget bars, category spend) ·
-Ledger (day-grouped, tap row to edit/delete) · Add/Edit transaction sheet
-(expense/income/transfer) · Reports (month stats + category bars) · Settings
-hub → Accounts / Categories / Budgets / Recurring CRUD. Month navigation is
-shared across data screens via `MonthContext`.
+Login · Dashboard (net balance, month flow, forecast + anomaly insight cards,
+upcoming recurring next 30 days, budget bars, category spend) · Ledger
+(day-grouped, tap row to edit/delete) · Add/Edit transaction sheet
+(expense/income/transfer) · Reports (month stats, category bars, month-over-month
+comparison, daily-spend calendar heatmap) · Settings hub → Accounts / Categories
+/ Budgets / Recurring CRUD, plus a date-range export (CSV or JSON). Month
+navigation is shared across data screens via `MonthContext`.
 
 ## Data + offline model
 

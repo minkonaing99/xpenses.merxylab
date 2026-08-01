@@ -12,6 +12,8 @@ export const keys = {
   forecast: (m: string) => ["forecast", m] as const,
   anomalies: (m: string) => ["anomalies", m] as const,
   comparisons: (m: string) => ["comparisons", m] as const,
+  dailySpend: (from: string, to: string) => ["dailySpend", from, to] as const,
+  upcoming: (days: number) => ["upcoming", days] as const,
 };
 
 /** Every month-scoped query. Invalidate all after a txn write. */

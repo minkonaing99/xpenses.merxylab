@@ -5,7 +5,11 @@ const { z } = require('zod')
 const { ok, ApiError } = require('../../lib/apiResponse')
 const { rowToCamel } = require('../../lib/caseMap')
 const { validateTransactionFields } = require('../transactions/service')
+const { todayInBangkok } = require('../../cron/dateUtil')
+const { addInterval, planUpcoming } = require('./scheduler')
 const repo = require('./repo')
+
+const upcomingSchema = z.object({ days: z.coerce.number().int().positive().max(365).default(30) })
 
 const TXN_TYPES = ['expense', 'income', 'transfer']
 const INTERVAL_UNITS = ['day', 'week', 'month']
@@ -47,6 +51,26 @@ function createRecurringRouter(pool) {
     try {
       const rows = await repo.findAll(pool)
       res.json(ok(rows.map((row) => ({ ...rowToCamel(row), active: Boolean(row.active) }))))
+    } catch (err) {
+      next(err)
+    }
+  })
+
+  // Projected occurrences of active rules within the next `days` (default 30).
+  // Read-only: does not insert transactions — that stays the cron's job.
+  router.get('/upcoming', async (req, res, next) => {
+    const parsed = upcomingSchema.safeParse(req.query)
+    if (!parsed.success) {
+      next(new ApiError('VALIDATION_ERROR', parsed.error.issues[0].message))
+      return
+    }
+
+    try {
+      const today = todayInBangkok()
+      const horizon = addInterval(today, 'day', parsed.data.days)
+      const rows = await repo.findAll(pool)
+      const rules = rows.filter((row) => row.active === 1).map((row) => ({ ...rowToCamel(row), active: true }))
+      res.json(ok(planUpcoming(rules, today, horizon)))
     } catch (err) {
       next(err)
     }

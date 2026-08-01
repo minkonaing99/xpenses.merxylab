@@ -1,6 +1,6 @@
 'use strict'
 
-const { addInterval, planDueRuns } = require('../scheduler')
+const { addInterval, planDueRuns, planUpcoming } = require('../scheduler')
 
 describe('addInterval', () => {
   it('adds days', () => {
@@ -72,5 +72,26 @@ describe('planDueRuns', () => {
     const { runDates, nextRunDate } = planDueRuns(biweekly, '2026-07-10')
     expect(runDates).toEqual(['2026-07-01'])
     expect(nextRunDate).toBe('2026-07-15')
+  })
+})
+
+describe('planUpcoming', () => {
+  const rent = { id: 'r', note: 'Rent', intervalUnit: 'month', intervalCount: 1, nextRunDate: '2026-07-15' }
+  const weekly = { id: 'w', note: 'Gym', intervalUnit: 'week', intervalCount: 1, nextRunDate: '2026-07-08' }
+
+  it('flattens occurrences across rules, sorted by date', () => {
+    const items = planUpcoming([rent, weekly], '2026-07-07', '2026-07-22')
+    expect(items.map((i) => i.date)).toEqual(['2026-07-08', '2026-07-15', '2026-07-15', '2026-07-22'])
+    expect(items[0].id).toBe('w')
+  })
+
+  it('drops overdue runs before today, keeps today-or-later', () => {
+    const overdue = { id: 'o', intervalUnit: 'week', intervalCount: 1, nextRunDate: '2026-07-01' }
+    const items = planUpcoming([overdue], '2026-07-10', '2026-07-20')
+    expect(items.map((i) => i.date)).toEqual(['2026-07-15'])
+  })
+
+  it('returns nothing when the next run is past the horizon', () => {
+    expect(planUpcoming([rent], '2026-07-01', '2026-07-10')).toEqual([])
   })
 })

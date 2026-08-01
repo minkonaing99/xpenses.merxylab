@@ -292,6 +292,36 @@
   color: var(--ink-faint);
 }
 
+.up {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  padding: var(--sp-2) 0;
+}
+
+.up__name {
+  color: var(--ink-soft);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.up__right {
+  display: flex;
+  align-items: baseline;
+  gap: var(--sp-3);
+  flex-shrink: 0;
+}
+
+.up__date {
+  font-size: var(--t-caption);
+  color: var(--ink-faint);
+}
+
+.up__amt {
+  font-weight: 650;
+}
+
 /* Desktop: two-column masonry-ish grid, header spans full width. */
 @media (min-width: 60rem) {
   .dash {

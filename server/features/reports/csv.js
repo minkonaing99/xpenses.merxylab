@@ -27,22 +27,32 @@ function accountLabel(row) {
   return row.account_name ?? ''
 }
 
+// One joined transaction row (snake_case) -> the flat export record, keyed by
+// HEADERS. Money as baht string (2dp). Shared by CSV and JSON export.
+function toRecord(row) {
+  return {
+    date: row.txn_date,
+    type: row.type,
+    category: row.category_name ?? '',
+    account: accountLabel(row),
+    amount_thb: satangToBaht(row.amount),
+    note: row.note ?? '',
+  }
+}
+
 // rows: joined transaction rows (snake_case) with category_name/account_name/
 // from_account_name/to_account_name resolved by the repo.
 function toCsv(rows) {
   const lines = [HEADERS.join(',')]
   for (const row of rows) {
-    const fields = [
-      row.txn_date,
-      row.type,
-      row.category_name ?? '',
-      accountLabel(row),
-      satangToBaht(row.amount),
-      row.note ?? '',
-    ]
-    lines.push(fields.map(escapeField).join(','))
+    const rec = toRecord(row)
+    lines.push(HEADERS.map((h) => escapeField(rec[h])).join(','))
   }
   return lines.join('\r\n')
 }
 
-module.exports = { toCsv, escapeField, HEADERS }
+function toJson(rows) {
+  return JSON.stringify(rows.map(toRecord), null, 2)
+}
+
+module.exports = { toCsv, toJson, toRecord, escapeField, HEADERS }

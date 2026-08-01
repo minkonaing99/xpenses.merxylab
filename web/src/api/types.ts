@@ -61,6 +61,14 @@ export interface CategorySpend {
   total: number; // satang
 }
 
+export interface DailySpend {
+  date: string; // YYYY-MM-DD
+  total: number; // satang, expense-only
+}
+
+// A recurring rule projected onto a concrete upcoming date.
+export type UpcomingRecurring = RecurringRule & { date: string };
+
 export interface Summary {
   accounts: Account[];
   monthIncome: number; // satang

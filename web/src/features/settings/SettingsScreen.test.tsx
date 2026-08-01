@@ -29,10 +29,18 @@ describe("SettingsScreen", () => {
     }
   });
 
-  it("offers a CSV export link for the current month", () => {
+  it("offers a date-range export link defaulting to the current month", () => {
     renderApp(<SettingsScreen />);
-    const link = screen.getByRole("link", { name: /Export .* as CSV/ });
-    expect(link).toHaveAttribute("href", expect.stringContaining("/api/reports/export?month="));
+    const link = screen.getByRole("link", { name: /Download CSV/ });
+    expect(link).toHaveAttribute("href", expect.stringContaining("/api/reports/export?from="));
+    expect(link).toHaveAttribute("href", expect.stringContaining("format=csv"));
+  });
+
+  it("switches the export to JSON", () => {
+    renderApp(<SettingsScreen />);
+    fireEvent.change(screen.getByLabelText(/Format/), { target: { value: "json" } });
+    const link = screen.getByRole("link", { name: /Download JSON/ });
+    expect(link).toHaveAttribute("href", expect.stringContaining("format=json"));
   });
 
   it("signs out and reloads", async () => {

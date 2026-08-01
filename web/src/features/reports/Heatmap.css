@@ -1,0 +1,47 @@
+.heat {
+  display: grid;
+  grid-template-columns: repeat(7, 1fr);
+  gap: 4px;
+  margin-top: var(--sp-2);
+}
+
+.heat__dow {
+  text-align: center;
+  font-size: 11px;
+  color: var(--ink-faint);
+  padding-bottom: 2px;
+}
+
+.heat__cell {
+  aspect-ratio: 1;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  border-radius: 6px;
+  font-size: 11px;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+
+.heat__cell--blank {
+  background: transparent;
+}
+
+/* Amber ramp: empty day is a faint ink tint, spend darkens toward --accent. */
+.heat__cell--l0 {
+  background: color-mix(in oklch, var(--ink) 6%, var(--paper));
+}
+.heat__cell--l1 {
+  background: color-mix(in oklch, var(--accent) 22%, var(--paper));
+}
+.heat__cell--l2 {
+  background: color-mix(in oklch, var(--accent) 44%, var(--paper));
+}
+.heat__cell--l3 {
+  background: color-mix(in oklch, var(--accent) 68%, var(--paper));
+  color: #fff;
+}
+.heat__cell--l4 {
+  background: var(--accent);
+  color: #fff;
+}

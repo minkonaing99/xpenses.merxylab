@@ -105,8 +105,34 @@ describe('reports router', () => {
     expect(res.text).toContain(',42.50,lunch')
   })
 
-  it('GET /export requires a month param', async () => {
+  it('GET /export requires a month or from+to param', async () => {
     const res = await request(app).get('/api/reports/export')
     expect(res.status).toBe(400)
+  })
+
+  it('GET /export supports a date range and JSON format', async () => {
+    await makeTxn('expense', 4250, '2026-07-05', { note: 'lunch' })
+
+    const res = await request(app)
+      .get('/api/reports/export')
+      .query({ from: '2026-07-01', to: '2026-07-31', format: 'json' })
+    expect(res.status).toBe(200)
+    expect(res.headers['content-type']).toMatch(/application\/json/)
+    expect(res.headers['content-disposition']).toContain('xpenses-2026-07-01_2026-07-31.json')
+    const rows = JSON.parse(res.text)
+    expect(rows.some((r) => r.amount_thb === '42.50' && r.note === 'lunch')).toBe(true)
+  })
+
+  it('GET /daily-spend requires from and to', async () => {
+    const res = await request(app).get('/api/reports/daily-spend').query({ from: '2026-07-01' })
+    expect(res.status).toBe(400)
+  })
+
+  it('GET /daily-spend returns expense totals per day in range', async () => {
+    await makeTxn('expense', 6420, '2026-07-05')
+
+    const res = await request(app).get('/api/reports/daily-spend').query({ from: '2026-07-01', to: '2026-07-31' })
+    expect(res.status).toBe(200)
+    expect(res.body.data.some((d) => d.total === 6420)).toBe(true)
   })
 })

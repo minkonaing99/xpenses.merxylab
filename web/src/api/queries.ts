@@ -9,10 +9,12 @@ import type {
   CategorySpend,
   Category,
   Comparison,
+  DailySpend,
   Forecast,
   RecurringRule,
   Summary,
   Transaction,
+  UpcomingRecurring,
 } from "./types";
 
 export function useMe() {
@@ -89,6 +91,22 @@ export function useComparisons(month: string) {
   return useQuery({
     queryKey: keys.comparisons(month),
     queryFn: () => api.get<Comparison[]>(`/insights/comparisons?month=${month}`),
+  });
+}
+
+/** Expense-only spend per day over [from, to] inclusive — feeds the heatmap. */
+export function useDailySpend(from: string, to: string) {
+  return useQuery({
+    queryKey: keys.dailySpend(from, to),
+    queryFn: () => api.get<DailySpend[]>(`/reports/daily-spend?from=${from}&to=${to}`),
+  });
+}
+
+/** Recurring rules projected onto their next occurrences within `days`. */
+export function useUpcoming(days = 30) {
+  return useQuery({
+    queryKey: keys.upcoming(days),
+    queryFn: () => api.get<UpcomingRecurring[]>(`/recurring/upcoming?days=${days}`),
   });
 }
 

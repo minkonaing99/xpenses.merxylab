@@ -272,6 +272,7 @@ Transaction body:
 | Method | Path | Body | Auth Required | Notes |
 |---|---|---|---|---|
 | GET    | /api/recurring | — | Yes | List rules. |
+| GET    | /api/recurring/upcoming | `?days=30` | Yes | Read-only projection: active rules' occurrences in `[today, today+days]`, flattened + sorted by date. Each item = the rule plus `date`. Does not insert txns. |
 | POST   | /api/recurring | rule template + `{ intervalUnit, intervalCount, nextRunDate }` | Yes | |
 | PATCH  | /api/recurring/:id | partial (incl. `active`) | Yes | Pause/resume. |
 | DELETE | /api/recurring/:id | — | Yes | Soft delete. |
@@ -281,7 +282,8 @@ Transaction body:
 |---|---|---|---|---|
 | GET | /api/reports/category-spend | `?month=YYYY-MM` | Yes | `[{ categoryId, name, total }]` for the chart. |
 | GET | /api/reports/summary | `?month=YYYY-MM` | Yes | `{ accounts:[{id,name,type,balance}], monthIncome, monthExpense, monthNet }` (satang). |
-| GET | /api/reports/export | `?month=YYYY-MM` | Yes | CSV attachment (`text/csv`) of the month's transactions: `date,type,category,account,amount_thb,note`. Amount in baht (2dp). |
+| GET | /api/reports/daily-spend | `?from=YYYY-MM-DD&to=YYYY-MM-DD` | Yes | `[{ date, total }]` expense-only spend per day over the inclusive range. Feeds the calendar heatmap. Satang. |
+| GET | /api/reports/export | `?month=YYYY-MM` \| `?from=&to=` `&format=csv\|json` | Yes | Attachment of transactions. `month` **or** `from`+`to` (inclusive) required; `format` defaults `csv`. Columns/keys: `date,type,category,account,amount_thb,note`. Amount in baht (2dp). |
 
 ### Cron (Plan B, optional)
 | Method | Path | Auth Required | Notes |

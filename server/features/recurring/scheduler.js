@@ -51,4 +51,19 @@ function planDueRuns(rule, today) {
   return { runDates, nextRunDate: cursor }
 }
 
-module.exports = { addInterval, planDueRuns }
+// Every occurrence of each rule that falls in [today, horizon] inclusive,
+// flattened across rules and sorted by date. Each item is the rule plus a
+// `date`. Pure; reuses planDueRuns so interval math stays in one place.
+// Overdue rules (nextRunDate < today) only surface their today-or-later runs.
+function planUpcoming(rules, today, horizon) {
+  const items = []
+  for (const rule of rules) {
+    const { runDates } = planDueRuns(rule, horizon)
+    for (const date of runDates) {
+      if (date >= today) items.push({ ...rule, date })
+    }
+  }
+  return items.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
+}
+
+module.exports = { addInterval, planDueRuns, planUpcoming }

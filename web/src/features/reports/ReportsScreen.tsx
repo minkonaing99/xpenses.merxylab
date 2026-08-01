@@ -3,6 +3,7 @@ import { useCategorySpend, useComparisons, useSummary } from "../../api/hooks";
 import type { Comparison } from "../../api/types";
 import { useMonth } from "../../app/MonthContext";
 import { prevMonth } from "../../lib/format";
+import { Heatmap } from "./Heatmap";
 import { Donut } from "../../ui/Donut";
 import { Money } from "../../ui/Money";
 import { MonthSwitcher } from "../../ui/MonthSwitcher";
@@ -85,6 +86,8 @@ export function ReportsScreen() {
           ))}
         </ol>
       </section>
+
+      <Heatmap />
 
       <section className="rcard">
         <h2 className="rcard__title">Accounts</h2>
