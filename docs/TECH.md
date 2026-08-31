@@ -37,14 +37,19 @@ server/
     budgets/    (routes, repo, service, __tests__)
     recurring/  (routes, repo, service, cron, __tests__)
     reports/    (routes, service, __tests__)
+    entityWrites/ (shared write interface, schemas, business rules)
   lib/money.js           # satang helpers (pure, immutable)
   lib/apiResponse.js     # success/error envelope
   cron/index.js          # schedule recurring job
 ```
 
 ## 4. Data Flow — Writes
-1. Client builds txn with a UUID + updated_at (now), calls `POST /api/transactions`.
-2. Server upserts by UUID (idempotent on retry/conflict).
+1. REST routes and sync push translate input into an entity write command.
+2. `writeEntity` owns schema validation, conflicts, reference guards,
+   recurring resume normalization, LWW ordering, and persistence.
+3. REST maps the result to an HTTP envelope. Sync maps the same result to a
+   per-operation status. Replay mode changes idempotency only, not business
+   validation or integrity rules.
 
 ## 5. Data Flow — Reads / Sync
 - `GET /api/sync?since=<updated_at>` returns changed categories,
@@ -53,10 +58,17 @@ server/
   Their balances derive from transactions and have no independent timestamp.
 
 ## 6. Sync Reconciliation Rules
-- Create: idempotent upsert on primary key = client UUID (`INSERT ... ON
-  DUPLICATE KEY UPDATE` guarded by updated_at).
-- Update/Delete: apply only if incoming updated_at >= stored updated_at.
-- Delete is soft (`deleted_at`) so it propagates through the same LWW path.
+- REST and sync writes cross the same `writeEntity` seam, so validation,
+  uniqueness conflicts, and delete reference guards cannot diverge.
+- Transaction create: idempotent upsert on the client UUID, guarded by
+  `updated_at`.
+- Transaction update/delete: apply only if incoming `updated_at` is at least
+  the stored value.
+- Accounts, categories, budgets, and recurring rules use server timestamps.
+  Sync replays of their creates and deletes are idempotent; updates still
+  require an active existing row.
+- Every delete is soft so pull sync can propagate its tombstone. Only
+  transaction deletes use the client-timestamp LWW guard.
 - Solo-user assumption removes concurrent-merge complexity by design.
 - `updated_at` is stored with whole-second precision (MySQL DATETIME, no
   fractional seconds) — two edits to the same transaction within the same

@@ -11,6 +11,11 @@ async function findById(pool, id) {
   return rows[0] || null
 }
 
+async function findByIdAny(pool, id) {
+  const [rows] = await pool.query('SELECT * FROM budgets WHERE id = ?', [id])
+  return rows[0] || null
+}
+
 // Uniqueness among non-deleted budgets is enforced here, not by a DB
 // constraint (see migration 004, mirrors categories' findActiveByName fix).
 // Accepted TOCTOU: this check-then-create is not transactional, so two
@@ -79,6 +84,7 @@ async function findChangedSince(pool, since) {
 
 module.exports = {
   findById,
+  findByIdAny,
   findByIdWithSpent,
   findActiveByCategoryId,
   findAllWithSpent,

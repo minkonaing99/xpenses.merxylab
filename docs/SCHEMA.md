@@ -252,7 +252,7 @@ Transaction body:
 | Method | Path | Query / Body | Auth Required | Notes |
 |---|---|---|---|---|
 | GET  | /api/sync | `?since=<ISO>` | Yes | Returns a full account snapshot plus other rows changed since timestamp, incl. tombstones. |
-| POST | /api/sync/push | `{ ops: [{ entity, action, payload }] }` | Yes | Batch replay of outbox; per-op result array so client can mark done/failed. |
+| POST | /api/sync/push | `{ ops: [{ entity, action, payload }] }` | Yes | Batch replay of outbox through the same validation, conflict, and reference-guard rules as REST; per-op result array so client can mark done/failed. |
 
 `push` response:
 ```json

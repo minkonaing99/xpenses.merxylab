@@ -3,19 +3,9 @@
 const express = require('express')
 const { z } = require('zod')
 const { ok, ApiError } = require('../../lib/apiResponse')
-const { rowToCamel } = require('../../lib/caseMap')
-const { currentMonth, mapBudgetRow } = require('./service')
+const { writeEntity } = require('../entityWrites/writer')
+const { mapBudgetRow } = require('./service')
 const repo = require('./repo')
-
-const createSchema = z.object({
-  id: z.string().uuid(),
-  categoryId: z.string().uuid(),
-  limitAmount: z.number().int().positive(),
-})
-
-const updateSchema = z
-  .object({ limitAmount: z.number().int().positive().optional() })
-  .refine((patch) => Object.keys(patch).length > 0, { message: 'at least one field is required' })
 
 const listQuerySchema = z.object({ month: z.string().regex(/^\d{4}-\d{2}$/) })
 
@@ -38,44 +28,27 @@ function createBudgetsRouter(pool) {
   })
 
   router.post('/', async (req, res, next) => {
-    const parsed = createSchema.safeParse(req.body)
-    if (!parsed.success) {
-      next(new ApiError('VALIDATION_ERROR', parsed.error.issues[0].message))
-      return
-    }
-
     try {
-      const conflict = await repo.findActiveByCategoryId(pool, parsed.data.categoryId)
-      if (conflict) {
-        next(new ApiError('CONFLICT', 'a budget already exists for this category'))
-        return
-      }
-
-      await repo.create(pool, parsed.data)
-      const created = await repo.findByIdWithSpent(pool, parsed.data.id, currentMonth())
-      res.status(201).json(ok(mapBudgetRow(created)))
+      const result = await writeEntity(pool, {
+        entity: 'budgets',
+        action: 'create',
+        payload: req.body,
+      })
+      res.status(201).json(ok(result.value))
     } catch (err) {
       next(err)
     }
   })
 
   router.patch('/:id', async (req, res, next) => {
-    const parsed = updateSchema.safeParse(req.body)
-    if (!parsed.success) {
-      next(new ApiError('VALIDATION_ERROR', parsed.error.issues[0].message))
-      return
-    }
-
     try {
-      const existing = await repo.findById(pool, req.params.id)
-      if (!existing) {
-        next(new ApiError('NOT_FOUND', 'budget not found'))
-        return
-      }
-
-      await repo.update(pool, req.params.id, parsed.data)
-      const updated = await repo.findById(pool, req.params.id)
-      res.json(ok(rowToCamel(updated)))
+      const result = await writeEntity(pool, {
+        entity: 'budgets',
+        action: 'update',
+        id: req.params.id,
+        payload: req.body,
+      })
+      res.json(ok(result.value))
     } catch (err) {
       next(err)
     }
@@ -83,13 +56,12 @@ function createBudgetsRouter(pool) {
 
   router.delete('/:id', async (req, res, next) => {
     try {
-      const existing = await repo.findById(pool, req.params.id)
-      if (!existing) {
-        next(new ApiError('NOT_FOUND', 'budget not found'))
-        return
-      }
-
-      await repo.softDelete(pool, req.params.id)
+      await writeEntity(pool, {
+        entity: 'budgets',
+        action: 'delete',
+        id: req.params.id,
+        payload: req.body,
+      })
       res.json(ok({}))
     } catch (err) {
       next(err)
@@ -99,4 +71,4 @@ function createBudgetsRouter(pool) {
   return router
 }
 
-module.exports = { createBudgetsRouter, createSchema, updateSchema }
+module.exports = { createBudgetsRouter }

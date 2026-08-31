@@ -103,7 +103,9 @@ second MySQL user for a solo dev setup).
       to guard on (DB-managed `updated_at`), so idempotent retries of
       create/delete resolve as `applied`, not error — lets a client outbox
       safely replay. Built after 3.3/3.4 (reordered so sync could cover all
-      5 entities in one pass instead of twice).
+      5 entities in one pass instead of twice). REST and sync now share the
+      deep `entityWrites` module, which owns schemas, conflicts, reference
+      guards, recurring normalization, and transaction LWW ordering.
 - [x] 3.3 budgets feature: CRUD + monthly spent (SQL aggregate JOIN) +
       `over` flag. Found + fixed proactively: same `UNIQUE(category_id)`
       soft-delete bug as categories' Phase-2 fix — migration 004 drops it,

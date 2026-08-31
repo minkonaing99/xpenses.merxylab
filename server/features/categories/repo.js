@@ -18,6 +18,11 @@ async function findById(pool, id) {
   return rows[0] || null
 }
 
+async function findByIdAny(pool, id) {
+  const [rows] = await pool.query('SELECT * FROM categories WHERE id = ?', [id])
+  return rows[0] || null
+}
+
 // Uniqueness among non-deleted categories is enforced here, not by a DB
 // constraint — MySQL has no partial unique index (see migration 003).
 // Accepted TOCTOU: this check-then-create is not transactional (same
@@ -70,6 +75,7 @@ async function findChangedSince(pool, since) {
 module.exports = {
   findAll,
   findById,
+  findByIdAny,
   findActiveByName,
   create,
   update,
