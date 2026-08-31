@@ -1,9 +1,14 @@
 'use strict'
 
 const { rowToCamel } = require('../../lib/caseMap')
+const { todayInBangkok } = require('../../cron/dateUtil')
 
 function computeOver(spent, limitAmount) {
-  return spent > limitAmount
+  return spent >= limitAmount
+}
+
+function currentMonth(now = new Date()) {
+  return todayInBangkok(now).slice(0, 7)
 }
 
 function mapBudgetRow(row) {
@@ -17,4 +22,4 @@ function mapBudgetRow(row) {
   }
 }
 
-module.exports = { computeOver, mapBudgetRow }
+module.exports = { computeOver, currentMonth, mapBudgetRow }

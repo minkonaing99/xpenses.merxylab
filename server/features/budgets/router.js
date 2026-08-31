@@ -4,12 +4,8 @@ const express = require('express')
 const { z } = require('zod')
 const { ok, ApiError } = require('../../lib/apiResponse')
 const { rowToCamel } = require('../../lib/caseMap')
-const { mapBudgetRow } = require('./service')
+const { currentMonth, mapBudgetRow } = require('./service')
 const repo = require('./repo')
-
-function currentMonth() {
-  return new Date().toISOString().slice(0, 7)
-}
 
 const createSchema = z.object({
   id: z.string().uuid(),

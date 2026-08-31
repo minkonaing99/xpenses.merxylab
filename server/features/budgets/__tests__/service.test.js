@@ -1,18 +1,31 @@
 'use strict'
 
-const { computeOver, mapBudgetRow } = require('../service')
+const { computeOver, currentMonth, mapBudgetRow } = require('../service')
 
 describe('computeOver', () => {
   it('is false when spent is under the limit', () => {
     expect(computeOver(3000, 5000)).toBe(false)
   })
 
-  it('is false when spent exactly equals the limit', () => {
-    expect(computeOver(5000, 5000)).toBe(false)
+  it('is true when spent exactly equals the limit', () => {
+    expect(computeOver(5000, 5000)).toBe(true)
   })
 
   it('is true when spent exceeds the limit', () => {
     expect(computeOver(5001, 5000)).toBe(true)
+  })
+})
+
+describe('currentMonth', () => {
+  it('returns a YYYY-MM month', () => {
+    expect(currentMonth()).toMatch(/^\d{4}-\d{2}$/)
+  })
+
+  it('uses the Bangkok month at a UTC month boundary', () => {
+    const beforeRollover = new Date('2026-07-31T16:59:59.999Z')
+    const atRollover = new Date('2026-07-31T17:00:00.000Z')
+    expect(currentMonth(beforeRollover)).toBe('2026-07')
+    expect(currentMonth(atRollover)).toBe('2026-08')
   })
 })
 
