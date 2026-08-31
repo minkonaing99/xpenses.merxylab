@@ -26,15 +26,20 @@ afterAll(async () => {
 describe('GET /api/sync', () => {
   let app
   let accountId
+  let otherAccountId
 
   beforeEach(() => {
     app = buildApp()
     accountId = randomUUID()
+    otherAccountId = randomUUID()
   })
 
   afterEach(async () => {
-    await pool.query('DELETE FROM transactions WHERE account_id = ?', [accountId])
-    await pool.query('DELETE FROM accounts WHERE id = ?', [accountId])
+    await pool.query(
+      'DELETE FROM transactions WHERE account_id IN (?, ?) OR from_account_id IN (?, ?) OR to_account_id IN (?, ?)',
+      [accountId, otherAccountId, accountId, otherAccountId, accountId, otherAccountId],
+    )
+    await pool.query('DELETE FROM accounts WHERE id IN (?, ?)', [accountId, otherAccountId])
   })
 
   it('requires a valid since query param', async () => {
@@ -56,11 +61,11 @@ describe('GET /api/sync', () => {
     expect(res.body.data.accounts.some((a) => a.id === accountId)).toBe(true)
   })
 
-  it('excludes rows unchanged since a future timestamp', async () => {
+  it('returns the full account snapshot even with a future timestamp', async () => {
     await accountsRepo.create(pool, { id: accountId, name: 'Sync Test Account 2' })
 
     const res = await request(app).get('/api/sync').query({ since: '2099-01-01T00:00:00.000Z' })
-    expect(res.body.data.accounts.some((a) => a.id === accountId)).toBe(false)
+    expect(res.body.data.accounts.some((a) => a.id === accountId)).toBe(true)
   })
 
   it('includes soft-deleted rows (tombstones)', async () => {
@@ -89,6 +94,23 @@ describe('GET /api/sync', () => {
     const res = await request(app).get('/api/sync').query({ since: '2000-01-01T00:00:00.000Z' })
     const row = res.body.data.accounts.find((a) => a.id === accountId)
     expect(row.balance).toBe(5800)
+  })
+
+  it('returns current transfer balances even when the cursor follows the transaction', async () => {
+    await accountsRepo.create(pool, { id: accountId, name: 'Transfer Source', startingBalance: 10000 })
+    await accountsRepo.create(pool, { id: otherAccountId, name: 'Transfer Destination', startingBalance: 1000 })
+    await pool.query(
+      `INSERT INTO transactions (id, type, amount, from_account_id, to_account_id, txn_date, updated_at)
+       VALUES (?, 'transfer', 400, ?, ?, CURDATE(), '2099-01-01 00:00:00')`,
+      [randomUUID(), accountId, otherAccountId],
+    )
+
+    const res = await request(app).get('/api/sync').query({ since: '2100-01-01T00:00:00.000Z' })
+    const source = res.body.data.accounts.find((account) => account.id === accountId)
+    const destination = res.body.data.accounts.find((account) => account.id === otherAccountId)
+
+    expect(source.balance).toBe(9600)
+    expect(destination.balance).toBe(1400)
   })
 })
 

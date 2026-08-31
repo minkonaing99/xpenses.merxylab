@@ -2,8 +2,8 @@
 
 // Shared join block computing each account's expense/income/transfer sums —
 // no WHERE clause on `a` here, since the two callers below need different
-// filters (findAllWithSums excludes soft-deleted accounts; findChangedSince
-// must include tombstones for sync, see docs/TECH.md §6).
+// filters (findAllWithSums excludes soft-deleted accounts; findAllForSync
+// includes tombstones, see docs/TECH.md §6).
 const SUMS_JOIN = `
   FROM accounts a
   LEFT JOIN (
@@ -77,13 +77,9 @@ async function softDelete(pool, id) {
   await pool.query('UPDATE accounts SET deleted_at = NOW() WHERE id = ? AND deleted_at IS NULL', [id])
 }
 
-// Includes soft-deleted rows (tombstones) — see docs/TECH.md §6 pull sync.
-// Also computes the same expense/income/transfer sums as findAllWithSums so
-// the offline cache's balance stays in sync via pull(), not just the first
-// GET /api/accounts fetch — a plain `SELECT *` here left synced accounts
-// permanently missing `balance` (only `startingBalance`), since a soft-
-// deleted tombstone's own `updated_at` rarely changes again after that.
-async function findChangedSince(pool, since) {
+// Balances derive from transactions and have no independent updated_at.
+// Return a full snapshot so sync cursors cannot leave them stale.
+async function findAllForSync(pool) {
   const [rows] = await pool.query(
     `SELECT
       a.*,
@@ -91,9 +87,7 @@ async function findChangedSince(pool, since) {
       COALESCE(inc.total, 0)  AS income_in,
       COALESCE(tout.total, 0) AS transfer_out,
       COALESCE(tin.total, 0)  AS transfer_in
-    ${SUMS_JOIN}
-    WHERE a.updated_at > ?`,
-    [since],
+    ${SUMS_JOIN}`,
   )
   return rows
 }
@@ -115,5 +109,5 @@ module.exports = {
   update,
   softDelete,
   countReferences,
-  findChangedSince,
+  findAllForSync,
 }

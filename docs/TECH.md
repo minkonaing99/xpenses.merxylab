@@ -47,9 +47,10 @@ server/
 2. Server upserts by UUID (idempotent on retry/conflict).
 
 ## 5. Data Flow — Reads / Sync
-- `GET /api/sync?since=<updated_at>` returns changed rows (accounts,
-  categories, transactions, budgets, recurring), incl. tombstones, for any
-  client that needs incremental sync.
+- `GET /api/sync?since=<updated_at>` returns changed categories,
+  transactions, budgets, and recurring rules, incl. tombstones.
+- Accounts return as a full snapshot after changed transactions are read.
+  Their balances derive from transactions and have no independent timestamp.
 
 ## 6. Sync Reconciliation Rules
 - Create: idempotent upsert on primary key = client UUID (`INSERT ... ON

@@ -251,7 +251,7 @@ Transaction body:
 ### Sync
 | Method | Path | Query / Body | Auth Required | Notes |
 |---|---|---|---|---|
-| GET  | /api/sync | `?since=<ISO>` | Yes | Returns rows (accounts, categories, transactions, budgets, recurring) changed since timestamp, incl. tombstones. |
+| GET  | /api/sync | `?since=<ISO>` | Yes | Returns a full account snapshot plus other rows changed since timestamp, incl. tombstones. |
 | POST | /api/sync/push | `{ ops: [{ entity, action, payload }] }` | Yes | Batch replay of outbox; per-op result array so client can mark done/failed. |
 
 `push` response:

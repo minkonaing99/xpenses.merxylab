@@ -39,13 +39,13 @@ function createSyncRouter(pool) {
 
     try {
       const since = toMysqlDatetime(parsed.data.since)
-      const [accounts, categories, transactions, budgets, recurringRules] = await Promise.all([
-        accountsRepo.findChangedSince(pool, since),
+      const [categories, transactions, budgets, recurringRules] = await Promise.all([
         categoriesRepo.findChangedSince(pool, since),
         txnRepo.findChangedSince(pool, since),
         budgetsRepo.findChangedSince(pool, since),
         recurringRepo.findChangedSince(pool, since),
       ])
+      const accounts = await accountsRepo.findAllForSync(pool)
 
       res.json(
         ok({
