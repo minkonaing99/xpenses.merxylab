@@ -1,6 +1,6 @@
 'use strict'
 
-const { addInterval, planDueRuns, planUpcoming } = require('../scheduler')
+const { addInterval, normalizeResumePatch, planDueRuns, planUpcoming } = require('../scheduler')
 
 describe('addInterval', () => {
   it('adds days', () => {
@@ -72,6 +72,44 @@ describe('planDueRuns', () => {
     const { runDates, nextRunDate } = planDueRuns(biweekly, '2026-07-10')
     expect(runDates).toEqual(['2026-07-01'])
     expect(nextRunDate).toBe('2026-07-15')
+  })
+})
+
+describe('normalizeResumePatch', () => {
+  it('advances an overdue paused rule to its first scheduled date on or after today', () => {
+    const rule = {
+      active: false,
+      intervalUnit: 'month',
+      intervalCount: 1,
+      nextRunDate: '2026-06-01',
+    }
+    const patch = { active: true }
+
+    expect(normalizeResumePatch(rule, patch, '2026-07-10')).toEqual({
+      active: true,
+      nextRunDate: '2026-08-01',
+    })
+    expect(patch).toEqual({ active: true })
+  })
+
+  it.each(['2026-07-10', '2026-08-01'])('keeps a %s run date unchanged', (nextRunDate) => {
+    const rule = { active: false, intervalUnit: 'month', intervalCount: 1, nextRunDate }
+    expect(normalizeResumePatch(rule, { active: true }, '2026-07-10')).toEqual({ active: true })
+  })
+
+  it('does not change dates when an active rule is edited or a rule is paused', () => {
+    const activeRule = { active: true, intervalUnit: 'day', intervalCount: 1, nextRunDate: '2026-07-01' }
+    expect(normalizeResumePatch(activeRule, { note: 'Updated' }, '2026-07-10')).toEqual({ note: 'Updated' })
+    expect(normalizeResumePatch(activeRule, { active: false }, '2026-07-10')).toEqual({ active: false })
+  })
+
+  it('uses interval edits included in the resume patch', () => {
+    const rule = { active: false, intervalUnit: 'day', intervalCount: 1, nextRunDate: '2026-07-01' }
+    const patch = { active: true, intervalUnit: 'week', intervalCount: 2 }
+    expect(normalizeResumePatch(rule, patch, '2026-07-10')).toEqual({
+      ...patch,
+      nextRunDate: '2026-07-15',
+    })
   })
 })
 

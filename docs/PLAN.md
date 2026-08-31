@@ -251,10 +251,11 @@ masked by `--runInBand`).
       gained a `min` guard rejecting past dates — the server's catch-up
       scheduler generates one real transaction per missed occurrence on the
       next cron tick, so a backdated date could flood the account
-      (code-reviewer HIGH, fixed). Resuming a rule whose `nextRunDate` had
-      drifted into the past now reschedules it to today instead of
-      resuming as-is (same flood risk via the pause/resume path —
-      code-reviewer HIGH, fixed). Reached from Settings.
+      (code-reviewer HIGH, fixed). Resuming a rule whose `nextRunDate` has
+      drifted into the past now advances it to the first scheduled occurrence
+      on or after Bangkok today, preserving its cadence without generating
+      missed transactions. REST PATCH and sync push enforce the same rule.
+      Reached from Settings.
 - [x] 6.6 Reports: `ReportsScreen` rewired off `GET /api/reports/category-spend`
       + `GET /api/reports/summary` (both server aggregates — Reports has
       no Dexie reads at all, deliberately online-authoritative).

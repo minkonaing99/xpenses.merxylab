@@ -8,6 +8,7 @@ const accountsRepo = require('../../accounts/repo')
 const categoriesRepo = require('../../categories/repo')
 const { createRecurringRouter } = require('../router')
 const { todayInBangkok } = require('../../../cron/dateUtil')
+const { addInterval } = require('../scheduler')
 const errorHandler = require('../../../middleware/error')
 
 const pool = getPool()
@@ -96,6 +97,26 @@ describe('recurring router', () => {
 
     const notFoundRes = await request(app).patch(`/api/recurring/${randomUUID()}`).send({ active: false })
     expect(notFoundRes.status).toBe(404)
+  })
+
+  it('PATCH resume advances an overdue rule without generating missed runs', async () => {
+    const today = todayInBangkok()
+    const staleDate = addInterval(today, 'day', -3)
+    const expectedDate = addInterval(today, 'day', 1)
+    await request(app).post('/api/recurring').send({
+      ...validRule(),
+      intervalUnit: 'day',
+      intervalCount: 2,
+      nextRunDate: staleDate,
+    })
+    await request(app).patch(`/api/recurring/${ruleId}`).send({ active: false })
+
+    const resumeRes = await request(app).patch(`/api/recurring/${ruleId}`).send({ active: true })
+
+    expect(resumeRes.status).toBe(200)
+    expect(resumeRes.body.data).toMatchObject({ active: true, nextRunDate: expectedDate })
+    const [runs] = await pool.query('SELECT rule_id FROM recurring_runs WHERE rule_id = ?', [ruleId])
+    expect(runs).toHaveLength(0)
   })
 
   it('DELETE soft-deletes a rule', async () => {

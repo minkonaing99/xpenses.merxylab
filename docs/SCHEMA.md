@@ -84,7 +84,7 @@ for the category within the current calendar month, compared to limit_amount.
 | to_account_id | CHAR(36) | NULL, FK accounts.id | |
 | interval_unit | VARCHAR(8) | NOT NULL | day \| week \| month |
 | interval_count | INT | NOT NULL, default 1 | |
-| next_run_date | DATE | NOT NULL | |
+| next_run_date | DATE | NOT NULL | Overdue paused rules advance on resume to the first scheduled date on or after Bangkok today. |
 | active | TINYINT(1) | NOT NULL, default 1 | |
 | created_at | DATETIME | NOT NULL, default now | |
 | updated_at | DATETIME | NOT NULL, on update now | LWW |
@@ -274,7 +274,7 @@ Transaction body:
 | GET    | /api/recurring | — | Yes | List rules. |
 | GET    | /api/recurring/upcoming | `?days=30` | Yes | Read-only projection: active rules' occurrences in `[today, today+days]`, flattened + sorted by date. Each item = the rule plus `date`. Does not insert txns. |
 | POST   | /api/recurring | rule template + `{ intervalUnit, intervalCount, nextRunDate }` | Yes | |
-| PATCH  | /api/recurring/:id | partial (incl. `active`) | Yes | Pause/resume. |
+| PATCH  | /api/recurring/:id | partial (incl. `active`) | Yes | Pause/resume. Resuming an overdue rule preserves cadence, skips missed runs, and advances `nextRunDate` to the first scheduled date on or after Bangkok today. |
 | DELETE | /api/recurring/:id | — | Yes | Soft delete. |
 
 ### Reports

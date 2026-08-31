@@ -51,6 +51,21 @@ function planDueRuns(rule, today) {
   return { runDates, nextRunDate: cursor }
 }
 
+function normalizeResumePatch(rule, patch, today) {
+  const normalized = { ...patch }
+  if (rule.active || patch.active !== true) return normalized
+
+  const resumedRule = { ...rule, ...patch }
+  let nextRunDate = resumedRule.nextRunDate
+  while (nextRunDate < today) {
+    nextRunDate = addInterval(nextRunDate, resumedRule.intervalUnit, resumedRule.intervalCount)
+  }
+
+  return nextRunDate === resumedRule.nextRunDate
+    ? normalized
+    : { ...normalized, nextRunDate }
+}
+
 // Every occurrence of each rule that falls in [today, horizon] inclusive,
 // flattened across rules and sorted by date. Each item is the rule plus a
 // `date`. Pure; reuses planDueRuns so interval math stays in one place.
@@ -66,4 +81,4 @@ function planUpcoming(rules, today, horizon) {
   return items.sort((a, b) => (a.date < b.date ? -1 : a.date > b.date ? 1 : 0))
 }
 
-module.exports = { addInterval, planDueRuns, planUpcoming }
+module.exports = { addInterval, normalizeResumePatch, planDueRuns, planUpcoming }

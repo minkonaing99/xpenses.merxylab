@@ -6,7 +6,7 @@ const { ok, ApiError } = require('../../lib/apiResponse')
 const { rowToCamel } = require('../../lib/caseMap')
 const { validateTransactionFields } = require('../transactions/service')
 const { todayInBangkok } = require('../../cron/dateUtil')
-const { addInterval, planUpcoming } = require('./scheduler')
+const { addInterval, normalizeResumePatch, planUpcoming } = require('./scheduler')
 const repo = require('./repo')
 
 const upcomingSchema = z.object({ days: z.coerce.number().int().positive().max(365).default(30) })
@@ -116,14 +116,16 @@ function createRecurringRouter(pool) {
         return
       }
 
-      const merged = { ...rowToCamel(existing), ...parsed.data }
+      const existingRule = { ...rowToCamel(existing), active: Boolean(existing.active) }
+      const patch = normalizeResumePatch(existingRule, parsed.data, todayInBangkok())
+      const merged = { ...existingRule, ...patch }
       const fieldError = validateTransactionFields(merged)
       if (fieldError) {
         next(new ApiError('VALIDATION_ERROR', fieldError))
         return
       }
 
-      await repo.update(pool, req.params.id, parsed.data)
+      await repo.update(pool, req.params.id, patch)
       const updated = await repo.findById(pool, req.params.id)
       res.json(ok({ ...rowToCamel(updated), active: Boolean(updated.active) }))
     } catch (err) {

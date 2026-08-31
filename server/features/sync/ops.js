@@ -12,6 +12,8 @@ const accountsRouter = require('../accounts/router')
 const categoriesRouter = require('../categories/router')
 const budgetsRouter = require('../budgets/router')
 const recurringRouter = require('../recurring/router')
+const { todayInBangkok } = require('../../cron/dateUtil')
+const { normalizeResumePatch } = require('../recurring/scheduler')
 
 // Reuse the exact create/update zod schemas the direct REST routes enforce, so
 // a write replayed through /api/sync/push can't bypass the same field/type/
@@ -21,7 +23,13 @@ const SIMPLE_ENTITIES = {
   accounts: { repo: accountsRepo, schemas: accountsRouter },
   categories: { repo: categoriesRepo, schemas: categoriesRouter },
   budgets: { repo: budgetsRepo, schemas: budgetsRouter },
-  recurring: { repo: recurringRepo, schemas: recurringRouter, fieldCheck: true },
+  recurring: {
+    repo: recurringRepo,
+    schemas: recurringRouter,
+    fieldCheck: true,
+    normalizePatch: (rule, patch) =>
+      normalizeResumePatch({ ...rule, active: Boolean(rule.active) }, patch, todayInBangkok()),
+  },
 }
 
 async function applyTransactionOp(pool, action, payload) {
@@ -45,7 +53,7 @@ async function applyTransactionOp(pool, action, payload) {
 // found/not-found. Retrying an already-applied op is treated as a success
 // (idempotent), not an error, so a client outbox can safely replay.
 async function applySimpleOp(pool, config, action, payload) {
-  const { repo, schemas, fieldCheck } = config
+  const { repo, schemas, fieldCheck, normalizePatch } = config
   const id = payload.id
   try {
     if (action === 'create') {
@@ -62,10 +70,12 @@ async function applySimpleOp(pool, config, action, payload) {
       if (!existing) return { id, status: 'error', code: 'NOT_FOUND' }
       const parsed = schemas.updateSchema.safeParse(payload)
       if (!parsed.success) return { id, status: 'error', code: 'VALIDATION_ERROR' }
-      if (fieldCheck && validateTransactionFields({ ...rowToCamel(existing), ...parsed.data })) {
+      const existingEntity = rowToCamel(existing)
+      const patch = normalizePatch ? normalizePatch(existingEntity, parsed.data) : parsed.data
+      if (fieldCheck && validateTransactionFields({ ...existingEntity, ...patch })) {
         return { id, status: 'error', code: 'VALIDATION_ERROR' }
       }
-      await repo.update(pool, id, parsed.data)
+      await repo.update(pool, id, patch)
       return { id, status: 'applied' }
     }
     if (action === 'delete') {

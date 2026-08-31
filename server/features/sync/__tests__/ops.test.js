@@ -4,6 +4,9 @@ const { randomUUID } = require('crypto')
 const { getPool } = require('../../../db/pool')
 const accountsRepo = require('../../accounts/repo')
 const categoriesRepo = require('../../categories/repo')
+const recurringRepo = require('../../recurring/repo')
+const { todayInBangkok } = require('../../../cron/dateUtil')
+const { addInterval } = require('../../recurring/scheduler')
 const { applyOp } = require('../ops')
 
 const pool = getPool()
@@ -153,5 +156,56 @@ describe('applyOp — simple-entity validation', () => {
     })
     expect(result.status).toBe('error')
     expect(result.code).toBe('VALIDATION_ERROR')
+  })
+})
+
+describe('applyOp - recurring resume', () => {
+  let accountId
+  let categoryId
+  let ruleId
+
+  beforeEach(async () => {
+    accountId = randomUUID()
+    categoryId = randomUUID()
+    ruleId = randomUUID()
+    await accountsRepo.create(pool, { id: accountId, name: 'Recurring Sync Account' })
+    await categoriesRepo.create(pool, { id: categoryId, name: `Recurring Sync Category ${categoryId}` })
+  })
+
+  afterEach(async () => {
+    await pool.query('DELETE FROM recurring_runs WHERE rule_id = ?', [ruleId])
+    await pool.query('DELETE FROM recurring_rules WHERE id = ?', [ruleId])
+    await pool.query('DELETE FROM accounts WHERE id = ?', [accountId])
+    await pool.query('DELETE FROM categories WHERE id = ?', [categoryId])
+  })
+
+  it('advances an overdue paused rule when sync resumes it', async () => {
+    const today = todayInBangkok()
+    await applyOp(pool, {
+      entity: 'recurring',
+      action: 'create',
+      payload: {
+        id: ruleId,
+        type: 'expense',
+        amount: 1000,
+        categoryId,
+        accountId,
+        intervalUnit: 'day',
+        intervalCount: 2,
+        nextRunDate: addInterval(today, 'day', -3),
+      },
+    })
+    await applyOp(pool, { entity: 'recurring', action: 'update', payload: { id: ruleId, active: false } })
+
+    const result = await applyOp(pool, {
+      entity: 'recurring',
+      action: 'update',
+      payload: { id: ruleId, active: true },
+    })
+
+    expect(result).toEqual({ id: ruleId, status: 'applied' })
+    const updated = await recurringRepo.findById(pool, ruleId)
+    expect(updated.active).toBe(1)
+    expect(updated.next_run_date).toBe(addInterval(today, 'day', 1))
   })
 })

@@ -76,6 +76,9 @@ server/
 - For each: insert txn from template, advance next_run_date by interval,
   wrap per-rule in try/catch, log outcome. Idempotency: unique
   (rule_id, run_date) guard row prevents double-insert if job runs twice.
+- Resuming an overdue paused rule advances `next_run_date` by its existing
+  interval to the first scheduled date on or after Bangkok today. Missed runs
+  are not inserted. REST PATCH and sync push use the same pure normalization.
 
 ## 9. Technical Goals / NFRs
 - Performance: sub-5s add-expense round-trip (no unnecessary server work).
