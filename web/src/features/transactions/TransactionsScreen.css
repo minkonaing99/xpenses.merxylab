@@ -70,6 +70,17 @@
   padding: var(--sp-4) 0;
 }
 
+.ledger__error {
+  color: var(--danger);
+  padding: var(--sp-4) 0;
+}
+
+.ledger__more {
+  display: flex;
+  justify-content: center;
+  padding: var(--sp-5) 0 var(--sp-2);
+}
+
 .ledger__empty {
   text-align: center;
   padding: var(--sp-7) var(--sp-4);
@@ -193,6 +204,8 @@
   .ledger__search,
   .ledger__filters,
   .ledger__note,
+  .ledger__error,
+  .ledger__more,
   .ledger__empty {
     grid-column: 1 / -1;
   }

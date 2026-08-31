@@ -7,7 +7,7 @@ export const keys = {
   summary: (m: string) => ["summary", m] as const,
   budgets: (m: string) => ["budgets", m] as const,
   spend: (m: string) => ["spend", m] as const,
-  txns: (m: string) => ["txns", m] as const,
+  txns: (m: string) => ["txns", "paged-v1", m] as const,
   recentTxns: ["txns", "recent"] as const,
   forecast: (m: string) => ["forecast", m] as const,
   anomalies: (m: string) => ["anomalies", m] as const,

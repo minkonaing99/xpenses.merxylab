@@ -1,5 +1,5 @@
 // Read hooks. Endpoint shapes live here and in mutations.ts.
-import { useQuery } from "@tanstack/react-query";
+import { useInfiniteQuery, useQuery } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import { keys } from "./keys";
 import type {
@@ -67,9 +67,19 @@ export function useCategorySpend(month: string) {
 }
 
 export function useTransactions(month: string) {
-  return useQuery({
+  return useInfiniteQuery({
     queryKey: keys.txns(month),
-    queryFn: () => api.get<Transaction[]>(`/transactions?month=${month}&limit=200`),
+    initialPageParam: null as string | null,
+    queryFn: ({ pageParam }) => {
+      const query = new URLSearchParams({ month, limit: "200" });
+      if (pageParam) query.set("cursor", pageParam);
+      return api.getPage<Transaction[]>(`/transactions?${query}`);
+    },
+    getNextPageParam: (lastPage, _pages, _lastPageParam, pageParams) => {
+      const nextCursor = lastPage.nextCursor;
+      return nextCursor && !pageParams.includes(nextCursor) ? nextCursor : undefined;
+    },
+    select: (result) => result.pages.flatMap((page) => page.data),
   });
 }
 

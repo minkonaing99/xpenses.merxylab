@@ -3,6 +3,7 @@ import { useAccounts, useCategories, useTransactions } from "../../api/hooks";
 import type { Account, Category, Transaction, TxnType } from "../../api/types";
 import { useMonth } from "../../app/MonthContext";
 import { dayLabel } from "../../lib/format";
+import { Button } from "../../ui/Button";
 import { Money } from "../../ui/Money";
 import { MonthSwitcher } from "../../ui/MonthSwitcher";
 import { AddTransactionSheet } from "./AddTransactionSheet";
@@ -72,7 +73,9 @@ export function TransactionsScreen() {
 
       {txns.isLoading && <p className="ledger__note">Loading…</p>}
 
-      {!txns.isLoading && groups.length === 0 && (
+      {txns.isError && <p className="ledger__error" role="alert">Couldn't load transactions. Try again.</p>}
+
+      {!txns.isLoading && !txns.isError && groups.length === 0 && (
         <div className="ledger__empty">
           <p className="ledger__empty-mark" aria-hidden="true">฿</p>
           <p className="ledger__empty-title">
@@ -99,6 +102,18 @@ export function TransactionsScreen() {
           </ul>
         </section>
       ))}
+
+      {txns.hasNextPage && (
+        <div className="ledger__more">
+          <Button
+            variant="ghost"
+            disabled={txns.isFetchingNextPage}
+            onClick={() => void txns.fetchNextPage()}
+          >
+            {txns.isFetchingNextPage ? "Loading..." : "Load older transactions"}
+          </Button>
+        </div>
+      )}
 
       <AddTransactionSheet open={!!editing} editing={editing} onClose={() => setEditing(null)} />
     </div>

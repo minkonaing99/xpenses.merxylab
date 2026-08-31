@@ -16,6 +16,31 @@ describe("api client", () => {
     await expect(api.get("/x")).resolves.toEqual({ hi: 1 });
   });
 
+  it("preserves the next cursor for paginated reads", async () => {
+    mockFetch({ ok: true, data: [{ id: "t1" }], meta: { nextCursor: "next-page" } });
+
+    await expect(api.getPage("/transactions?limit=200")).resolves.toEqual({
+      data: [{ id: "t1" }],
+      nextCursor: "next-page",
+    });
+  });
+
+  it("rejects a malformed pagination cursor", async () => {
+    mockFetch({ ok: true, data: [], meta: { nextCursor: 42 } });
+    await expect(api.getPage("/transactions?limit=200")).rejects.toMatchObject({
+      code: "SERVER_ERROR",
+      message: "Invalid pagination cursor from server.",
+    });
+  });
+
+  it("rejects a blank pagination cursor", async () => {
+    mockFetch({ ok: true, data: [], meta: { nextCursor: "   " } });
+    await expect(api.getPage("/transactions?limit=200")).rejects.toMatchObject({
+      code: "SERVER_ERROR",
+      message: "Invalid pagination cursor from server.",
+    });
+  });
+
   it("throws ApiError with code on an error envelope", async () => {
     mockFetch({ ok: false, error: { code: "VALIDATION_ERROR", message: "bad" } }, 400);
     await expect(api.post("/x", {})).rejects.toMatchObject({

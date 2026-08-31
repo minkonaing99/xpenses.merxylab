@@ -48,7 +48,7 @@ web/src/
 
 Login · Dashboard (net balance, month flow, forecast + anomaly insight cards,
 upcoming recurring next 30 days, budget bars, category spend) · Ledger
-(day-grouped, tap row to edit/delete) · Add/Edit transaction sheet
+(day-grouped, tap row to edit/delete, cursor-paged in 200-row batches) · Add/Edit transaction sheet
 (expense/income/transfer) · Reports (month stats, category bars, month-over-month
 comparison, daily-spend calendar heatmap) · Settings hub → Accounts / Categories
 / Budgets / Recurring CRUD, plus a date-range export (CSV or JSON). Month
@@ -62,6 +62,8 @@ sync engine.
 - **Reads:** cached in memory and **persisted to `localStorage`**
   (`PersistQueryClientProvider` + `createSyncStoragePersister`, 7-day maxAge).
   Last-known data renders offline; refetches when back online.
+- **Ledger pagination:** the selected month loads up to 200 transactions first.
+  "Load older transactions" follows the API cursor until the month is complete.
 - **Writes:** every mutation's `mutationFn` + invalidation is registered as a
   **keyed mutation default** in `queryClient.ts`. React Query's default
   `networkMode: 'online'` **pauses** a write made offline and **auto-resumes**

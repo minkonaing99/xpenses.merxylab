@@ -46,7 +46,7 @@ const server = new McpServer({ name: "xpenses", version: "0.1.0" });
 server.registerTool(
   "list_transactions",
   { description: "List transactions for a month (YYYY-MM).", inputSchema: { month: monthArg } },
-  tool(({ month }) => client.get(`/transactions?month=${month}&limit=200`)),
+  tool(({ month }) => client.getAll(`/transactions?month=${month}`)),
 );
 
 server.registerTool(

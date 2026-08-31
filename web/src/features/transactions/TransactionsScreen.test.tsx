@@ -3,7 +3,10 @@ import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../lib/api", async (orig) => {
   const actual = await orig<typeof import("../../lib/api")>();
-  return { ...actual, api: { get: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn() } };
+  return {
+    ...actual,
+    api: { get: vi.fn(), getPage: vi.fn(), post: vi.fn(), patch: vi.fn(), del: vi.fn() },
+  };
 });
 
 import { api } from "../../lib/api";
@@ -30,8 +33,9 @@ const txns = [
 
 beforeEach(() => {
   vi.mocked(api.get).mockImplementation(
-    fakeGet({ "/transactions": txns, "/accounts": accounts, "/categories": categories }) as never,
+    fakeGet({ "/accounts": accounts, "/categories": categories }) as never,
   );
+  vi.mocked(api.getPage).mockResolvedValue({ data: txns, nextCursor: null });
 });
 afterEach(() => vi.clearAllMocks());
 
@@ -57,5 +61,39 @@ describe("TransactionsScreen", () => {
 
     fireEvent.change(box, { target: { value: "food" } });
     expect(screen.getByText("Latte")).toBeInTheDocument();
+  });
+
+  it("loads older transactions until the cursor is exhausted", async () => {
+    const older = { ...txns[0], id: "t2", note: "Dinner", txnDate: "2026-07-03" };
+    vi.mocked(api.getPage).mockImplementation(async (path) =>
+      path.includes("cursor=")
+        ? { data: [older], nextCursor: null }
+        : { data: txns, nextCursor: "cursor+/=" },
+    );
+
+    renderApp(<TransactionsScreen />);
+
+    expect(await screen.findByText("Latte")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Load older transactions" }));
+
+    expect(await screen.findByText("Dinner")).toBeInTheDocument();
+    expect(api.getPage).toHaveBeenLastCalledWith(expect.stringContaining("cursor=cursor%2B%2F%3D"));
+    expect(screen.queryByRole("button", { name: "Load older transactions" })).not.toBeInTheDocument();
+  });
+
+  it("stops when the server repeats a cursor", async () => {
+    const older = { ...txns[0], id: "t2", note: "Dinner", txnDate: "2026-07-03" };
+    vi.mocked(api.getPage).mockImplementation(async (path) =>
+      path.includes("cursor=")
+        ? { data: [older], nextCursor: "same" }
+        : { data: txns, nextCursor: "same" },
+    );
+
+    renderApp(<TransactionsScreen />);
+
+    fireEvent.click(await screen.findByRole("button", { name: "Load older transactions" }));
+    expect(await screen.findByText("Dinner")).toBeInTheDocument();
+    expect(api.getPage).toHaveBeenCalledTimes(2);
+    expect(screen.queryByRole("button", { name: "Load older transactions" })).not.toBeInTheDocument();
   });
 });

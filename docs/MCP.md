@@ -28,6 +28,8 @@ name — just talk. Claude reads the request and picks the tool. Examples:
 
 Notes:
 - **Months** default to the current one; name another ("in June", "2026-05").
+- **Complete transaction lists:** `list_transactions` follows every API cursor,
+  so months with more than 200 transactions are returned in full.
 - **Logging an expense**: amount in baht (auto-converted to satang); category
   and account are matched by name (exact first, then partial); date defaults to
   today (Bangkok), or say "...on 2026-07-09".

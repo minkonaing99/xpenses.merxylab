@@ -48,4 +48,61 @@ const failing = createClient({
 });
 await assert.rejects(() => failing.get("/x"), /bad/);
 
+// createClient: follows every cursor while preserving the existing array result
+let pagedPaths = [];
+const firstPage = Array.from({ length: 200 }, (_, index) => ({ id: `t${index}` }));
+const paging = createClient({
+  baseUrl: "https://x.test/api",
+  token: "tok",
+  fetchImpl: async (url) => {
+    pagedPaths = [...pagedPaths, url];
+    const secondPage = url.includes("cursor=");
+    return {
+      ok: true,
+      status: 200,
+      text: async () =>
+        JSON.stringify({
+          ok: true,
+          data: secondPage ? [{ id: "t200" }] : firstPage,
+          meta: { nextCursor: secondPage ? null : "cursor+/=" },
+        }),
+    };
+  },
+});
+const allTransactions = await paging.getAll("/transactions?month=2026-07");
+assert.equal(allTransactions.length, 201);
+assert.equal(pagedPaths[0], "https://x.test/api/transactions?month=2026-07&limit=200");
+assert.equal(
+  pagedPaths[1],
+  "https://x.test/api/transactions?month=2026-07&limit=200&cursor=cursor%2B%2F%3D",
+);
+
+// createClient: rejects a repeated server cursor instead of looping forever
+let repeatedPaths = [];
+const repeating = createClient({
+  baseUrl: "https://x.test/api",
+  token: "tok",
+  fetchImpl: async (url) => {
+    repeatedPaths = [...repeatedPaths, url];
+    return {
+      ok: true,
+      status: 200,
+      text: async () => JSON.stringify({ ok: true, data: [], meta: { nextCursor: "same" } }),
+    };
+  },
+});
+await assert.rejects(() => repeating.getAll("/transactions?month=2026-07"), /repeated pagination cursor/i);
+assert.equal(repeatedPaths.length, 2);
+
+const malformedCursor = createClient({
+  baseUrl: "https://x.test/api",
+  token: "tok",
+  fetchImpl: async () => ({
+    ok: true,
+    status: 200,
+    text: async () => JSON.stringify({ ok: true, data: [], meta: { nextCursor: 42 } }),
+  }),
+});
+await assert.rejects(() => malformedCursor.getAll("/transactions?month=2026-07"), /invalid pagination cursor/i);
+
 console.log("ok - all mcp client self-checks passed");

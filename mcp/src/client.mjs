@@ -31,13 +31,38 @@ export function todayIn(timeZone = "Asia/Bangkok", now = new Date()) {
 
 export class ApiError extends Error {}
 
+function paginationPath(path, cursor) {
+  const page = new URL(path, "https://pagination.invalid");
+  page.searchParams.set("limit", "200");
+  if (cursor) page.searchParams.set("cursor", cursor);
+  return `${page.pathname}${page.search}`;
+}
+
+async function parseResponse(res, path) {
+  const text = await res.text();
+  let payload;
+  try {
+    payload = text ? JSON.parse(text) : {};
+  } catch {
+    throw new ApiError(`Non-JSON response (${res.status}) from ${path}`);
+  }
+  if (!res.ok || payload?.ok === false) {
+    const msg = payload?.error?.message || `HTTP ${res.status}`;
+    throw new ApiError(msg);
+  }
+  if (payload?.ok !== true || !Object.hasOwn(payload, "data")) {
+    throw new ApiError(`Invalid API response from ${path}`);
+  }
+  return payload;
+}
+
 /** Build a fetch-based client bound to a base URL + bearer token. */
 export function createClient({ baseUrl, token, fetchImpl = fetch }) {
   if (!baseUrl) throw new ApiError("XPENSES_API_URL is required");
   if (!token) throw new ApiError("XPENSES_API_TOKEN is required");
   const root = baseUrl.replace(/\/$/, "");
 
-  async function request(method, path, body) {
+  async function requestEnvelope(method, path, body) {
     const res = await fetchImpl(`${root}${path}`, {
       method,
       headers: {
@@ -47,22 +72,31 @@ export function createClient({ baseUrl, token, fetchImpl = fetch }) {
       body: body ? JSON.stringify(body) : undefined,
     });
 
-    const text = await res.text();
-    let payload;
-    try {
-      payload = text ? JSON.parse(text) : {};
-    } catch {
-      throw new ApiError(`Non-JSON response (${res.status}) from ${path}`);
+    return parseResponse(res, path);
+  }
+
+  async function request(method, path, body) {
+    return (await requestEnvelope(method, path, body)).data;
+  }
+
+  async function getAll(path, cursor = null, collected = [], seen = []) {
+    const payload = await requestEnvelope("GET", paginationPath(path, cursor));
+    if (!Array.isArray(payload.data)) throw new ApiError("Paginated API data must be an array");
+
+    const nextCursor = payload.meta?.nextCursor;
+    if (nextCursor != null && typeof nextCursor !== "string") {
+      throw new ApiError("Invalid pagination cursor from API");
     }
-    if (!res.ok || payload.ok === false) {
-      const msg = payload?.error?.message || `HTTP ${res.status}`;
-      throw new ApiError(msg);
-    }
-    return payload.data;
+
+    const combined = [...collected, ...payload.data];
+    if (!nextCursor) return combined;
+    if (seen.includes(nextCursor)) throw new ApiError("API returned a repeated pagination cursor");
+    return getAll(path, nextCursor, combined, [...seen, nextCursor]);
   }
 
   return {
     get: (path) => request("GET", path),
+    getAll,
     post: (path, body) => request("POST", path, body),
   };
 }
