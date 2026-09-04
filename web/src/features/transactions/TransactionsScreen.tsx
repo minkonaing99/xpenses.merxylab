@@ -315,7 +315,7 @@ function filterTxns(
 
 function groupByDay(txns: Transaction[]): Array<[string, Transaction[]]> {
   const byDate = new Map<string, Transaction[]>();
-  for (const t of [...txns].sort((a, b) => (a.txnDate < b.txnDate ? 1 : -1))) {
+  for (const t of [...txns].sort((a, b) => b.txnDate.localeCompare(a.txnDate))) {
     const arr = byDate.get(t.txnDate) ?? [];
     byDate.set(t.txnDate, [...arr, t]);
   }

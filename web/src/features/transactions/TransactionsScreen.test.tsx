@@ -63,6 +63,21 @@ describe("TransactionsScreen", () => {
     expect(await screen.findByRole("dialog", { name: "Edit transaction" })).toBeInTheDocument();
   });
 
+  it("keeps the latest same-day transaction at the top", async () => {
+    const latest = { ...txns[0], id: "latest", note: "Latest input" };
+    const older = { ...txns[0], id: "older", note: "Older input" };
+    vi.mocked(api.getPage).mockResolvedValue({ data: [latest, older], nextCursor: null });
+
+    renderApp(<TransactionsScreen />);
+
+    await screen.findByText("Latest input");
+    const rows = screen.getAllByRole("button", { name: /Edit (Latest|Older) input/ });
+    expect(rows.map((row) => row.textContent)).toEqual([
+      expect.stringContaining("Latest input"),
+      expect.stringContaining("Older input"),
+    ]);
+  });
+
   it("shows read-only transaction details before editing on wide screens", async () => {
     useWideViewport();
     renderApp(<TransactionsScreen />);
