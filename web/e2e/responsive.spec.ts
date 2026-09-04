@@ -7,6 +7,14 @@ const transaction = {
   updatedAt: "2026-09-04T00:00:00.000Z",
 };
 
+const reportSpend = [
+  "Food", "Transport", "Shopping", "Bills", "Health", "Travel", "Gifts", "Other",
+].map((name, index) => ({
+  categoryId: `22222222-2222-4222-8222-${String(index + 1).padStart(12, "0")}`,
+  name,
+  total: 12000 - index * 1000,
+}));
+
 test.beforeEach(async ({ page }) => {
   await page.route(/^https?:\/\/[^/]+\/api\//, async (route) => {
     const path = new URL(route.request().url()).pathname;
@@ -16,7 +24,7 @@ test.beforeEach(async ({ page }) => {
     if (path.endsWith("/categories")) data = [{ id: transaction.categoryId, name: "Food" }];
     if (path.includes("/transactions")) data = [transaction];
     if (path.includes("/reports/summary")) data = { accounts: [], monthIncome: 0, monthExpense: 12000, monthNet: -12000 };
-    if (path.includes("/reports/category-spend")) data = [{ categoryId: transaction.categoryId, name: "Food", total: 12000 }];
+    if (path.includes("/reports/category-spend")) data = reportSpend;
     await route.fulfill({ json: { ok: true, data, meta: { nextCursor: null } } });
   });
 });
@@ -84,12 +92,26 @@ test("primary routes stay inside the viewport", async ({ page }, testInfo) => {
       const spend = await page.getByRole("heading", { name: "Where it went" }).locator("..").boundingBox();
       expect(spend!.width).toBeGreaterThan(accounts!.width * 1.8);
     }
-    if (name === "reports" && testInfo.project.use.viewport!.width >= 768 && testInfo.project.use.viewport!.height >= 640) {
+    if (name === "reports") {
       const chart = await page.locator(".rcard--chart").boundingBox();
-      const categories = await page.locator(".rcard--categories").boundingBox();
-      const heatmap = await page.locator(".reports__heatmap").boundingBox();
-      expect(Math.abs(chart!.y - categories!.y)).toBeLessThan(2);
-      expect(heatmap!.width).toBeGreaterThan(chart!.width * 1.8);
+      const summary = await page.locator(".rstats--summary").boundingBox();
+      const gap = summary!.y - (chart!.y + chart!.height);
+      expect(gap).toBeGreaterThanOrEqual(0);
+      expect(gap).toBeLessThanOrEqual(20);
+      if (testInfo.project.use.viewport!.width >= 768 && testInfo.project.use.viewport!.height >= 640) {
+        const categories = await page.locator(".rcard--categories").boundingBox();
+        const heatmap = await page.locator(".reports__heatmap").boundingBox();
+        expect(Math.abs(chart!.y - categories!.y)).toBeLessThan(2);
+        expect(heatmap!.width).toBeGreaterThan(chart!.width * 1.8);
+      }
+    }
+    if (name === "settings") {
+      const download = await page.getByRole("link", { name: "Download CSV" }).boundingBox();
+      expect(download!.height).toBeGreaterThanOrEqual(44);
+      expect(download!.height).toBeLessThanOrEqual(48);
+      if (testInfo.project.use.viewport!.width >= 640) {
+        expect(download!.width).toBeLessThan(testInfo.project.use.viewport!.width * 0.4);
+      }
     }
     await page.screenshot({ path: testInfo.outputPath(`${name}.png`), fullPage: true });
   }
@@ -105,4 +127,31 @@ test("rotation keeps an open transaction draft", async ({ page }, testInfo) => {
   await expect(page.getByRole("navigation", { name: "Primary" })).toHaveCSS("height", "744px");
   const panel = await page.getByRole("dialog", { name: "New transaction" }).boundingBox();
   expect(panel!.x).toBeGreaterThan(1133 * 0.5);
+});
+
+test("dark mode persists with compact iOS display type", async ({ page }, testInfo) => {
+  await page.addInitScript(() => {
+    if (!localStorage.getItem("xpenses.theme.v1")) localStorage.setItem("xpenses.theme.v1", "dark");
+  });
+
+  for (const [path, name] of [["/", "dashboard"], ["/ledger", "ledger"], ["/reports", "reports"], ["/settings", "settings"]] as const) {
+    await page.goto(path);
+    await expect(page.locator("html")).toHaveAttribute("data-theme", "dark");
+    await expect(page.locator("html")).toHaveCSS("color-scheme", "dark");
+    if (name === "dashboard") await expect(page.getByRole("heading", { name: "Accounts" })).toBeVisible();
+    if (name === "reports") await expect(page.getByRole("heading", { name: "By category" })).toBeVisible();
+    await page.waitForTimeout(800);
+    expect(await page.evaluate(() => document.documentElement.scrollWidth - innerWidth)).toBeLessThanOrEqual(0);
+    await page.screenshot({ path: testInfo.outputPath(`${name}-dark.png`), fullPage: true });
+  }
+
+  await expect(page.locator("#theme-color")).toHaveAttribute("content", "#17151d");
+  await expect(page.getByRole("radio", { name: "Dark" })).toBeChecked();
+  expect(await page.evaluate(() => getComputedStyle(document.documentElement).getPropertyValue("--t-hero").trim())).toBe("2.125rem");
+  await expect(page.getByLabel("From")).toHaveCSS("font-size", "16px");
+
+  await page.getByRole("radio", { name: "Light" }).click();
+  await page.reload();
+  await expect(page.locator("html")).toHaveAttribute("data-theme", "light");
+  await expect(page.getByRole("radio", { name: "Light" })).toBeChecked();
 });

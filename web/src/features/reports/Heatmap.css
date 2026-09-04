@@ -39,9 +39,9 @@
 }
 .heat__cell--l3 {
   background: color-mix(in oklch, var(--accent) 68%, var(--paper));
-  color: #fff;
+  color: var(--on-color);
 }
 .heat__cell--l4 {
   background: var(--accent);
-  color: #fff;
+  color: var(--on-color);
 }

@@ -7,13 +7,22 @@
       name="viewport"
       content="width=device-width, initial-scale=1, maximum-scale=1, user-scalable=no, viewport-fit=cover"
     />
-    <meta name="theme-color" content="#f4f2fa" />
+    <meta id="theme-color" name="theme-color" content="#f4f2fa" />
     <meta name="mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-capable" content="yes" />
     <meta name="apple-mobile-web-app-status-bar-style" content="default" />
+    <script>
+      (() => {
+        let theme = "light";
+        try { theme = localStorage.getItem("xpenses.theme.v1") === "dark" ? "dark" : "light"; } catch {}
+        document.documentElement.dataset.theme = theme;
+        document.documentElement.style.colorScheme = theme;
+        document.querySelector("#theme-color").content = theme === "dark" ? "#17151d" : "#f4f2fa";
+      })();
+    </script>
     <title>xpenses</title>
-    <script type="module" crossorigin src="/static/index-DvYTUVtq.js"></script>
-    <link rel="stylesheet" crossorigin href="/static/index-CJD1A0hc.css">
+    <script type="module" crossorigin src="/static/index-BuBPktHR.js"></script>
+    <link rel="stylesheet" crossorigin href="/static/index-BPxJtjw8.css">
   <link rel="manifest" href="/manifest.webmanifest"><script id="vite-plugin-pwa:register-sw" src="/registerSW.js"></script></head>
   <body>
     <div id="root"></div>

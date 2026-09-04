@@ -8,6 +8,7 @@ import { useMediaQuery } from "../../lib/useMediaQuery";
 import { Button } from "../../ui/Button";
 import { Money } from "../../ui/Money";
 import { MonthSwitcher } from "../../ui/MonthSwitcher";
+import { Segmented } from "../../ui/Segmented";
 import { AddTransactionSheet } from "./AddTransactionSheet";
 import { TransactionDetail } from "./TransactionDetail";
 import {
@@ -200,14 +201,13 @@ function FilterPanel({
   const selected: Filter = filters.type ?? "all";
   return (
     <section className={`ledger__filter-panel${open ? " is-open" : ""}`} aria-label="Transaction filters">
-      <div className="ledger__filters" role="tablist" aria-label="Filter by type">
-        {FILTERS.map((filter) => (
-          <button key={filter.value} role="tab" aria-selected={selected === filter.value}
-            className={`chip${selected === filter.value ? " chip--on" : ""}`}
-            onClick={() => onUpdate("type", filter.value === "all" ? null : filter.value)}>
-            {filter.label}
-          </button>
-        ))}
+      <div className="ledger__filters">
+        <Segmented
+          options={FILTERS}
+          value={selected}
+          onChange={(value) => onUpdate("type", value === "all" ? null : value)}
+          label="Filter by type"
+        />
       </div>
       <label className="ledger__select"><span>Account</span>
         <select value={filters.accountId ?? ""} onChange={(event) => onUpdate("accountId", event.target.value || null)}>

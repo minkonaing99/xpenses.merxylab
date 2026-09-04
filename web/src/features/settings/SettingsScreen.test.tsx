@@ -19,6 +19,8 @@ beforeEach(() => {
 afterEach(() => {
   vi.clearAllMocks();
   vi.unstubAllGlobals();
+  delete document.documentElement.dataset.theme;
+  document.documentElement.style.colorScheme = "";
 });
 
 describe("SettingsScreen", () => {
@@ -41,6 +43,23 @@ describe("SettingsScreen", () => {
     fireEvent.change(screen.getByLabelText(/Format/), { target: { value: "json" } });
     const link = screen.getByRole("link", { name: /Download JSON/ });
     expect(link).toHaveAttribute("href", expect.stringContaining("format=json"));
+  });
+
+  it("changes and persists the color theme", () => {
+    let saved = "dark";
+    vi.stubGlobal("localStorage", {
+      getItem: () => saved,
+      setItem: (_key: string, value: string) => { saved = value; },
+    });
+    document.documentElement.dataset.theme = "dark";
+    renderApp(<SettingsScreen />);
+
+    expect(screen.getByRole("radio", { name: "Dark" })).toBeChecked();
+    fireEvent.click(screen.getByRole("radio", { name: "Light" }));
+
+    expect(saved).toBe("light");
+    expect(document.documentElement.dataset.theme).toBe("light");
+    expect(document.documentElement.style.colorScheme).toBe("light");
   });
 
   it("signs out and reloads", async () => {

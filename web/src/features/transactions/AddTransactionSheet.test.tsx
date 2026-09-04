@@ -80,6 +80,51 @@ describe("AddTransactionSheet", () => {
     await waitFor(() => expect(onClose).toHaveBeenCalled());
   });
 
+  it("hides and never submits a note for transfers", async () => {
+    renderApp(<AddTransactionSheet open onClose={() => {}} />);
+    await screen.findByRole("option", { name: "Food" });
+
+    fireEvent.change(screen.getByPlaceholderText("Optional"), { target: { value: "Private memo" } });
+    fireEvent.click(screen.getByRole("radio", { name: "Transfer" }));
+    expect(screen.queryByPlaceholderText("Optional")).not.toBeInTheDocument();
+
+    fireEvent.change(screen.getByLabelText("Amount in baht"), { target: { value: "120" } });
+    fireEvent.click(screen.getByRole("button", { name: "Save" }));
+
+    await waitFor(() =>
+      expect(api.post).toHaveBeenCalledWith(
+        "/transactions",
+        expect.objectContaining({ type: "transfer", note: null }),
+      ),
+    );
+  });
+
+  it("preserves a hidden legacy note when editing a transfer", async () => {
+    const editing: Transaction = {
+      id: "t2",
+      type: "transfer",
+      amount: 12000,
+      note: "Legacy memo",
+      categoryId: null,
+      accountId: null,
+      fromAccountId: "a1",
+      toAccountId: "a2",
+      txnDate: "2026-07-10",
+      updatedAt: "2026-07-10T00:00:00.000Z",
+    };
+    renderApp(<AddTransactionSheet open editing={editing} onClose={() => {}} />);
+
+    expect(screen.queryByPlaceholderText("Optional")).not.toBeInTheDocument();
+    fireEvent.click(screen.getByRole("button", { name: "Save changes" }));
+
+    await waitFor(() =>
+      expect(api.patch).toHaveBeenCalledWith(
+        "/transactions/t2",
+        expect.objectContaining({ note: "Legacy memo" }),
+      ),
+    );
+  });
+
   it("prefills the form from a one-tap repeat chip", async () => {
     renderApp(<AddTransactionSheet open onClose={() => {}} />);
     const chip = await screen.findByRole("button", { name: /Coffee/ });

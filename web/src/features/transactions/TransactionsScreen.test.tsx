@@ -75,6 +75,14 @@ describe("TransactionsScreen", () => {
     expect(await screen.findByRole("dialog", { name: "Edit transaction" })).toBeInTheDocument();
   });
 
+  it("uses one segmented type filter on wide screens", async () => {
+    useWideViewport();
+    renderApp(<TransactionsScreen />);
+
+    const filters = await screen.findByRole("radiogroup", { name: "Filter by type" });
+    expect(within(filters).getAllByRole("radio")).toHaveLength(4);
+  });
+
   it("filters rows by the search box (note or category name)", async () => {
     renderApp(<TransactionsScreen />);
     expect(await screen.findByText("Latte")).toBeInTheDocument();

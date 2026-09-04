@@ -119,7 +119,7 @@ export function DashboardScreen() {
           {net >= 0 ? "▲" : "▼"} <Money amount={Math.abs(net)} className="hero__delta-num" /> net this month
         </p>
         <div className="hero__spark">
-          <Sparkline stroke="rgba(255,255,255,0.9)" strokeWidth={3} />
+          <Sparkline stroke="var(--on-color)" strokeWidth={3} />
         </div>
       </section>
 

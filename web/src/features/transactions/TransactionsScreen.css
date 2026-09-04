@@ -48,12 +48,12 @@
 .ledger__filter-panel {
   display: none;
   grid-template-columns: 1fr 1fr;
-  gap: var(--sp-3);
+  gap: var(--sp-2);
   margin-bottom: var(--sp-3);
-  padding: var(--sp-3);
+  padding: var(--sp-2);
   background: var(--paper-raised);
   border: 1px solid var(--line);
-  border-radius: var(--r-lg);
+  border-radius: var(--r-md);
 }
 
 .ledger__filter-panel.is-open {
@@ -119,36 +119,8 @@
   border-color: var(--accent);
 }
 
-/* Type filter chips */
 .ledger__filters {
-  display: flex;
-  gap: var(--sp-2);
-  overflow-x: auto;
-  padding-bottom: var(--sp-2);
-  margin-bottom: var(--sp-2);
-  scrollbar-width: none;
-}
-
-.ledger__filters::-webkit-scrollbar {
-  display: none;
-}
-
-.chip {
-  min-height: 2.75rem;
-  flex: 0 0 auto;
-  padding: var(--sp-2) var(--sp-4);
-  font-size: var(--t-label);
-  font-weight: 600;
-  color: var(--ink-soft);
-  background: var(--paper-raised);
-  border-radius: var(--r-full);
-  box-shadow: var(--shadow-1);
-  transition: background-color var(--dur-1) var(--ease-out), color var(--dur-1) var(--ease-out);
-}
-
-.chip--on {
-  color: var(--accent-ink);
-  background: var(--accent);
+  min-width: 0;
 }
 
 .ledger__note {
@@ -285,7 +257,8 @@
 
   .ledger__filter-panel {
     display: grid;
-    grid-template-columns: 2fr 1fr 1fr;
+    grid-template-columns: minmax(22rem, 1.4fr) repeat(2, minmax(10rem, 1fr));
+    align-items: end;
   }
 
   .ledger__filter-panel .ledger__filters {

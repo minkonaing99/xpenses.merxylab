@@ -25,6 +25,7 @@
   --accent-ink: oklch(0.99 0.01 288);    /* text/icon on accent */
   --accent-wash: oklch(0.95 0.03 290);   /* faint violet background wash */
   --accent-soft: oklch(0.90 0.05 290);   /* soft violet fill for chips/icons */
+  --on-color: oklch(0.99 0.01 288);      /* text and lines over saturated fills */
 
   /* Gradient hero (violet -> purple, top-left to bottom-right) */
   --grad-from: oklch(0.62 0.19 288);
@@ -63,9 +64,9 @@
   --t-label: 0.8125rem;   /* 13 */
   --t-body: 0.9375rem;    /* 15 */
   --t-lead: 1.0625rem;    /* 17 */
-  --t-title: 1.375rem;    /* 22 */
-  --t-figure: 2.125rem;   /* 34, big money */
-  --t-hero: 2.75rem;      /* 44, headline balance */
+  --t-title: 1.25rem;      /* 20, iOS title 3 */
+  --t-figure: 1.75rem;     /* 28, iOS title 1 */
+  --t-hero: 2.125rem;      /* 34, iOS large title */
 
   /* Spacing rhythm */
   --sp-1: 0.25rem;
@@ -102,4 +103,49 @@
   --safe-t: env(safe-area-inset-top, 0px);
   --safe-l: env(safe-area-inset-left, 0px);
   --safe-r: env(safe-area-inset-right, 0px);
+}
+
+:root[data-theme="dark"] {
+  --paper: oklch(0.18 0.015 292);
+  --paper-raised: oklch(0.23 0.017 292);
+  --paper-sunken: oklch(0.15 0.013 292);
+
+  --ink: oklch(0.94 0.012 292);
+  --ink-soft: oklch(0.77 0.018 292);
+  --ink-faint: oklch(0.63 0.02 292);
+
+  --line: oklch(0.31 0.02 292);
+  --line-strong: oklch(0.40 0.025 292);
+
+  --accent: oklch(0.72 0.17 288);
+  --accent-press: oklch(0.66 0.18 288);
+  --accent-ink: oklch(0.18 0.02 288);
+  --accent-wash: oklch(0.29 0.06 290);
+  --accent-soft: oklch(0.35 0.08 290);
+  --on-color: oklch(0.97 0.01 288);
+
+  --grad-from: oklch(0.64 0.18 288);
+  --grad-to: oklch(0.53 0.20 300);
+
+  --pos: oklch(0.75 0.15 155);
+  --neg: oklch(0.73 0.18 22);
+  --pos-wash: oklch(0.27 0.05 155);
+  --neg-wash: oklch(0.27 0.06 22);
+  --danger: oklch(0.73 0.18 22);
+  --danger-wash: oklch(0.27 0.06 22);
+
+  --cat-a: oklch(0.71 0.17 288);
+  --cat-b: oklch(0.72 0.14 245);
+  --cat-c: oklch(0.75 0.12 195);
+  --cat-d: oklch(0.74 0.13 155);
+  --cat-e: oklch(0.79 0.13 75);
+  --cat-f: oklch(0.75 0.15 45);
+  --cat-g: oklch(0.71 0.18 20);
+  --cat-h: oklch(0.73 0.16 350);
+
+  --focus: oklch(0.76 0.15 288);
+  --shadow-1: 0 1px 3px oklch(0.05 0.02 292 / 0.35);
+  --shadow-2: 0 10px 30px oklch(0.05 0.02 292 / 0.42);
+  --shadow-accent: 0 12px 30px oklch(0.45 0.18 292 / 0.36);
+  --shadow-sheet: 0 -8px 40px oklch(0.05 0.02 292 / 0.55);
 }

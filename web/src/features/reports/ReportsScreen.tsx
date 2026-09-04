@@ -43,34 +43,36 @@ export function ReportsScreen() {
     <div className="reports">
       <PageHeader title="Reports" action={<MonthSwitcher />} />
 
-      <section className="rcard rcard--chart">
-        <div className="donut">
-          <Donut segments={segments} thickness={16} />
-          <div className="donut__center">
-            <Money amount={total} className="donut__total" />
-            <span className="donut__cap">Total spent</span>
+      <div className="reports__overview">
+        <section className="rcard rcard--chart">
+          <div className="donut">
+            <Donut segments={segments} thickness={16} />
+            <div className="donut__center">
+              <Money amount={total} className="donut__total" />
+              <span className="donut__cap">Total spent</span>
+            </div>
           </div>
+
+          {expenseDelta !== null && (
+            <p className="rmom">
+              {expenseDelta === 0 ? (
+                "Flat vs last month"
+              ) : (
+                <>
+                  {expenseDelta > 0 ? "▲" : "▼"}{" "}
+                  <Money amount={Math.abs(expenseDelta)} tone={expenseDelta > 0 ? "neg" : "pos"} className="rmom__amt" />{" "}
+                  vs last month
+                </>
+              )}
+            </p>
+          )}
+        </section>
+
+        <div className="rstats rstats--summary">
+          <Stat label="In" amount={s?.monthIncome ?? 0} tone="pos" />
+          <Stat label="Out" amount={s?.monthExpense ?? 0} tone="neg" />
+          <Stat label="Net" amount={s?.monthNet ?? 0} signed />
         </div>
-
-        {expenseDelta !== null && (
-          <p className="rmom">
-            {expenseDelta === 0 ? (
-              "Flat vs last month"
-            ) : (
-              <>
-                {expenseDelta > 0 ? "▲" : "▼"}{" "}
-                <Money amount={Math.abs(expenseDelta)} tone={expenseDelta > 0 ? "neg" : "pos"} className="rmom__amt" />{" "}
-                vs last month
-              </>
-            )}
-          </p>
-        )}
-      </section>
-
-      <div className="rstats rstats--summary">
-        <Stat label="In" amount={s?.monthIncome ?? 0} tone="pos" />
-        <Stat label="Out" amount={s?.monthExpense ?? 0} tone="neg" />
-        <Stat label="Net" amount={s?.monthNet ?? 0} signed />
       </div>
 
       <section className="rcard rcard--categories">

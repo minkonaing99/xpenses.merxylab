@@ -155,7 +155,7 @@
   width: 2.25rem;
   height: 2.25rem;
   border-radius: var(--r-md);
-  color: #fff;
+  color: var(--on-color);
   font-weight: 700;
   font-size: 1rem;
 }

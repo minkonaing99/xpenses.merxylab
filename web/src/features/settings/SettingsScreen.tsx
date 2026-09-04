@@ -2,7 +2,9 @@ import { useState } from "react";
 import { Link } from "react-router-dom";
 import { useLogout } from "../../api/hooks";
 import { useMonth } from "../../app/MonthContext";
+import { readTheme, saveTheme, type Theme } from "../../lib/theme";
 import { PageHeader } from "../../ui/PageHeader";
+import { Segmented } from "../../ui/Segmented";
 import "./SettingsScreen.css";
 
 // Last calendar day of a YYYY-MM as YYYY-MM-DD.
@@ -19,13 +21,26 @@ const MANAGE = [
   { to: "/settings/recurring", label: "Recurring", desc: "Auto-inserted transactions" },
 ];
 
+const THEMES: { value: Theme; label: string }[] = [
+  { value: "light", label: "Light" },
+  { value: "dark", label: "Dark" },
+];
+
 export function SettingsScreen() {
   const logout = useLogout();
   const { month } = useMonth();
   const [from, setFrom] = useState(`${month}-01`);
   const [to, setTo] = useState(monthEnd(month));
   const [format, setFormat] = useState<"csv" | "json">("csv");
+  const [theme, setTheme] = useState<Theme>(() =>
+    document.documentElement.dataset.theme === "dark" ? "dark" : readTheme(),
+  );
   const exportHref = `/api/reports/export?from=${from}&to=${to}&format=${format}`;
+
+  function changeTheme(next: Theme) {
+    setTheme(next);
+    saveTheme(next);
+  }
 
   async function signOut() {
     await logout.mutateAsync().catch(() => {});
@@ -48,8 +63,13 @@ export function SettingsScreen() {
         ))}
       </nav>
 
+      <section className="appearance" aria-label="Appearance">
+        <h2 className="settings__section-title">Appearance</h2>
+        <Segmented options={THEMES} value={theme} onChange={changeTheme} label="Color theme" />
+      </section>
+
       <section className="export" aria-label="Export">
-        <h2 className="export__title">Export</h2>
+        <h2 className="settings__section-title">Export</h2>
         <div className="export__row">
           <label className="export__field">
             From
@@ -68,7 +88,7 @@ export function SettingsScreen() {
               <option value="json">JSON</option>
             </select>
           </label>
-          <a className="settings__export" href={exportHref} download>
+          <a className="settings__export btn btn--primary" href={exportHref} download>
             Download {format.toUpperCase()}
           </a>
         </div>

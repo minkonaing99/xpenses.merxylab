@@ -126,3 +126,17 @@ add-transaction validation/create/edit/delete, dashboard, reports, and the
 offline pause-then-replay behavior. Run `npm test` and `npm run build`.
 Playwright runs Chromium and WebKit at phone, iPad mini portrait/landscape, and
 desktop viewports with geometry assertions and route screenshots: `npm run test:e2e`.
+
+Wide Ledger filters reuse the segmented-control vocabulary and keep account
+selectors compact. Reports group chart and summary in one column so a tall
+category list cannot open a gap between them. Settings export actions keep an
+intrinsic button size. Transfers omit the optional Note control. New transfers
+submit a null note, while edits preserve any legacy hidden note. The API and
+database schema are unchanged.
+
+Appearance offers explicit Light and Dark themes stored per device as
+`xpenses.theme.v1`. A validated pre-paint initializer applies the saved theme
+before React mounts, including browser chrome color, so dark reloads do not
+flash light. Theme state never reaches the API or database. Typography uses
+the native iOS system stack with 20/28/34px display tiers; inputs remain 16px
+to prevent Safari focus zoom.

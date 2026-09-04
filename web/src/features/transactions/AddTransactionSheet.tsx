@@ -141,7 +141,9 @@ export function AddTransactionSheet({ open, onClose, editing }: Props) {
     const fields = {
       type,
       amount: satang,
-      note: note.trim() || null,
+      note: type === "transfer"
+        ? editing?.type === "transfer" ? editing.note ?? null : null
+        : note.trim() || null,
       categoryId: type === "expense" ? categoryId : null,
       accountId: type === "transfer" ? null : accountId,
       fromAccountId: type === "transfer" ? fromId : null,
@@ -286,19 +288,21 @@ export function AddTransactionSheet({ open, onClose, editing }: Props) {
         )}
 
         <div className="add__row">
-          <Field label="Note" grow>
-            <input
-              className="add__input"
-              placeholder="Optional"
-              maxLength={255}
-              value={note}
-              onChange={(e) => {
-                setNote(e.target.value);
-                setDirty(true);
-              }}
-            />
-          </Field>
-          <Field label="Date">
+          {type !== "transfer" && (
+            <Field label="Note" grow>
+              <input
+                className="add__input"
+                placeholder="Optional"
+                maxLength={255}
+                value={note}
+                onChange={(e) => {
+                  setNote(e.target.value);
+                  setDirty(true);
+                }}
+              />
+            </Field>
+          )}
+          <Field label="Date" grow={type === "transfer"}>
             <input
               className="add__input add__date"
               type="date"

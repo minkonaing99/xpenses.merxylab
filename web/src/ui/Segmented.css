@@ -25,6 +25,7 @@
 .seg__opt {
   position: relative;
   z-index: 1;
+  min-height: 2.75rem;
   padding: var(--sp-2) 0;
   font-size: var(--t-body);
   font-weight: 600;

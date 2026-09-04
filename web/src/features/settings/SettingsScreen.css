@@ -51,12 +51,16 @@
   pointer-events: none;
 }
 
-/* Low-key: small muted text link, not a prominent row. */
+.appearance,
 .export {
   margin-top: var(--sp-5);
 }
 
-.export__title {
+.appearance {
+  max-width: 20rem;
+}
+
+.settings__section-title {
   font-size: var(--t-label);
   color: var(--ink-soft);
   margin-bottom: var(--sp-2);
@@ -81,7 +85,7 @@
 .export__field input,
 .export__field select {
   font: inherit;
-  font-size: var(--t-body);
+  font-size: 1rem;
   color: var(--ink);
   background: var(--paper);
   border: 1px solid var(--line);
@@ -90,18 +94,11 @@
 }
 
 .settings__export {
-  flex: 1;
+  flex: 0 0 auto;
+  min-width: 9rem;
   text-align: center;
-  align-self: stretch;
-  display: flex;
-  align-items: center;
-  justify-content: center;
-  font-size: var(--t-label);
-  font-weight: 600;
-  color: var(--ink);
-  background: color-mix(in oklch, var(--accent) 16%, var(--paper));
-  border-radius: var(--r-2, 8px);
-  padding: var(--sp-2) var(--sp-3);
+  align-self: flex-end;
+  font-size: var(--t-body);
 }
 
 /* Desktop: manage links become a two-column card grid. */

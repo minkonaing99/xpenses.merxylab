@@ -106,6 +106,13 @@ Current version: `0.2.0`
 Format: [Keep a Changelog](https://keepachangelog.com)
 
 ## [Unreleased]
+### Changed
+- Polished iPad Ledger filters, removed Reports grid dead space, compacted the
+  Settings export action, and removed Note entry from transfers without an API
+  or database schema change.
+- Added device-local Light/Dark appearance settings with pre-paint restore and
+  reduced display typography matching the native iOS scale.
+
 ### Added
 - **iPad and new features** - adaptive iPad mini portrait/landscape layouts,
   Ledger URL filters and detail pane, report drill-down, quick-add favorites,

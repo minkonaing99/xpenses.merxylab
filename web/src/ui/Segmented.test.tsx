@@ -20,4 +20,19 @@ describe("Segmented", () => {
     fireEvent.click(screen.getByRole("radio", { name: "Beta" }));
     expect(onChange).toHaveBeenCalledWith("b");
   });
+
+  it("moves selection and focus with arrow keys", () => {
+    const onChange = vi.fn();
+    render(<Segmented options={opts} value="a" onChange={onChange} label="x" />);
+    const alpha = screen.getByRole("radio", { name: "Alpha" });
+    const beta = screen.getByRole("radio", { name: "Beta" });
+
+    expect(alpha).toHaveAttribute("tabindex", "0");
+    expect(beta).toHaveAttribute("tabindex", "-1");
+    alpha.focus();
+    fireEvent.keyDown(alpha, { key: "ArrowRight" });
+
+    expect(onChange).toHaveBeenCalledWith("b");
+    expect(beta).toHaveFocus();
+  });
 });
