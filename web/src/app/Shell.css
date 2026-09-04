@@ -31,6 +31,13 @@
   border-top: 1px solid var(--line);
 }
 
+@media (min-width: 40rem) {
+  .shell__main,
+  .tabbar {
+    max-width: 48rem;
+  }
+}
+
 .tab {
   display: flex;
   flex-direction: column;
@@ -75,17 +82,18 @@
   display: none;
 }
 
-/* Desktop: bottom tab bar becomes a fixed left sidebar; content is centered
-   in the remaining space. Column order: brand, Add, nav links. */
-@media (min-width: 60rem) {
+/* Wide, tall viewports use a fixed sidebar. The height guard keeps phones in
+   landscape on bottom navigation. */
+@media (min-width: 48rem) and (min-height: 40rem) {
   .shell {
     flex-direction: row;
   }
 
   .shell__main {
-    max-width: 62rem;
+    max-width: 70rem;
     margin-inline: auto;
-    padding: var(--sp-5) var(--sp-7) var(--sp-7);
+    padding: var(--sp-5) max(var(--sp-5), var(--safe-r)) var(--sp-7)
+      max(var(--sp-5), var(--safe-l));
   }
 
   .tabbar {
@@ -97,12 +105,13 @@
     transform: none;
     align-self: flex-start;
     flex: none;
-    width: 15rem;
+    width: 13.5rem;
     height: 100dvh;
     display: flex;
     flex-direction: column;
     gap: 2px;
-    padding: var(--sp-5) var(--sp-4);
+    padding: max(var(--sp-5), var(--safe-t)) var(--sp-4)
+      max(var(--sp-5), var(--safe-b)) max(var(--sp-4), var(--safe-l));
     border-top: none;
     border-right: 1px solid var(--line);
     backdrop-filter: none;

@@ -7,7 +7,7 @@
 :root {
   /* Surfaces */
   --paper: oklch(0.975 0.007 292);       /* app background, lavender white */
-  --paper-raised: oklch(1 0 0);          /* cards, sheets, elevated rows — white */
+  --paper-raised: oklch(0.995 0.004 292);/* cards, sheets, elevated rows */
   --paper-sunken: oklch(0.955 0.011 292);/* inset fields, tracks */
 
   /* Ink (text) */
@@ -100,4 +100,6 @@
   --tabbar-h: 4rem;
   --safe-b: env(safe-area-inset-bottom, 0px);
   --safe-t: env(safe-area-inset-top, 0px);
+  --safe-l: env(safe-area-inset-left, 0px);
+  --safe-r: env(safe-area-inset-right, 0px);
 }

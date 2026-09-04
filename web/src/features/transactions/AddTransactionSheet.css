@@ -17,6 +17,40 @@
   display: none;
 }
 
+.add__template {
+  position: relative;
+  flex: 0 0 auto;
+  display: grid;
+  grid-template-columns: 1fr auto;
+  align-items: stretch;
+  max-width: 16rem;
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-md);
+  overflow: hidden;
+}
+
+.add__template .add__chip {
+  box-shadow: none;
+  border-radius: 0;
+}
+
+.add__favorite {
+  min-width: 3rem;
+  min-height: 2.75rem;
+  padding: 0 var(--sp-2);
+  color: var(--accent);
+  font-size: var(--t-caption);
+  font-weight: 700;
+}
+
+.add__stale {
+  grid-column: 1 / -1;
+  padding: 0 var(--sp-2) var(--sp-2);
+  color: var(--danger);
+  font-size: var(--t-caption);
+}
+
 .add__chip {
   display: flex;
   flex-direction: column;

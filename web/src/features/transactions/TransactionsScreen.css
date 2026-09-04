@@ -19,7 +19,6 @@
 .ledger__search {
   width: 100%;
   height: 2.75rem;
-  margin-bottom: var(--sp-3);
   padding: 0 var(--sp-4);
   background: var(--paper-raised);
   border: 1px solid transparent;
@@ -27,6 +26,92 @@
   box-shadow: var(--shadow-1);
   font-size: 1rem; /* >=16px: stops iOS auto-zoom on focus */
   transition: border-color var(--dur-1) var(--ease-out);
+}
+
+.ledger__tools {
+  display: flex;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+}
+
+.ledger__filter-toggle {
+  flex: none;
+  min-height: 2.75rem;
+  padding: 0 var(--sp-4);
+  color: var(--ink);
+  background: var(--paper-raised);
+  border-radius: var(--r-full);
+  box-shadow: var(--shadow-1);
+  font-weight: 600;
+}
+
+.ledger__filter-panel {
+  display: none;
+  grid-template-columns: 1fr 1fr;
+  gap: var(--sp-3);
+  margin-bottom: var(--sp-3);
+  padding: var(--sp-3);
+  background: var(--paper-raised);
+  border: 1px solid var(--line);
+  border-radius: var(--r-lg);
+}
+
+.ledger__filter-panel.is-open {
+  display: grid;
+}
+
+.ledger__filter-panel .ledger__filters {
+  grid-column: 1 / -1;
+}
+
+.ledger__select {
+  display: flex;
+  flex-direction: column;
+  gap: var(--sp-1);
+  color: var(--ink-soft);
+  font-size: var(--t-caption);
+  font-weight: 600;
+}
+
+.ledger__select select {
+  width: 100%;
+  min-height: 2.75rem;
+  padding: 0 var(--sp-3);
+  color: var(--ink);
+  background: var(--paper-sunken);
+  border: 1px solid transparent;
+  border-radius: var(--r-md);
+  font-size: 1rem;
+}
+
+.ledger__filter-summary {
+  display: flex;
+  align-items: center;
+  flex-wrap: wrap;
+  gap: var(--sp-2);
+  margin-bottom: var(--sp-3);
+  color: var(--ink-faint);
+  font-size: var(--t-label);
+}
+
+.ledger__active-filters {
+  display: contents;
+}
+
+.ledger__active-filters button {
+  min-height: 2.75rem;
+  padding: 0 var(--sp-3);
+  color: var(--accent);
+  background: var(--accent-wash);
+  border-radius: var(--r-full);
+  font-weight: 600;
+}
+
+.ledger__clear {
+  min-height: 2.75rem;
+  margin-left: auto;
+  color: var(--ink-soft);
+  font-weight: 600;
 }
 
 .ledger__search:focus {
@@ -49,6 +134,7 @@
 }
 
 .chip {
+  min-height: 2.75rem;
   flex: 0 0 auto;
   padding: var(--sp-2) var(--sp-4);
   font-size: var(--t-label);
@@ -191,26 +277,86 @@
   white-space: nowrap;
 }
 
-/* Desktop: controls span full width, day cards flow into two columns. */
-@media (min-width: 60rem) {
+/* Wide, tall layouts use a persistent ledger detail pane. */
+@media (min-width: 48rem) and (min-height: 40rem) {
   .ledger {
-    display: grid;
-    grid-template-columns: repeat(2, minmax(0, 1fr));
-    align-items: start;
-    gap: var(--sp-3) var(--sp-4);
+    padding-inline: var(--sp-5);
   }
 
-  .ledger__head,
-  .ledger__search,
-  .ledger__filters,
-  .ledger__note,
-  .ledger__error,
-  .ledger__more,
-  .ledger__empty {
-    grid-column: 1 / -1;
+  .ledger__filter-panel {
+    display: grid;
+    grid-template-columns: 2fr 1fr 1fr;
+  }
+
+  .ledger__filter-panel .ledger__filters {
+    grid-column: auto;
+    margin: 0;
+  }
+
+  .ledger__filter-toggle {
+    display: none;
   }
 
   .day {
-    margin-top: 0;
+    margin-top: var(--sp-3);
+  }
+
+  .ledger__workspace {
+    display: grid;
+    grid-template-columns: minmax(0, 52fr) minmax(18rem, 48fr);
+    gap: var(--sp-4);
+    align-items: start;
+  }
+
+  .ledger-detail {
+    position: sticky;
+    top: var(--sp-4);
+    padding: var(--sp-5);
+    background: var(--paper-raised);
+    border: 1px solid var(--line);
+    border-radius: var(--r-lg);
+    box-shadow: var(--shadow-1);
+  }
+
+  .ledger-detail__eyebrow,
+  .ledger-detail dt {
+    color: var(--ink-faint);
+    font-size: var(--t-caption);
+    font-weight: 650;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .ledger-detail h2 {
+    margin-top: var(--sp-1);
+    font-size: var(--t-title);
+  }
+
+  .ledger-detail__amount {
+    display: block;
+    margin-top: var(--sp-2);
+    font-size: 1.75rem;
+    font-weight: 700;
+  }
+
+  .ledger-detail dl {
+    margin: var(--sp-5) 0;
+  }
+
+  .ledger-detail dl div {
+    display: grid;
+    grid-template-columns: 6rem 1fr;
+    gap: var(--sp-3);
+    padding: var(--sp-2) 0;
+    border-bottom: 1px solid var(--line);
+  }
+
+  .ledger-detail dd {
+    margin: 0;
+    text-align: right;
+  }
+
+  .txn.is-selected {
+    color: var(--accent);
   }
 }

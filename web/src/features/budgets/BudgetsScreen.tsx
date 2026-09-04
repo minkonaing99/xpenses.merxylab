@@ -100,10 +100,12 @@ function BudgetForm({
 
   const [limit, setLimit] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
     if (!category) return;
     setErr(null);
+    setDirty(false);
     setLimit(existing ? (existing.limitAmount / 100).toString() : "");
   }, [category, existing]);
 
@@ -140,14 +142,14 @@ function BudgetForm({
   }
 
   return (
-    <Sheet open={!!category} onClose={onClose} title={category?.name ?? "Budget"}>
+    <Sheet open={!!category} onClose={onClose} title={category?.name ?? "Budget"} dirty={dirty}>
       <div className="aform">
         <label className="aform__field">
           <span className="fld__label">Monthly limit (฿)</span>
           <MoneyInput
             className="aform__input num"
             value={limit}
-            onChange={setLimit}
+            onChange={(value) => { setLimit(value); setDirty(true); }}
             ariaLabel="Monthly limit in baht"
             autoFocus
           />

@@ -54,6 +54,7 @@ export function RecurringForm({ target, onClose }: Props) {
   const [fromId, setFromId] = useState<string | null>(null);
   const [toId, setToId] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
 
   const acctOpts = (accounts.data ?? []).map((a) => ({ value: a.id, label: a.name }));
   const catOpts = (categories.data ?? []).map((c) => ({ value: c.id, label: c.name }));
@@ -61,6 +62,7 @@ export function RecurringForm({ target, onClose }: Props) {
   useEffect(() => {
     if (!target) return;
     setErr(null);
+    setDirty(false);
     if (editing) {
       setType(editing.type);
       setAmount((editing.amount / 100).toString());
@@ -142,16 +144,16 @@ export function RecurringForm({ target, onClose }: Props) {
   }
 
   return (
-    <Sheet open={!!target} onClose={onClose} title={editing ? "Edit rule" : "New recurring rule"}>
+    <Sheet open={!!target} onClose={onClose} title={editing ? "Edit rule" : "New recurring rule"} dirty={dirty}>
       <div className="add">
-        <Segmented options={TYPES} value={type} onChange={setType} label="Transaction type" />
+        <Segmented options={TYPES} value={type} onChange={(value) => { setType(value); setDirty(true); }} label="Transaction type" />
 
         <label className="add__amount">
           <span className="add__baht" aria-hidden="true">฿</span>
           <MoneyInput
             className="num"
             value={amount}
-            onChange={setAmount}
+            onChange={(value) => { setAmount(value); setDirty(true); }}
             ariaLabel="Amount in baht"
           />
         </label>
@@ -162,7 +164,7 @@ export function RecurringForm({ target, onClose }: Props) {
             <Select
               options={catOpts}
               value={categoryId}
-              onChange={setCategoryId}
+              onChange={(value) => { setCategoryId(value); setDirty(true); }}
               label="Category"
               placeholder="Select category"
             />
@@ -172,7 +174,7 @@ export function RecurringForm({ target, onClose }: Props) {
         {type !== "transfer" && (
           <div className="fld">
             <span className="fld__label">{type === "income" ? "To account" : "Paid from"}</span>
-            <Chips options={acctOpts} value={accountId} onChange={setAccountId} />
+            <Chips options={acctOpts} value={accountId} onChange={(value) => { setAccountId(value); setDirty(true); }} />
           </div>
         )}
 
@@ -180,11 +182,11 @@ export function RecurringForm({ target, onClose }: Props) {
           <>
             <div className="fld">
               <span className="fld__label">From</span>
-              <Chips options={acctOpts} value={fromId} onChange={setFromId} />
+              <Chips options={acctOpts} value={fromId} onChange={(value) => { setFromId(value); setDirty(true); }} />
             </div>
             <div className="fld">
               <span className="fld__label">To</span>
-              <Chips options={acctOpts} value={toId} onChange={setToId} disabledValue={fromId} />
+              <Chips options={acctOpts} value={toId} onChange={(value) => { setToId(value); setDirty(true); }} disabledValue={fromId} />
             </div>
           </>
         )}
@@ -196,12 +198,12 @@ export function RecurringForm({ target, onClose }: Props) {
               className="add__input num"
               inputMode="numeric"
               value={count}
-              onChange={(e) => setCount(e.target.value.replace(/\D/g, ""))}
+              onChange={(e) => { setCount(e.target.value.replace(/\D/g, "")); setDirty(true); }}
               aria-label="Interval count"
               style={{ maxWidth: "4rem" }}
             />
             <div style={{ flex: 1 }}>
-              <Segmented options={UNITS} value={unit} onChange={setUnit} label="Interval unit" />
+              <Segmented options={UNITS} value={unit} onChange={(value) => { setUnit(value); setDirty(true); }} label="Interval unit" />
             </div>
           </div>
         </div>
@@ -214,7 +216,7 @@ export function RecurringForm({ target, onClose }: Props) {
               placeholder="Optional"
               maxLength={255}
               value={note}
-              onChange={(e) => setNote(e.target.value)}
+              onChange={(e) => { setNote(e.target.value); setDirty(true); }}
             />
           </div>
           <div className="fld">
@@ -223,7 +225,7 @@ export function RecurringForm({ target, onClose }: Props) {
               className="add__input add__date"
               type="date"
               value={nextRun}
-              onChange={(e) => setNextRun(e.target.value)}
+              onChange={(e) => { setNextRun(e.target.value); setDirty(true); }}
             />
           </div>
         </div>

@@ -19,18 +19,6 @@ const summary = { accounts, monthIncome: 50000, monthExpense: 30000, monthNet: 2
 const budgets = [{ id: "b1", categoryId: "c1", limitAmount: 100000, spent: 30000, over: false }];
 const categories = [{ id: "c1", name: "Food" }];
 const spend = [{ categoryId: "c1", name: "Food", total: 30000 }];
-const forecast = {
-  month: "2026-07",
-  daysInMonth: 31,
-  daysElapsed: 10,
-  daysRemaining: 21,
-  paidIncome: 50000,
-  paidExpense: 30000,
-  projectedIncome: 50000,
-  projectedExpense: 90000,
-  projectedNet: -40000,
-  dailyBurnRate: 3000,
-};
 const anomalies = [
   { type: "budget_burn", categoryId: "c1", name: "Food", spent: 85000, limit: 100000, pct: 0.85 },
 ];
@@ -43,12 +31,14 @@ beforeEach(() => {
       "/accounts": accounts,
       "/budgets": budgets,
       "/categories": categories,
-      "/insights/forecast": forecast,
       "/insights/anomalies": anomalies,
     }) as never,
   );
 });
-afterEach(() => vi.clearAllMocks());
+afterEach(() => {
+  vi.unstubAllGlobals();
+  vi.clearAllMocks();
+});
 
 describe("DashboardScreen", () => {
   it("shows net worth summed from account balances", async () => {
@@ -60,7 +50,7 @@ describe("DashboardScreen", () => {
   });
 
   it("masks the balance until tapped", async () => {
-    renderApp(<DashboardScreen />);
+    const view = renderApp(<DashboardScreen />);
     const reveal = await screen.findByRole("button", { name: "Show balance" });
     expect(screen.getByText(/∗∗∗/)).toBeInTheDocument();
 
@@ -68,6 +58,9 @@ describe("DashboardScreen", () => {
     expect(screen.getByRole("button", { name: "Hide balance" })).toBeInTheDocument();
     // hero now shows the real balance (netWorth = ฿200.00)
     expect(screen.getAllByText(money("฿200.00")).length).toBeGreaterThan(0);
+    view.unmount();
+    renderApp(<DashboardScreen />);
+    expect(await screen.findByRole("button", { name: "Hide balance" })).toBeInTheDocument();
   });
 
   it("renders budgets and category spend once loaded", async () => {
@@ -77,10 +70,11 @@ describe("DashboardScreen", () => {
     expect(screen.getByText("Where it went")).toBeInTheDocument();
   });
 
-  it("shows the month-end forecast card", async () => {
+  it("does not request or render the removed month-end forecast", async () => {
     renderApp(<DashboardScreen />);
-    expect(await screen.findByText("Month-end forecast")).toBeInTheDocument();
-    expect(screen.getByText(/projected net for July/)).toBeInTheDocument();
+    await screen.findByText("Total balance");
+    expect(screen.queryByText("Month-end forecast")).not.toBeInTheDocument();
+    expect(api.get).not.toHaveBeenCalledWith(expect.stringContaining("/insights/forecast"));
   });
 
   it("shows a dismissible anomaly card and hides it on dismiss", async () => {
@@ -89,5 +83,19 @@ describe("DashboardScreen", () => {
     expect(await screen.findByText(/85% through its budget/)).toBeInTheDocument();
     fireEvent.click(screen.getByRole("button", { name: "Dismiss" }));
     expect(screen.queryByText(/85% through its budget/)).not.toBeInTheDocument();
+  });
+
+  it("opens customization and persists a visibility change", async () => {
+    let saved = "";
+    vi.stubGlobal("localStorage", {
+      getItem: () => null,
+      setItem: (_key: string, value: string) => { saved = value; },
+    });
+    renderApp(<DashboardScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: "Customize" }));
+    expect(screen.getByRole("dialog", { name: "Customize dashboard" })).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Accounts" }));
+    expect(saved).toContain('"accounts":false');
+    fireEvent.click(screen.getAllByRole("button", { name: "Close" })[1]);
   });
 });

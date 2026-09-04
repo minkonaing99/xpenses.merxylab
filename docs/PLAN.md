@@ -159,7 +159,7 @@ masked by `--runInBand`).
       `LoginScreen.tsx` + route guard `RequireAuth` in `App.tsx`). Component
       tests (Vitest + RTL) for fetchClient, auth api, LoginScreen, and the
       route guard's authed/unauthed/error paths. E2E (Playwright) deferred —
-      no Playwright harness exists yet in `web/` (introduce with Phase 5/6
+      no Playwright harness existed in `web/` at that phase (introduce with Phase 5/6
       E2E work per docs/SETUP.md, not a blocker for this phase's Done
       Criteria which only requires the login flow work, proven here via
       component tests + a live curl smoke test through the Vite proxy).
@@ -188,7 +188,7 @@ masked by `--runInBand`).
       on the merge/LWW logic (18/18) plus a real end-to-end integration
       check against the live running server (see below) — the plan's
       "High — mirrors server reconcile; test both sides agree" risk was
-      taken seriously: no Playwright harness exists yet (see Phase 4.4
+      taken seriously: no Playwright harness existed at that phase (see Phase 4.4
       note), so verification used a one-off `tsx` script exercising the
       real `offline/db.ts`/`outbox.ts`/`sync.ts` modules against the live
       dev server (login -> enqueue offline create -> push -> confirmed via
@@ -235,7 +235,7 @@ masked by `--runInBand`).
       `txnMapping.ts` (pure `calculateNet`/`formatTxnDate`/`iconForTxn`/
       `toTxnRowProps`). `mockTransactions.ts` deleted. Verified live against
       the real server: full offline-create -> reconnect -> push -> server
-      confirms it, via a one-off `tsx` script (no Playwright harness —
+      confirmed it via a one-off `tsx` script (before the Playwright harness;
       deferred to Phase 7, confirmed with user).
 - [x] 6.4 Budgets: `BudgetsScreen` rewired — cached budget rows for
       identity/CRUD, live `spent`/`over` from `GET /api/budgets?month=`
@@ -369,11 +369,6 @@ Keep updated. Claude reads this before starting work.
 - Phase 0 — 0.1 (README.md still missing), 0.5 (`lib/money.js` on the
   server — note `web/src/lib/money.ts` already exists client-side).
 - Phase 7 (deploy + hardening).
-- Playwright E2E harness for `web/` (deferred from 4.4/6.x; every E2E-shaped
-  requirement across Phases 4-6 was instead covered by component tests +
-  one-off live `tsx` scripts against the real dev server — a consistent,
-  deliberate substitution, not a gap. Introduce Playwright at Phase 7 if the
-  deploy/hardening phase's Definition of Done actually requires it).
 - Offline engine: no retry/backoff or requeue path for `'failed'` outbox
   ops (they sit inert; Phase 6 added a Settings-screen banner surfacing the
   failed count via `useOutboxStatus`, but there's still no way to retry or
@@ -470,7 +465,7 @@ Keep updated. Claude reads this before starting work.
   `offline/sync.ts` (`pull()`/`push()`, LWW merge mirroring the server's
   `shouldApply()`). 79/79 web tests passing (up from 53), typecheck clean.
   Verified end to end against the live running server via one-off `tsx`
-  scripts (no Playwright harness yet) — full round trip (offline enqueue ->
+  scripts (before the Playwright harness) — full round trip (offline enqueue ->
   push -> server has it -> pull -> back in local cache) and a dedicated
   second check confirming the `lastSyncedAt` cursor round-trips through the
   server's strict ISO `zod.datetime()` validation. `code-reviewer` pass:
@@ -526,3 +521,19 @@ the real server. Production-readiness done this session:
 Remaining Phase 7: `deploy.sh` (build web -> rsync `server/` -> restart
 Passenger), security-reviewer pass, optional optimistic-UI + `/api/sync`
 bidirectional pull (only if multi-device), and Backlog items above.
+
+## Frontend iPad and new-features phase (2026-09-04)
+
+- No database, backend route, or API schema changes.
+- Responsive shell: phone bottom navigation; iPad landscape/desktop sidebar;
+  bottom sheets become right drawers on wide, tall screens.
+- Ledger: URL month/type/account/category filters, full-month search pagination,
+  active chips, result count, and 52/48 landscape detail view.
+- Reports: category list and donut drill down into filtered Ledger URLs.
+- Quick add: up to four persistent favorites, six combined templates, and stale
+  reference recovery.
+- Dashboard: quiet private balance, removed month-end forecast UI, persistent
+  visibility/order customization, and stable Accounts/Budgets grouping.
+- Settings and transaction forms protect dirty drafts on scrim, close, or Escape.
+- Verify phone 390x844, iPad mini 744x1133 and 1133x744, desktop 1440x900 in
+  Chromium and WebKit, plus physical Safari/Chrome/PWA rotation checks.

@@ -10,10 +10,10 @@ import type {
   Category,
   Comparison,
   DailySpend,
-  Forecast,
   RecurringRule,
   Summary,
   Transaction,
+  TxnType,
   UpcomingRecurring,
 } from "./types";
 
@@ -66,12 +66,22 @@ export function useCategorySpend(month: string) {
   });
 }
 
-export function useTransactions(month: string) {
+export interface TransactionQueryFilters {
+  type?: TxnType | null;
+  accountId?: string | null;
+  categoryId?: string | null;
+}
+
+export function useTransactions(month: string, filters: TransactionQueryFilters = {}) {
+  const { type, accountId, categoryId } = filters;
   return useInfiniteQuery({
-    queryKey: keys.txns(month),
+    queryKey: keys.txns(month, type ?? "", accountId ?? "", categoryId ?? ""),
     initialPageParam: null as string | null,
     queryFn: ({ pageParam }) => {
       const query = new URLSearchParams({ month, limit: "200" });
+      if (type) query.set("type", type);
+      if (accountId) query.set("accountId", accountId);
+      if (categoryId) query.set("categoryId", categoryId);
       if (pageParam) query.set("cursor", pageParam);
       return api.getPage<Transaction[]>(`/transactions?${query}`);
     },
@@ -80,13 +90,6 @@ export function useTransactions(month: string) {
       return nextCursor && !pageParams.includes(nextCursor) ? nextCursor : undefined;
     },
     select: (result) => result.pages.flatMap((page) => page.data),
-  });
-}
-
-export function useForecast(month: string) {
-  return useQuery({
-    queryKey: keys.forecast(month),
-    queryFn: () => api.get<Forecast>(`/insights/forecast?month=${month}`),
   });
 }
 

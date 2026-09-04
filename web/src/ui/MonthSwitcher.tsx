@@ -2,17 +2,18 @@ import { useMonth } from "../app/MonthContext";
 import { monthLabel } from "../lib/format";
 import "./MonthSwitcher.css";
 
-export function MonthSwitcher() {
+export function MonthSwitcher({ onStep }: { onStep?: (delta: number) => void } = {}) {
   const { month, step, isCurrent } = useMonth();
+  const changeMonth = onStep ?? step;
   return (
     <div className="msw">
-      <button className="msw__nav" onClick={() => step(-1)} aria-label="Previous month">
+      <button className="msw__nav" onClick={() => changeMonth(-1)} aria-label="Previous month">
         <Chevron dir="left" />
       </button>
       <span className="msw__label num">{monthLabel(month)}</span>
       <button
         className="msw__nav"
-        onClick={() => step(1)}
+        onClick={() => changeMonth(1)}
         disabled={isCurrent}
         aria-label="Next month"
       >

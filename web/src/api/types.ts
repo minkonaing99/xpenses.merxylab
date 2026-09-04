@@ -76,19 +76,6 @@ export interface Summary {
   monthNet: number; // satang, income - expense this month
 }
 
-export interface Forecast {
-  month: string;
-  daysInMonth: number;
-  daysElapsed: number;
-  daysRemaining: number;
-  paidIncome: number; // satang, actual so far
-  paidExpense: number; // satang, actual so far
-  projectedIncome: number; // satang, projected month-end
-  projectedExpense: number; // satang, projected month-end
-  projectedNet: number; // satang, projected month-end
-  dailyBurnRate: number; // satang/day discretionary
-}
-
 export type Anomaly =
   | { type: "budget_burn"; categoryId: string; name: string; spent: number; limit: number; pct: number }
   | {

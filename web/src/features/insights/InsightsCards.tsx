@@ -1,45 +1,6 @@
 import { useState } from "react";
-import type { Anomaly, Forecast } from "../../api/types";
-import { Money } from "../../ui/Money";
+import type { Anomaly } from "../../api/types";
 import "./InsightsCards.css";
-
-const MONTH_LABEL = new Intl.DateTimeFormat("en-US", { month: "long" });
-
-function monthName(month: string): string {
-  const [y, m] = month.split("-").map(Number);
-  return MONTH_LABEL.format(new Date(Date.UTC(y, m - 1, 1)));
-}
-
-interface ForecastCardProps {
-  forecast: Forecast;
-}
-
-/** Recurring-aware month-end projection from the current burn rate. */
-export function ForecastCard({ forecast: f }: ForecastCardProps) {
-  if (f.daysRemaining === 0) return null; // month over — nothing to project
-  return (
-    <section className="fc">
-      <div className="fc__head">
-        <h2 className="fc__title">Month-end forecast</h2>
-        <span className="fc__left">{f.daysRemaining} days left</span>
-      </div>
-      <div className="fc__net">
-        <Money amount={f.projectedNet} signed className="fc__net-amt" />
-        <span className="fc__net-cap">projected net for {monthName(f.month)}</span>
-      </div>
-      <div className="fc__grid">
-        <div className="fc__cell">
-          <span className="fc__k">Projected spend</span>
-          <Money amount={f.projectedExpense} tone="neg" className="fc__v" />
-        </div>
-        <div className="fc__cell">
-          <span className="fc__k">Spent so far</span>
-          <Money amount={f.paidExpense} className="fc__v" />
-        </div>
-      </div>
-    </section>
-  );
-}
 
 function anomalyKey(a: Anomaly): string {
   return `${a.type}:${a.categoryId}`;

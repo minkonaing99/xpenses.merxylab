@@ -17,7 +17,7 @@ export default defineConfig({
         theme_color: "#f4f2fa",
         background_color: "#f4f2fa",
         display: "standalone",
-        orientation: "portrait",
+        orientation: "any",
         icons: [
           { src: "icon.svg", sizes: "any", type: "image/svg+xml", purpose: "any" },
           { src: "pwa-192.png", sizes: "192x192", type: "image/png", purpose: "any" },
@@ -41,5 +41,6 @@ export default defineConfig({
     environment: "jsdom",
     setupFiles: ["./src/setupTests.ts"],
     css: false,
+    exclude: ["e2e/**", "node_modules/**"],
   },
 });

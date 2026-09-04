@@ -12,6 +12,13 @@ import { ApiError } from "../../lib/api";
 import { bahtToSatang, formatSatang } from "../../lib/money";
 import { today } from "../../lib/format";
 import { buildTemplates, type TxnTemplate } from "../../lib/templates";
+import {
+  mergeTemplates,
+  readFavoriteTemplates,
+  templateKey,
+  toggleFavoriteTemplate,
+  writeFavoriteTemplates,
+} from "../../lib/favoriteTemplates";
 import { Button } from "../../ui/Button";
 import { Segmented } from "../../ui/Segmented";
 import { MoneyInput } from "../../ui/MoneyInput";
@@ -51,11 +58,16 @@ export function AddTransactionSheet({ open, onClose, editing }: Props) {
   const [toId, setToId] = useState<string | null>(null);
   const [err, setErr] = useState<string | null>(null);
   const [confirmDel, setConfirmDel] = useState(false);
+  const [dirty, setDirty] = useState(false);
+  const [favorites, setFavorites] = useState<TxnTemplate[]>(readFavoriteTemplates);
 
   const acctOpts = (accounts.data ?? []).map((a) => ({ value: a.id, label: a.name }));
   const catOpts = (categories.data ?? []).map((c) => ({ value: c.id, label: c.name }));
 
-  const templates = useMemo(() => buildTemplates(recent.data ?? []), [recent.data]);
+  const templates = useMemo(
+    () => mergeTemplates(favorites, buildTemplates(recent.data ?? [])),
+    [favorites, recent.data],
+  );
   const catNames = useMemo(() => {
     const m = new Map<string, string>();
     (categories.data ?? []).forEach((c) => m.set(c.id, c.name));
@@ -64,11 +76,18 @@ export function AddTransactionSheet({ open, onClose, editing }: Props) {
 
   function applyTemplate(t: TxnTemplate) {
     setErr(null);
+    setDirty(true);
     setType(t.type);
     setAmount((t.amount / 100).toString());
     setNote(t.note ?? "");
     setCategoryId(t.categoryId);
     setAccountId(t.accountId);
+  }
+
+  function toggleFavorite(template: TxnTemplate) {
+    const next = toggleFavoriteTemplate(favorites, template);
+    setFavorites(next);
+    writeFavoriteTemplates(next);
   }
 
   // Prefill on open: from the edited txn, else fresh defaults.
@@ -77,6 +96,7 @@ export function AddTransactionSheet({ open, onClose, editing }: Props) {
     if (!open) return;
     setErr(null);
     setConfirmDel(false);
+    setDirty(false);
     if (editing) {
       setType(editing.type);
       setAmount((editing.amount / 100).toString());
@@ -154,19 +174,31 @@ export function AddTransactionSheet({ open, onClose, editing }: Props) {
   }
 
   return (
-    <Sheet open={open} onClose={onClose} title={editing ? "Edit transaction" : "New transaction"}>
+    <Sheet
+      open={open}
+      onClose={onClose}
+      title={editing ? "Edit transaction" : "New transaction"}
+      dirty={dirty}
+    >
       <div className="add">
-        <Segmented options={TYPES} value={type} onChange={setType} label="Transaction type" />
+        <Segmented
+          options={TYPES}
+          value={type}
+          onChange={(value) => {
+            setType(value);
+            setDirty(true);
+          }}
+          label="Transaction type"
+        />
 
         {!editing && templates.length > 0 && (
           <div className="add__repeat" aria-label="Repeat a recent transaction">
-            {templates.map((t, i) => (
-              <button
-                key={i}
-                type="button"
-                className="add__chip"
-                onClick={() => applyTemplate(t)}
-              >
+            {templates.map((t) => {
+              const favorite = favorites.some((item) => templateKey(item) === templateKey(t));
+              const stale = !(accounts.data ?? []).some((account) => account.id === t.accountId)
+                || (!!t.categoryId && !(categories.data ?? []).some((category) => category.id === t.categoryId));
+              return <div className="add__template" key={templateKey(t)}>
+              <button type="button" className="add__chip" disabled={favorite && stale} onClick={() => applyTemplate(t)}>
                 <span className="add__chip-label">
                   {t.note?.trim() || catNames.get(t.categoryId ?? "") || (t.type === "income" ? "Income" : "Expense")}
                 </span>
@@ -175,7 +207,13 @@ export function AddTransactionSheet({ open, onClose, editing }: Props) {
                   {formatSatang(t.amount)}
                 </span>
               </button>
-            ))}
+              <button type="button" className="add__favorite" onClick={() => toggleFavorite(t)}
+                aria-label={`${favorite ? "Remove" : "Add"} favorite template`}>
+                {favorite ? "Saved" : "Save"}
+              </button>
+              {favorite && stale && <span className="add__stale">Account or category was deleted. Remove this favorite.</span>}
+              </div>;
+            })}
           </div>
         )}
 
@@ -184,7 +222,10 @@ export function AddTransactionSheet({ open, onClose, editing }: Props) {
           <MoneyInput
             className="num"
             value={amount}
-            onChange={setAmount}
+            onChange={(value) => {
+              setAmount(value);
+              setDirty(true);
+            }}
             ariaLabel="Amount in baht"
             autoFocus={!editing}
           />
@@ -195,7 +236,10 @@ export function AddTransactionSheet({ open, onClose, editing }: Props) {
             <Select
               options={catOpts}
               value={categoryId}
-              onChange={setCategoryId}
+              onChange={(value) => {
+                setCategoryId(value);
+                setDirty(true);
+              }}
               label="Category"
               placeholder="Select category"
             />
@@ -204,17 +248,39 @@ export function AddTransactionSheet({ open, onClose, editing }: Props) {
 
         {type !== "transfer" && (
           <Field label={type === "income" ? "To account" : "Paid from"}>
-            <Chips options={acctOpts} value={accountId} onChange={setAccountId} />
+            <Chips
+              options={acctOpts}
+              value={accountId}
+              onChange={(value) => {
+                setAccountId(value);
+                setDirty(true);
+              }}
+            />
           </Field>
         )}
 
         {type === "transfer" && (
           <>
             <Field label="From">
-              <Chips options={acctOpts} value={fromId} onChange={setFromId} />
+              <Chips
+                options={acctOpts}
+                value={fromId}
+                onChange={(value) => {
+                  setFromId(value);
+                  setDirty(true);
+                }}
+              />
             </Field>
             <Field label="To">
-              <Chips options={acctOpts} value={toId} onChange={setToId} disabledValue={fromId} />
+              <Chips
+                options={acctOpts}
+                value={toId}
+                onChange={(value) => {
+                  setToId(value);
+                  setDirty(true);
+                }}
+                disabledValue={fromId}
+              />
             </Field>
           </>
         )}
@@ -226,7 +292,10 @@ export function AddTransactionSheet({ open, onClose, editing }: Props) {
               placeholder="Optional"
               maxLength={255}
               value={note}
-              onChange={(e) => setNote(e.target.value)}
+              onChange={(e) => {
+                setNote(e.target.value);
+                setDirty(true);
+              }}
             />
           </Field>
           <Field label="Date">
@@ -235,7 +304,10 @@ export function AddTransactionSheet({ open, onClose, editing }: Props) {
               type="date"
               value={date}
               max={today()}
-              onChange={(e) => setDate(e.target.value)}
+              onChange={(e) => {
+                setDate(e.target.value);
+                setDirty(true);
+              }}
             />
           </Field>
         </div>

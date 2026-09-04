@@ -7,9 +7,9 @@ export const keys = {
   summary: (m: string) => ["summary", m] as const,
   budgets: (m: string) => ["budgets", m] as const,
   spend: (m: string) => ["spend", m] as const,
-  txns: (m: string) => ["txns", "paged-v1", m] as const,
+  txns: (m: string, type = "", accountId = "", categoryId = "") =>
+    ["txns", "paged-v2", m, type, accountId, categoryId] as const,
   recentTxns: ["txns", "recent"] as const,
-  forecast: (m: string) => ["forecast", m] as const,
   anomalies: (m: string) => ["anomalies", m] as const,
   comparisons: (m: string) => ["comparisons", m] as const,
   dailySpend: (from: string, to: string) => ["dailySpend", from, to] as const,
@@ -23,7 +23,6 @@ export function monthKeys(m: string) {
     keys.budgets(m),
     keys.spend(m),
     keys.txns(m),
-    keys.forecast(m),
     keys.anomalies(m),
     keys.comparisons(m),
   ];

@@ -5,20 +5,22 @@ import {
   useBudgets,
   useCategories,
   useCategorySpend,
-  useForecast,
   useSummary,
   useUpcoming,
 } from "../../api/hooks";
 import type { BudgetStatus, Category, CategorySpend, UpcomingRecurring } from "../../api/types";
-import { AnomalyCards, ForecastCard } from "../insights/InsightsCards";
+import { AnomalyCards } from "../insights/InsightsCards";
 import { useMonth } from "../../app/MonthContext";
 import { dayLabel } from "../../lib/format";
+import { categoryColor } from "../../lib/categoryColor";
 import { useEntrance } from "../../lib/useEntrance";
 import { AnimatedMoney } from "../../ui/AnimatedMoney";
 import { LogoMark } from "../../ui/Logo";
 import { Money } from "../../ui/Money";
 import { MonthSwitcher } from "../../ui/MonthSwitcher";
 import { Sparkline } from "../../ui/Sparkline";
+import { DashboardCustomizer } from "./DashboardCustomizer";
+import { loadDashboardPreferences, saveDashboardPreferences } from "./dashboardPreferences";
 import "./DashboardScreen.css";
 
 function greeting(now = new Date()): string {
@@ -28,6 +30,8 @@ function greeting(now = new Date()): string {
   return "Good evening";
 }
 
+let balanceVisibleThisSession = false;
+
 export function DashboardScreen() {
   const { month } = useMonth();
   const summary = useSummary(month);
@@ -35,7 +39,6 @@ export function DashboardScreen() {
   const budgets = useBudgets(month);
   const categories = useCategories();
   const spend = useCategorySpend(month);
-  const forecast = useForecast(month);
   const anomalies = useAnomalies(month);
   const upcoming = useUpcoming(30);
 
@@ -51,7 +54,32 @@ export function DashboardScreen() {
   const net = summary.data?.monthNet ?? 0;
 
   const stageRef = useEntrance<HTMLDivElement>();
-  const [shown, setShown] = useState(false);
+  const [shown, setShown] = useState(balanceVisibleThisSession);
+  const [customizing, setCustomizing] = useState(false);
+  const [preferences, setPreferences] = useState(loadDashboardPreferences);
+
+  function updatePreferences(next: typeof preferences) {
+    setPreferences(next);
+    saveDashboardPreferences(next);
+  }
+  const groups: Record<typeof preferences.order[number], ReactNode> = {
+    upcoming: preferences.visible.upcoming && upcoming.data && upcoming.data.length > 0 ? <Card title="Upcoming">
+      {upcoming.data.map((u) => <UpcomingRow key={`${u.id}-${u.date}`} u={u} name={catName.get(u.categoryId ?? "")} />)}
+    </Card> : null,
+    accountsBudgets: <>
+      {preferences.visible.accounts && <Card title="Accounts">
+        {(accounts.data ?? []).map((a) => <div key={a.id} className="acct">
+          <span className="acct__name">{a.name}</span><Money amount={a.balance} className="acct__bal" />
+        </div>)}
+        {accounts.isLoading && <RowSkeleton n={2} />}
+      </Card>}
+      {preferences.visible.budgets && <Card title="Budgets" empty={(budgets.data ?? []).length === 0} emptyText="No budgets set.">
+        {(budgets.data ?? []).map((b) => <BudgetRow key={b.categoryId} b={b} name={catName.get(b.categoryId) ?? "Category"} />)}
+      </Card>}
+    </>,
+    spend: preferences.visible.spend ? <Card title="Where it went" empty={(spend.data ?? []).length === 0}
+      emptyText="Nothing spent yet this month."><SpendList items={spend.data ?? []} /></Card> : null,
+  };
 
   return (
     <div className="dash" ref={stageRef}>
@@ -63,6 +91,7 @@ export function DashboardScreen() {
         <span className="dash__logo">
           <LogoMark size={26} />
         </span>
+        <button className="dash__customize" onClick={() => setCustomizing(true)}>Customize</button>
       </header>
 
       <section className="hero">
@@ -72,11 +101,14 @@ export function DashboardScreen() {
         </div>
         <button
           className="hero__amount-btn"
-          onClick={() => setShown((v) => !v)}
+          onClick={() => setShown((value) => {
+            balanceVisibleThisSession = !value;
+            return !value;
+          })}
           aria-label={shown ? "Hide balance" : "Show balance"}
         >
           {shown ? (
-            <AnimatedMoney amount={netWorth} className="hero__amount" color="#fff" />
+            <AnimatedMoney amount={netWorth} className="hero__amount" color="var(--ink)" />
           ) : (
             <span className="hero__amount hero__amount--masked" aria-hidden="true">
               ฿ ∗∗∗∗∗∗
@@ -101,39 +133,11 @@ export function DashboardScreen() {
         <AnomalyCards month={month} anomalies={anomalies.data} />
       )}
 
-      {forecast.data && <ForecastCard forecast={forecast.data} />}
-
-      {upcoming.data && upcoming.data.length > 0 && (
-        <Card title="Upcoming">
-          {upcoming.data.map((u) => (
-            <UpcomingRow key={`${u.id}-${u.date}`} u={u} name={catName.get(u.categoryId ?? "")} />
-          ))}
-        </Card>
-      )}
-
-      <Card title="Accounts">
-        {(accounts.data ?? []).map((a) => (
-          <div key={a.id} className="acct">
-            <span className="acct__name">{a.name}</span>
-            <Money amount={a.balance} className="acct__bal" />
-          </div>
-        ))}
-        {accounts.isLoading && <RowSkeleton n={2} />}
-      </Card>
-
-      <Card title="Budgets" empty={(budgets.data ?? []).length === 0} emptyText="No budgets set.">
-        {(budgets.data ?? []).map((b) => (
-          <BudgetRow key={b.categoryId} b={b} name={catName.get(b.categoryId) ?? "Category"} />
-        ))}
-      </Card>
-
-      <Card
-        title="Where it went"
-        empty={(spend.data ?? []).length === 0}
-        emptyText="Nothing spent yet this month."
-      >
-        <SpendList items={spend.data ?? []} />
-      </Card>
+      {preferences.order.map((group) => <div key={group}
+        className={`dash__group${group === "accountsBudgets" ? " dash__group--paired" : ""}`}>
+        {groups[group]}
+      </div>)}
+      <DashboardCustomizer open={customizing} value={preferences} onChange={updatePreferences} onClose={() => setCustomizing(false)} />
     </div>
   );
 }
@@ -230,7 +234,7 @@ function SpendList({ items }: { items: CategorySpend[] }) {
               </div>
               <div className="spend__barrow">
                 <span className="spend__track">
-                  <span className="spend__fill" style={{ width: `${pct}%` }} />
+                  <span className="spend__fill" style={{ width: `${pct}%`, background: categoryColor(i.categoryId) }} />
                 </span>
                 <span className="spend__pct num">{pct}%</span>
               </div>

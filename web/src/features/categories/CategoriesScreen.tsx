@@ -53,10 +53,12 @@ function CategoryForm({ target, onClose }: { target: Category | "new" | null; on
 
   const [name, setName] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
     if (!target) return;
     setErr(null);
+    setDirty(false);
     setName(editing?.name ?? "");
   }, [target, editing]);
 
@@ -95,7 +97,7 @@ function CategoryForm({ target, onClose }: { target: Category | "new" | null; on
   }
 
   return (
-    <Sheet open={!!target} onClose={onClose} title={editing ? "Edit category" : "New category"}>
+    <Sheet open={!!target} onClose={onClose} title={editing ? "Edit category" : "New category"} dirty={dirty}>
       <div className="aform">
         <label className="aform__field">
           <span className="fld__label">Name</span>
@@ -104,7 +106,7 @@ function CategoryForm({ target, onClose }: { target: Category | "new" | null; on
             value={name}
             maxLength={80}
             placeholder="e.g. Groceries"
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => { setName(e.target.value); setDirty(true); }}
             autoFocus={!editing}
           />
         </label>

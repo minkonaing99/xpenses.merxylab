@@ -10,7 +10,7 @@ interface MonthCtx {
 
 const Ctx = createContext<MonthCtx | null>(null);
 
-function shift(month: string, delta: number): string {
+export function shiftMonth(month: string, delta: number): string {
   const [y, m] = month.split("-").map(Number);
   const d = new Date(Date.UTC(y, m - 1 + delta, 1));
   return `${d.getUTCFullYear()}-${String(d.getUTCMonth() + 1).padStart(2, "0")}`;
@@ -23,7 +23,7 @@ export function MonthProvider({ children }: { children: ReactNode }) {
     () => ({
       month,
       setMonth,
-      step: (delta) => setMonth((m) => shift(m, delta)),
+      step: (delta) => setMonth((m) => shiftMonth(m, delta)),
       isCurrent: month === currentMonth(),
     }),
     [month],

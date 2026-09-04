@@ -80,10 +80,12 @@ function AccountForm({
   const [type, setType] = useState<AccountType>("cash");
   const [start, setStart] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [dirty, setDirty] = useState(false);
 
   useEffect(() => {
     if (!target) return;
     setErr(null);
+    setDirty(false);
     setName(editing?.name ?? "");
     setType(editing?.type ?? "cash");
     setStart(editing ? (editing.startingBalance / 100).toString() : "");
@@ -132,7 +134,7 @@ function AccountForm({
   }
 
   return (
-    <Sheet open={!!target} onClose={onClose} title={editing ? "Edit account" : "New account"}>
+    <Sheet open={!!target} onClose={onClose} title={editing ? "Edit account" : "New account"} dirty={dirty}>
       <div className="aform">
         <label className="aform__field">
           <span className="fld__label">Name</span>
@@ -141,14 +143,14 @@ function AccountForm({
             value={name}
             maxLength={80}
             placeholder="e.g. Cash"
-            onChange={(e) => setName(e.target.value)}
+            onChange={(e) => { setName(e.target.value); setDirty(true); }}
             autoFocus={!editing}
           />
         </label>
 
         <div className="aform__field">
           <span className="fld__label">Type</span>
-          <Segmented options={TYPES} value={type} onChange={setType} label="Account type" />
+          <Segmented options={TYPES} value={type} onChange={(value) => { setType(value); setDirty(true); }} label="Account type" />
         </div>
 
         <label className="aform__field">
@@ -156,7 +158,7 @@ function AccountForm({
           <MoneyInput
             className="aform__input num"
             value={start}
-            onChange={setStart}
+            onChange={(value) => { setStart(value); setDirty(true); }}
             ariaLabel="Starting balance in baht"
           />
         </label>

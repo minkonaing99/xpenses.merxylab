@@ -13,8 +13,8 @@ React-Query architecture (replacing the earlier custom offline-engine build).
 
 ## Design system
 
-Warm-paper / one-ink-accent, light theme. Tokens in `src/theme/tokens.css`
-(OKLCH): cream `--paper`, warm `--ink`, single amber `--accent` for the
+Calm personal-finance / one-ink-accent, light theme. Tokens in `src/theme/tokens.css`
+(OKLCH): warm paper, soft ink, and violet `--accent` for the
 primary/add action and active tab; muted ledger tints (`--pos` green in,
 `--neg` clay-red out) carry money sign, never the brand color. Money is
 integer satang end to end; formatted to THB only at the display edge
@@ -46,13 +46,31 @@ web/src/
 
 ## Screens
 
-Login · Dashboard (net balance, month flow, forecast + anomaly insight cards,
+Login · Dashboard (private-by-default balance, month flow, anomaly insight cards,
 upcoming recurring next 30 days, budget bars, category spend) · Ledger
-(day-grouped, tap row to edit/delete, cursor-paged in 200-row batches) · Add/Edit transaction sheet
+(day-grouped, URL-backed AND filters, search across all cursor pages, and a
+52/48 read-only detail split on wide iPads) · Add/Edit transaction sheet
 (expense/income/transfer) · Reports (month stats, category bars, month-over-month
 comparison, daily-spend calendar heatmap) · Settings hub → Accounts / Categories
 / Budgets / Recurring CRUD, plus a date-range export (CSV or JSON). Month
 navigation is shared across data screens via `MonthContext`.
+
+Dashboard sections can be hidden and reordered. Preferences are stored in
+`xpenses.dashboard-layout.v1`. Quick-add supports four saved favorites and six
+visible favorite/recent templates total via `xpenses.favorite-templates.v1`.
+Deleted account/category references remain visible but disabled so the saved
+favorite can be removed. No database or API schema is involved.
+
+## Responsive behavior
+
+- Phone and iPad portrait use labeled bottom navigation and bottom sheets.
+- iPad landscape and desktop use an expanded sidebar and right-side sheets.
+- Safe-area insets are applied on all four edges. Rotation keeps React route,
+  selected transaction, open sheet, and draft state alive.
+- Primary targets are at least 44px. The supported iPad mini CSS viewports are
+  744x1133 portrait and 1133x744 landscape.
+- Reports put chart/category data side by side when wide; category rows and
+  donut segments open a filtered Ledger URL.
 
 ## Data + offline model
 
@@ -82,7 +100,7 @@ logical device); wire it if the app goes multi-device.
 
 ## PWA
 
-Installable, `standalone`, portrait, theme-colored. Icons: `icon.svg` +
+Installable, `standalone`, any orientation, theme-colored. Icons: `icon.svg` +
 rasterized PNG 192 / 512 / maskable-512 (generated from SVG via `sharp`).
 Service worker precaches the app shell; it does **not** cache `/api`
 (NavigationRoute matches document navigations only, so API `fetch`es always
@@ -102,7 +120,9 @@ hit the network).
 
 ## Testing
 
-Vitest + Testing Library, jsdom. 54 tests: money/format/api-client logic,
+Vitest + Testing Library, jsdom. The suite covers money/format/api-client logic,
 month context, UI primitives, every CRUD screen (create/edit/409-delete),
 add-transaction validation/create/edit/delete, dashboard, reports, and the
-offline pause-then-replay behavior. Coverage ~85% statements. `npm test`.
+offline pause-then-replay behavior. Run `npm test` and `npm run build`.
+Playwright runs Chromium and WebKit at phone, iPad mini portrait/landscape, and
+desktop viewports with geometry assertions and route screenshots: `npm run test:e2e`.

@@ -67,6 +67,7 @@
   width: 100%;
   text-align: left;
   padding: var(--sp-4) var(--sp-1);
+  min-height: 3rem;
   border-bottom: 1px solid var(--line);
   transition: background-color var(--dur-1) var(--ease-out);
 }
@@ -76,7 +77,7 @@
 }
 
 .crud-add {
-  min-height: 2.25rem;
+  min-height: 2.75rem;
   padding: 0 var(--sp-4);
   font-size: var(--t-label);
 }

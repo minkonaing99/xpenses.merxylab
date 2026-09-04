@@ -8,8 +8,8 @@
 .ph__back {
   display: grid;
   place-items: center;
-  width: 2.25rem;
-  height: 2.25rem;
+  width: 2.75rem;
+  height: 2.75rem;
   margin-left: calc(-1 * var(--sp-1));
   color: var(--ink);
   background: var(--paper-sunken);

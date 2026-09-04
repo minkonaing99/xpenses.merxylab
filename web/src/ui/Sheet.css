@@ -61,10 +61,42 @@
 .sheet__close {
   display: grid;
   place-items: center;
-  width: 2rem;
-  height: 2rem;
+  width: 2.75rem;
+  height: 2.75rem;
   font-size: 1.5rem;
   line-height: 1;
   color: var(--ink-faint);
   border-radius: var(--r-full);
+}
+
+@media (min-width: 40rem) {
+  .sheet__panel {
+    max-width: 48rem;
+  }
+}
+
+@media (min-width: 48rem) and (min-height: 40rem) {
+  .sheet {
+    align-items: stretch;
+    justify-content: flex-end;
+  }
+
+  .sheet__panel {
+    width: min(27rem, 48vw);
+    max-width: none;
+    max-height: 100dvh;
+    padding: max(var(--sp-4), var(--safe-t)) max(var(--sp-5), var(--safe-r))
+      max(var(--sp-6), var(--safe-b)) var(--sp-5);
+    border-radius: var(--r-lg) 0 0 var(--r-lg);
+    box-shadow: -8px 0 40px oklch(0.30 0.06 288 / 0.18);
+    transform: translateX(100%);
+  }
+
+  .sheet.is-shown .sheet__panel {
+    transform: translateX(0);
+  }
+
+  .sheet__grip {
+    display: none;
+  }
 }

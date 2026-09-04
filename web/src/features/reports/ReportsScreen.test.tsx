@@ -1,4 +1,5 @@
-import { screen } from "@testing-library/react";
+import { fireEvent, screen } from "@testing-library/react";
+import { useLocation } from "react-router-dom";
 import { afterEach, beforeEach, describe, expect, it, vi } from "vitest";
 
 vi.mock("../../lib/api", async (orig) => {
@@ -64,5 +65,17 @@ describe("ReportsScreen", () => {
     renderApp(<ReportsScreen />);
     // vsLast = 10000 satang = ฿100, spending up -> ▲ 100
     expect(await screen.findByTitle("vs last month")).toHaveTextContent("100");
+  });
+
+  it("drills into the category from chart and category controls", async () => {
+    function Location() {
+      const location = useLocation();
+      return <output aria-label="Current route">{location.pathname}{location.search}</output>;
+    }
+    renderApp(<><ReportsScreen /><Location /></>);
+    const controls = await screen.findAllByRole("button", { name: "View Food transactions" });
+    fireEvent.click(controls[0]);
+    expect(screen.getByLabelText("Current route")).toHaveTextContent("/ledger?month=");
+    expect(screen.getByLabelText("Current route")).toHaveTextContent("categoryId=c1");
   });
 });

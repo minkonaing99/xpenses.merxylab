@@ -107,6 +107,10 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 
 ## [Unreleased]
 ### Added
+- **iPad and new features** - adaptive iPad mini portrait/landscape layouts,
+  Ledger URL filters and detail pane, report drill-down, quick-add favorites,
+  dashboard customization, dirty-draft guards, and Chromium/WebKit checks.
+  The forecast API remains available, but its Dashboard card was removed.
 - **Insights (Phase 8)** — new `features/insights/` server feature + `/api/insights`:
   - `GET /forecast?month=` — recurring-aware month-end projection. Discretionary
     (non-recurring) spend is extrapolated at the current daily burn rate over the
@@ -117,8 +121,9 @@ Format: [Keep a Changelog](https://keepachangelog.com)
     the trailing 3-month average, floor ฿500).
   - `GET /comparisons?month=` — per-category current vs last month vs trailing
     3-month average, with deltas.
-  - Web: forecast card + dismissible anomaly cards on Dashboard (dismissed state
-    per-month in `localStorage`, no schema); per-category trend chips on Reports.
+  - Web: dismissible anomaly cards on Dashboard (dismissed state per-month in
+    `localStorage`, no schema); per-category trend chips on Reports. The forecast
+    endpoint remains for API and MCP clients, but its Dashboard card was removed.
   - Tests: +30 server (service pure math, repo SQL, router), +3 web.
 - **MCP server (Phase 9)** — `mcp/` package (stdio, `@modelcontextprotocol/sdk`)
   exposing finances to Claude Desktop / Claude Code. Read tools (transactions,
@@ -356,7 +361,7 @@ Format: [Keep a Changelog](https://keepachangelog.com)
   - 79 web tests (Vitest + RTL) all passing (up from 53), `tsc -b` clean.
     Verified live end to end against the real running `server/` dev
     instance with two one-off `tsx` scripts (deleted after use, not part of
-    the permanent suite, since `web/` has no Playwright harness yet):
+    the permanent suite, since `web/` had no Playwright harness at that time):
     (1) offline enqueue -> `push()` -> confirmed via `GET /api/accounts`
     that the server actually has the row -> `pull()` -> confirmed it's back
     in the local Dexie cache; (2) a dedicated check that the `lastSyncedAt`
@@ -480,13 +485,10 @@ Format: [Keep a Changelog](https://keepachangelog.com)
   writers could create two. Accepted for now (solo-user, single-session
   app); would need `SELECT ... FOR UPDATE` or a generated-column unique
   index if this ever needs to support concurrent writers.
-- No Playwright E2E harness exists in `web/` — every E2E-shaped requirement
-  across Phases 4-6 was instead covered by component tests + one-off live
-  `tsx` scripts against the real dev server (login, offline
-  create->reconnect->push, budget spend/over, account balance sync). This
-  has been a consistent, deliberate substitution across three phases now,
-  not an oversight — introduce Playwright at Phase 7 only if its
-  Definition of Done actually requires a real browser harness.
+- Playwright now covers Chromium and WebKit at phone, iPad mini portrait,
+  iPad mini landscape, and desktop sizes. It verifies navigation mode,
+  Ledger split geometry, Dashboard/Reports layout, sheets, route overflow,
+  screenshots, and draft preservation across rotation.
 - `offline/outbox.ts` ops marked `'failed'` (a genuine server error, not a
   stale-LWW `'skipped'`) have no retry/backoff or requeue path — they sit
   inert since `getPendingOps()` only selects `status === 'pending'`. Phase 6
@@ -509,3 +511,9 @@ Format: [Keep a Changelog](https://keepachangelog.com)
   linkage technically exists server-side via the `recurring_runs` join
   table (used only for cron idempotency) but is never surfaced. Needs a
   schema/API change, out of scope for a client-only phase.
+# Frontend device verification
+
+Run `cd web && npm test`, `npm run build`, then `npm run test:e2e`. Check these viewport sizes in
+both Chromium and WebKit: 390x844, 744x1133, 1133x744, and 1440x900. On a
+physical iPad mini, check Safari, Chrome, and the installed PWA in both
+orientations. Rotate with a transaction draft and Ledger selection open.

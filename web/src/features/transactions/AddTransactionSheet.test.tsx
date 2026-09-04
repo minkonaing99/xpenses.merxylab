@@ -39,7 +39,11 @@ beforeEach(() => {
   vi.mocked(api.patch).mockResolvedValue({} as never);
   vi.mocked(api.del).mockResolvedValue({} as never);
 });
-afterEach(() => vi.clearAllMocks());
+afterEach(() => {
+  vi.restoreAllMocks();
+  vi.unstubAllGlobals();
+  vi.clearAllMocks();
+});
 
 describe("AddTransactionSheet", () => {
   it("keeps Save disabled until an expense is valid", async () => {
@@ -83,6 +87,34 @@ describe("AddTransactionSheet", () => {
 
     expect(screen.getByLabelText("Amount in baht")).toHaveValue("60");
     expect(screen.getByRole("button", { name: "Save" })).toBeEnabled();
+  });
+
+  it("saves and removes a favorite quick-add template", async () => {
+    let saved: string | null = null;
+    vi.stubGlobal("localStorage", {
+      getItem: () => saved,
+      setItem: (_key: string, value: string) => { saved = value; },
+    });
+    renderApp(<AddTransactionSheet open onClose={() => {}} />);
+    const save = await screen.findByRole("button", { name: "Add favorite template" });
+    fireEvent.click(save);
+    const remove = screen.getByRole("button", { name: "Remove favorite template" });
+    expect(saved).toContain("Coffee");
+    fireEvent.click(remove);
+    expect(saved).toBe("[]");
+  });
+
+  it("confirms before closing a changed draft", async () => {
+    const onClose = vi.fn();
+    vi.spyOn(window, "confirm").mockReturnValue(false);
+    renderApp(<AddTransactionSheet open onClose={onClose} />);
+    await screen.findByRole("option", { name: "Food" });
+
+    fireEvent.change(screen.getByLabelText("Amount in baht"), { target: { value: "120" } });
+    fireEvent.click(screen.getAllByRole("button", { name: "Close" })[0]);
+
+    expect(window.confirm).toHaveBeenCalledWith("Discard unsaved changes?");
+    expect(onClose).not.toHaveBeenCalled();
   });
 
   it("edits then deletes an existing transaction", async () => {

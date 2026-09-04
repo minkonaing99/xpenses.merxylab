@@ -1,4 +1,5 @@
 import { useMemo } from "react";
+import { useNavigate } from "react-router-dom";
 import { useCategorySpend, useComparisons, useSummary } from "../../api/hooks";
 import type { Comparison } from "../../api/types";
 import { useMonth } from "../../app/MonthContext";
@@ -9,16 +10,11 @@ import { Money } from "../../ui/Money";
 import { MonthSwitcher } from "../../ui/MonthSwitcher";
 import { PageHeader } from "../../ui/PageHeader";
 import "./ReportsScreen.css";
-
-// Violet-shade ramp: darkest for the biggest slice, lighter down the list.
-// Keeps the chart on-theme while still telling segments apart.
-function shade(index: number, count: number): string {
-  const l = count > 1 ? 0.52 + (index / (count - 1)) * 0.24 : 0.55;
-  return `oklch(${l.toFixed(3)} 0.16 288)`;
-}
+import { categoryColor } from "../../lib/categoryColor";
 
 export function ReportsScreen() {
   const { month } = useMonth();
+  const navigate = useNavigate();
   const summary = useSummary(month);
   const prev = useSummary(prevMonth(month));
   const spend = useCategorySpend(month);
@@ -33,7 +29,13 @@ export function ReportsScreen() {
   const s = summary.data;
   const items = [...(spend.data ?? [])].sort((a, b) => b.total - a.total);
   const total = items.reduce((sum, i) => sum + i.total, 0);
-  const segments = items.map((i, idx) => ({ value: i.total, color: shade(idx, items.length) }));
+  const openCategory = (categoryId: string) => navigate(`/ledger?month=${month}&categoryId=${categoryId}`);
+  const segments = items.map((i) => ({
+    value: i.total,
+    color: categoryColor(i.categoryId),
+    label: `View ${i.name} transactions`,
+    onSelect: () => openCategory(i.categoryId),
+  }));
 
   const expenseDelta = s && prev.data ? s.monthExpense - prev.data.monthExpense : null;
 
@@ -41,7 +43,7 @@ export function ReportsScreen() {
     <div className="reports">
       <PageHeader title="Reports" action={<MonthSwitcher />} />
 
-      <section className="rcard">
+      <section className="rcard rcard--chart">
         <div className="donut">
           <Donut segments={segments} thickness={16} />
           <div className="donut__center">
@@ -65,31 +67,33 @@ export function ReportsScreen() {
         )}
       </section>
 
-      <div className="rstats">
+      <div className="rstats rstats--summary">
         <Stat label="In" amount={s?.monthIncome ?? 0} tone="pos" />
         <Stat label="Out" amount={s?.monthExpense ?? 0} tone="neg" />
         <Stat label="Net" amount={s?.monthNet ?? 0} signed />
       </div>
 
-      <section className="rcard">
+      <section className="rcard rcard--categories">
         <h2 className="rcard__title">By category</h2>
         {items.length === 0 && <p className="rcard__empty">Nothing spent this month.</p>}
         <ol className="legend">
-          {items.map((i, idx) => (
+          {items.map((i) => (
             <li key={i.categoryId} className="legend__row">
-              <span className="legend__dot" style={{ background: shade(idx, items.length) }} aria-hidden="true" />
+              <button className="legend__link" onClick={() => openCategory(i.categoryId)} aria-label={`View ${i.name} transactions`}>
+              <span className="legend__dot" style={{ background: categoryColor(i.categoryId) }} aria-hidden="true" />
               <span className="legend__name">{i.name}</span>
               <TrendChip cmp={cmpByCat.get(i.categoryId)} />
               <span className="legend__pct num">{total > 0 ? Math.round((i.total / total) * 100) : 0}%</span>
               <Money amount={i.total} className="legend__amt" />
+              </button>
             </li>
           ))}
         </ol>
       </section>
 
-      <Heatmap />
+      <div className="reports__heatmap"><Heatmap /></div>
 
-      <section className="rcard">
+      <section className="rcard rcard--accounts">
         <h2 className="rcard__title">Accounts</h2>
         {(s?.accounts ?? []).map((a) => (
           <div key={a.id} className="rbal">
