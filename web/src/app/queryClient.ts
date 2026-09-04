@@ -6,6 +6,8 @@ import { QueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
 import type { Account, Category, RecurringRule, Transaction } from "../api/types";
 
+export const PERSISTED_QUERY_KEY = "xpenses-cache";
+
 export const mk = {
   txnCreate: ["txn", "create"] as const,
   txnUpdate: ["txn", "update"] as const,

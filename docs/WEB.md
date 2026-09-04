@@ -91,6 +91,10 @@ sync engine.
   `updatedAt` (last-write-wins). Replays are safe against the server's upsert.
 - **Invalidation:** after any write the client refetches broadly
   (`qc.invalidateQueries()`) — cheap at solo write volume.
+- **Logout:** the endpoint is idempotent, including for missing or expired
+  sessions. A successful logout clears both the in-memory query cache and the
+  persisted `xpenses-cache` before reloading. Network failure keeps local state
+  intact and shows a retryable error.
 
 **Ceiling:** no optimistic UI — an offline write appears after it replays on
 reconnect, not the instant Save is tapped. Add `onMutate` optimistic inserts

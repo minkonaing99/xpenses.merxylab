@@ -51,6 +51,16 @@
   pointer-events: none;
 }
 
+.settings__logout-error {
+  margin-top: var(--sp-5);
+  color: var(--danger);
+  font-size: var(--t-label);
+}
+
+.settings__logout-error + .settings__logout {
+  margin-top: var(--sp-2);
+}
+
 .appearance,
 .export {
   margin-top: var(--sp-5);

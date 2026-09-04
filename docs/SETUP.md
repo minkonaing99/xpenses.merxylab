@@ -106,6 +106,9 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 
 ## [Unreleased]
 ### Changed
+- Fixed sign out for missing, expired, and active sessions. Successful logout
+  clears persisted client session state before reload; network failure now shows
+  a retryable error instead of silently reloading.
 - Removed Playwright, its browser suite, and its npm command after repeated local
   browser crashes. Responsive release checks are manual.
 - Replaced Ledger's persistent account/category selectors with one collapsed

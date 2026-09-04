@@ -14,6 +14,11 @@ const reload = vi.fn();
 
 beforeEach(() => {
   vi.mocked(api.post).mockResolvedValue({} as never);
+  vi.stubGlobal("localStorage", {
+    getItem: vi.fn(() => null),
+    setItem: vi.fn(),
+    removeItem: vi.fn(),
+  });
   vi.stubGlobal("location", { ...window.location, reload });
 });
 afterEach(() => {
@@ -68,5 +73,22 @@ describe("SettingsScreen", () => {
 
     await waitFor(() => expect(api.post).toHaveBeenCalledWith("/auth/logout", {}));
     await waitFor(() => expect(reload).toHaveBeenCalled());
+  });
+
+  it("shows logout failure without reloading and allows retry", async () => {
+    vi.mocked(api.post)
+      .mockRejectedValueOnce(new Error("offline"))
+      .mockResolvedValueOnce({} as never);
+    renderApp(<SettingsScreen />);
+
+    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+
+    expect(await screen.findByRole("alert")).toHaveTextContent(
+      "Couldn't sign out. Check your connection and try again.",
+    );
+    expect(reload).not.toHaveBeenCalled();
+
+    fireEvent.click(screen.getByRole("button", { name: "Sign out" }));
+    await waitFor(() => expect(reload).toHaveBeenCalledTimes(1));
   });
 });

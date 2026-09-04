@@ -4,14 +4,17 @@ import { PersistQueryClientProvider } from "@tanstack/react-query-persist-client
 import { createSyncStoragePersister } from "@tanstack/query-sync-storage-persister";
 import { BrowserRouter } from "react-router-dom";
 import { App } from "./app/App";
-import { makeQueryClient } from "./app/queryClient";
+import { makeQueryClient, PERSISTED_QUERY_KEY } from "./app/queryClient";
 import "./theme/globals.css";
 
 const queryClient = makeQueryClient();
 
 // Persist the cache to localStorage: reads show offline, and writes queued
 // while offline (paused mutations) survive a reload and replay on reconnect.
-const persister = createSyncStoragePersister({ storage: window.localStorage, key: "xpenses-cache" });
+const persister = createSyncStoragePersister({
+  storage: window.localStorage,
+  key: PERSISTED_QUERY_KEY,
+});
 
 createRoot(document.getElementById("root")!).render(
   <StrictMode>

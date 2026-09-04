@@ -56,7 +56,7 @@ function createAuthRouter({ passwordHash, jwtSecret, nodeEnv, rateLimit: rateLim
     }
   })
 
-  router.post('/logout', authMiddleware, (req, res) => {
+  router.post('/logout', (_req, res) => {
     res.clearCookie(COOKIE_NAME, cookieOptions(nodeEnv))
     res.json(ok({}))
   })

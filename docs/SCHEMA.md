@@ -187,7 +187,7 @@ Computed in the accounts service via aggregated queries over non-deleted txns.
 
 ## API
 
-Base: `/api` · JSON only · Auth via httpOnly JWT cookie (all routes except login).
+Base: `/api` · JSON only · Auth via httpOnly JWT cookie (all routes except login and logout).
 No versioning in v1 (single consumer, solo app) — `/api/*` is implicitly v1.
 
 ### Response Envelope
@@ -204,7 +204,7 @@ Codes: `VALIDATION_ERROR`(400) `UNAUTHORIZED`(401) `NOT_FOUND`(404)
 | Method | Path | Body | Auth Required | Notes |
 |---|---|---|---|---|
 | POST | /api/auth/login | `{ password }` | No | Sets JWT cookie. Rate-limited. |
-| POST | /api/auth/logout | — | Yes | Clears cookie. |
+| POST | /api/auth/logout | — | No | Idempotently clears the session cookie. |
 | GET  | /api/auth/me | — | Yes | 200 if session valid, else 401. |
 
 ### Accounts

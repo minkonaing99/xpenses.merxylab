@@ -43,8 +43,12 @@ export function SettingsScreen() {
   }
 
   async function signOut() {
-    await logout.mutateAsync().catch(() => {});
-    location.reload();
+    try {
+      await logout.mutateAsync();
+      location.reload();
+    } catch {
+      // The mutation state renders the retryable error.
+    }
   }
 
   return (
@@ -94,6 +98,11 @@ export function SettingsScreen() {
         </div>
       </section>
 
+      {logout.isError && (
+        <p className="settings__logout-error" role="alert">
+          Couldn't sign out. Check your connection and try again.
+        </p>
+      )}
       <button className="settings__logout" onClick={signOut} disabled={logout.isPending}>
         {logout.isPending ? "Signing out…" : "Sign out"}
       </button>

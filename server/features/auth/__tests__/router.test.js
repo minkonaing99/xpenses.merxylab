@@ -96,9 +96,19 @@ describe('POST /api/auth/logout', () => {
     expect(meRes.status).toBe(401)
   })
 
-  it('returns 401 when not logged in', async () => {
+  it.each([
+    ['without a session', undefined],
+    ['with an invalid session', 'xpenses_token=invalid'],
+  ])('clears the cookie %s', async (_label, cookie) => {
     const app = await buildApp()
-    const res = await request(app).post('/api/auth/logout')
-    expect(res.status).toBe(401)
+    const req = request(app).post('/api/auth/logout')
+    if (cookie) req.set('Cookie', cookie)
+    const res = await req
+
+    expect(res.status).toBe(200)
+    expect(res.body).toEqual({ ok: true, data: {}, meta: {} })
+    expect(res.headers['set-cookie'][0]).toMatch(
+      /^xpenses_token=; Path=\/; Expires=Thu, 01 Jan 1970 00:00:00 GMT; HttpOnly; SameSite=Lax$/,
+    )
   })
 })

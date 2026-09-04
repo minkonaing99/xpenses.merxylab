@@ -4,7 +4,7 @@
 // Hooks here just bind to a key.
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
-import { mk } from "../app/queryClient";
+import { mk, PERSISTED_QUERY_KEY } from "../app/queryClient";
 import type { Account, Category, RecurringRule, Transaction } from "./types";
 
 /* auth — online-only, never queued offline */
@@ -12,7 +12,11 @@ export function useLogout() {
   const qc = useQueryClient();
   return useMutation({
     mutationFn: () => api.post("/auth/logout", {}),
-    onSuccess: () => qc.clear(),
+    networkMode: "always",
+    onSuccess: () => {
+      qc.clear();
+      window.localStorage.removeItem(PERSISTED_QUERY_KEY);
+    },
   });
 }
 
