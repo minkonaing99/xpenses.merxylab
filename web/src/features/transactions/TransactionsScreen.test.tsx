@@ -90,12 +90,53 @@ describe("TransactionsScreen", () => {
     expect(await screen.findByRole("dialog", { name: "Edit transaction" })).toBeInTheDocument();
   });
 
-  it("uses one segmented type filter on wide screens", async () => {
+  it("keeps one accessible filter panel collapsed on wide screens", async () => {
     useWideViewport();
     renderApp(<TransactionsScreen />);
 
-    const filters = await screen.findByRole("radiogroup", { name: "Filter by type" });
+    const toggle = screen.getByRole("button", { name: "Filters" });
+    const panel = document.getElementById("ledger-filter-panel");
+    expect(panel).not.toBeNull();
+    expect(toggle).toHaveAttribute("aria-expanded", "false");
+    expect(panel).not.toBeVisible();
+
+    fireEvent.click(toggle);
+    expect(toggle).toHaveAttribute("aria-expanded", "true");
+    expect(panel).toBeVisible();
+    const filters = within(panel!).getByRole("radiogroup", { name: "Filter by type" });
     expect(within(filters).getAllByRole("radio")).toHaveLength(4);
+    expect(await within(panel!).findByRole("checkbox", { name: "Cash" })).toBeInTheDocument();
+    expect(within(panel!).getByRole("checkbox", { name: "Food" })).toBeInTheDocument();
+  });
+
+  it("supports OR within checklist groups and AND across them", async () => {
+    const bankId = "82c5fe75-d1e8-47f4-aaf2-b01dbbe4378a";
+    const travelId = "b12a1b8c-bf4b-46bb-8c54-cb489e20a6d4";
+    vi.mocked(api.get).mockImplementation(fakeGet({
+      "/accounts": [...accounts, { id: bankId, name: "Bank", type: "bank", startingBalance: 0, balance: 0 }],
+      "/categories": [...categories, { id: travelId, name: "Travel" }],
+    }) as never);
+    vi.mocked(api.getPage).mockResolvedValue({
+      data: [
+        { ...txns[0], id: "cash-food", note: "Cash food" },
+        { ...txns[0], id: "cash-travel", note: "Cash travel", categoryId: travelId },
+        { ...txns[0], id: "bank-food", note: "Bank food", accountId: bankId },
+      ],
+      nextCursor: null,
+    });
+    renderApp(<TransactionsScreen />);
+    fireEvent.click(screen.getByRole("button", { name: "Filters" }));
+
+    fireEvent.click(await screen.findByRole("checkbox", { name: "Cash" }));
+    fireEvent.click(screen.getByRole("checkbox", { name: "Food" }));
+    expect(screen.getByText("Cash food")).toBeInTheDocument();
+    expect(screen.queryByText("Cash travel")).not.toBeInTheDocument();
+    expect(screen.queryByText("Bank food")).not.toBeInTheDocument();
+
+    fireEvent.click(screen.getByRole("checkbox", { name: "Travel" }));
+    expect(screen.getByText("Cash travel")).toBeInTheDocument();
+    fireEvent.click(screen.getByRole("checkbox", { name: "Bank" }));
+    expect(screen.getByText("Bank food")).toBeInTheDocument();
   });
 
   it("filters rows by the search box (note or category name)", async () => {
@@ -120,8 +161,8 @@ describe("TransactionsScreen", () => {
     await screen.findByText("Latte");
     expect(api.getPage).toHaveBeenCalledWith(expect.stringContaining("month=2026-07"));
     expect(api.getPage).toHaveBeenCalledWith(expect.stringContaining("type=expense"));
-    expect(api.getPage).toHaveBeenCalledWith(expect.stringContaining(`accountId=${accountId}`));
-    expect(api.getPage).toHaveBeenCalledWith(expect.stringContaining(`categoryId=${categoryId}`));
+    expect(api.getPage).not.toHaveBeenCalledWith(expect.stringContaining("accountId="));
+    expect(api.getPage).not.toHaveBeenCalledWith(expect.stringContaining("categoryId="));
   });
 
   it("keeps the Ledger month URL in sync with month navigation", async () => {
@@ -181,6 +222,41 @@ describe("TransactionsScreen", () => {
 
     expect(await screen.findByText("Dinner")).toBeInTheDocument();
     expect(api.getPage).toHaveBeenCalledTimes(2);
+  });
+
+  it("loads all remaining pages while a checklist filter is active", async () => {
+    const older = { ...txns[0], id: "t2", note: "Dinner", txnDate: "2026-07-03" };
+    vi.mocked(api.getPage).mockImplementation(async (path) =>
+      path.includes("cursor=")
+        ? { data: [older], nextCursor: null }
+        : { data: txns, nextCursor: "older" },
+    );
+
+    renderApp(<TransactionsScreen />, `/ledger?accountId=${accountId}`);
+
+    expect(await screen.findByText("Dinner")).toBeInTheDocument();
+    expect(api.getPage).toHaveBeenCalledTimes(2);
+  });
+
+  it("does not show an empty state before filtered pages finish loading", async () => {
+    const bankId = "82c5fe75-d1e8-47f4-aaf2-b01dbbe4378a";
+    const older = { ...txns[0], id: "t2", note: "Bank dinner", accountId: bankId };
+    let resolveOlder: (page: { data: typeof txns; nextCursor: null }) => void = () => undefined;
+    const olderPage = new Promise<{ data: typeof txns; nextCursor: null }>((resolve) => {
+      resolveOlder = resolve;
+    });
+    vi.mocked(api.getPage).mockImplementation(async (path) =>
+      path.includes("cursor=")
+        ? olderPage
+        : { data: txns, nextCursor: "older" },
+    );
+
+    renderApp(<TransactionsScreen />, `/ledger?accountId=${bankId}`);
+
+    await waitFor(() => expect(api.getPage).toHaveBeenCalledTimes(2));
+    expect(screen.queryByText("No matches")).not.toBeInTheDocument();
+    resolveOlder({ data: [older], nextCursor: null });
+    expect(await screen.findByText("Bank dinner")).toBeInTheDocument();
   });
 
   it("stops when the server repeats a cursor", async () => {

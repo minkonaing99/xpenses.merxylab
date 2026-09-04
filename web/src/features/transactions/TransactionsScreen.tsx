@@ -8,24 +8,17 @@ import { useMediaQuery } from "../../lib/useMediaQuery";
 import { Button } from "../../ui/Button";
 import { Money } from "../../ui/Money";
 import { MonthSwitcher } from "../../ui/MonthSwitcher";
-import { Segmented } from "../../ui/Segmented";
 import { AddTransactionSheet } from "./AddTransactionSheet";
+import { LedgerFilterPanel } from "./LedgerFilterPanel";
 import { TransactionDetail } from "./TransactionDetail";
 import {
   parseLedgerFilters,
   setLedgerFilter,
+  toggleLedgerListFilter,
   type LedgerFilters,
+  type LedgerListFilter,
 } from "./ledgerFilters";
 import "./TransactionsScreen.css";
-
-type Filter = "all" | TxnType;
-
-const FILTERS: { value: Filter; label: string }[] = [
-  { value: "all", label: "All" },
-  { value: "income", label: "Income" },
-  { value: "expense", label: "Expenses" },
-  { value: "transfer", label: "Transfers" },
-];
 
 export function TransactionsScreen() {
   const { month, setMonth } = useMonth();
@@ -36,7 +29,7 @@ export function TransactionsScreen() {
   const [selected, setSelected] = useState<Transaction | null>(null);
   const [query, setQuery] = useState("");
   const [filtersOpen, setFiltersOpen] = useState(false);
-  const txns = useTransactions(activeMonth, urlFilters);
+  const txns = useTransactions(activeMonth, { type: urlFilters.type });
   const accounts = useAccounts();
   const categories = useCategories();
   const wide = useMediaQuery("(min-width: 48rem) and (min-height: 40rem)");
@@ -45,8 +38,12 @@ export function TransactionsScreen() {
     if (urlFilters.month && urlFilters.month !== month) setMonth(urlFilters.month);
   }, [month, setMonth, urlFilters.month]);
 
-  function updateFilter(name: "type" | "accountId" | "categoryId", value: string | null) {
-    setParams(setLedgerFilter(params, name, value));
+  function updateType(value: TxnType | null) {
+    setParams(setLedgerFilter(params, "type", value));
+  }
+
+  function toggleListFilter(name: LedgerListFilter, value: string) {
+    setParams(toggleLedgerListFilter(params, name, value));
   }
 
   const names = useMemo(() => {
@@ -57,17 +54,21 @@ export function TransactionsScreen() {
     return { acct, cat };
   }, [accounts.data, categories.data]);
 
+  const accountFilterKey = urlFilters.accountIds.join(",");
+  const categoryFilterKey = urlFilters.categoryIds.join(",");
+  const hasListFilters = urlFilters.accountIds.length > 0 || urlFilters.categoryIds.length > 0;
+  const hasFilters = !!urlFilters.type || hasListFilters;
+  const isCompletingFilter = hasListFilters && (txns.hasNextPage || txns.isFetchingNextPage);
   const filtered = useMemo(
     () => filterTxns(txns.data ?? [], query, urlFilters, names),
-    [txns.data, query, urlFilters.type, urlFilters.accountId, urlFilters.categoryId, names],
+    [txns.data, query, urlFilters.type, accountFilterKey, categoryFilterKey, names],
   );
   const groups = useMemo(() => groupByDay(filtered), [filtered]);
-  const hasFilters = !!(urlFilters.type || urlFilters.accountId || urlFilters.categoryId);
 
   useEffect(() => {
-    if (!query.trim() || !txns.hasNextPage || txns.isFetchingNextPage) return;
+    if ((!query.trim() && !hasListFilters) || !txns.hasNextPage || txns.isFetchingNextPage) return;
     void txns.fetchNextPage();
-  }, [query, txns.hasNextPage, txns.isFetchingNextPage, txns.fetchNextPage]);
+  }, [query, hasListFilters, txns.hasNextPage, txns.isFetchingNextPage, txns.fetchNextPage]);
 
   useEffect(() => {
     if (!wide) return;
@@ -106,18 +107,20 @@ export function TransactionsScreen() {
         <button
           className="ledger__filter-toggle"
           aria-expanded={filtersOpen}
+          aria-controls="ledger-filter-panel"
           onClick={() => setFiltersOpen((open) => !open)}
         >
-          Filters{hasFilters ? ` (${[urlFilters.type, urlFilters.accountId, urlFilters.categoryId].filter(Boolean).length})` : ""}
+          Filters{hasFilters ? ` (${filterCount(urlFilters)})` : ""}
         </button>
       </div>
 
-      <FilterPanel
+      <LedgerFilterPanel
         open={filtersOpen}
         filters={urlFilters}
         accounts={accounts.data ?? []}
         categories={categories.data ?? []}
-        onUpdate={updateFilter}
+        onTypeChange={updateType}
+        onListToggle={toggleListFilter}
       />
 
       <FilterSummary
@@ -125,7 +128,8 @@ export function TransactionsScreen() {
         names={names}
         count={filtered.length}
         query={query}
-        onRemove={updateFilter}
+        onRemoveType={() => updateType(null)}
+        onRemoveList={toggleListFilter}
         onClear={clearFilters}
       />
 
@@ -133,7 +137,11 @@ export function TransactionsScreen() {
 
       {txns.isError && <p className="ledger__error" role="alert">Couldn't load transactions. Try again.</p>}
 
-      {!txns.isLoading && !txns.isError && groups.length === 0 && (
+      {!txns.isLoading && !txns.isError && isCompletingFilter && groups.length === 0 && (
+        <p className="ledger__note">Finding matches...</p>
+      )}
+
+      {!txns.isLoading && !txns.isError && !isCompletingFilter && groups.length === 0 && (
         <div className="ledger__empty">
           <p className="ledger__empty-mark" aria-hidden="true">฿</p>
           <p className="ledger__empty-title">
@@ -185,65 +193,43 @@ export function TransactionsScreen() {
   );
 }
 
-function FilterPanel({
-  open,
-  filters,
-  accounts,
-  categories,
-  onUpdate,
-}: {
-  open: boolean;
-  filters: LedgerFilters;
-  accounts: Account[];
-  categories: Category[];
-  onUpdate: (name: "type" | "accountId" | "categoryId", value: string | null) => void;
-}) {
-  const selected: Filter = filters.type ?? "all";
-  return (
-    <section className={`ledger__filter-panel${open ? " is-open" : ""}`} aria-label="Transaction filters">
-      <div className="ledger__filters">
-        <Segmented
-          options={FILTERS}
-          value={selected}
-          onChange={(value) => onUpdate("type", value === "all" ? null : value)}
-          label="Filter by type"
-        />
-      </div>
-      <label className="ledger__select"><span>Account</span>
-        <select value={filters.accountId ?? ""} onChange={(event) => onUpdate("accountId", event.target.value || null)}>
-          <option value="">All accounts</option>
-          {accounts.map((account) => <option key={account.id} value={account.id}>{account.name}</option>)}
-        </select>
-      </label>
-      <label className="ledger__select"><span>Category</span>
-        <select value={filters.categoryId ?? ""} onChange={(event) => onUpdate("categoryId", event.target.value || null)}>
-          <option value="">All categories</option>
-          {categories.map((category) => <option key={category.id} value={category.id}>{category.name}</option>)}
-        </select>
-      </label>
-    </section>
-  );
-}
-
-function FilterSummary({ filters, names, count, query, onRemove, onClear }: {
+function FilterSummary({ filters, names, count, query, onRemoveType, onRemoveList, onClear }: {
   filters: LedgerFilters;
   names: { acct: Map<string, string>; cat: Map<string, string> };
   count: number;
   query: string;
-  onRemove: (name: "type" | "accountId" | "categoryId", value: null) => void;
+  onRemoveType: () => void;
+  onRemoveList: (name: LedgerListFilter, value: string) => void;
   onClear: () => void;
 }) {
-  const active = [filters.type, filters.accountId, filters.categoryId].filter(Boolean).length;
+  const active = filterCount(filters);
   if (!active && !query.trim()) return null;
   return <div className="ledger__filter-summary" aria-live="polite">
     <div className="ledger__active-filters">
-      {filters.type && <button onClick={() => onRemove("type", null)} aria-label={`Remove type filter ${filters.type}`}>{filters.type}</button>}
-      {filters.accountId && <button onClick={() => onRemove("accountId", null)} aria-label={`Remove account filter ${names.acct.get(filters.accountId) ?? "Unknown"}`}>{names.acct.get(filters.accountId) ?? "Unknown account"}</button>}
-      {filters.categoryId && <button onClick={() => onRemove("categoryId", null)} aria-label={`Remove category filter ${names.cat.get(filters.categoryId) ?? "Unknown"}`}>{names.cat.get(filters.categoryId) ?? "Unknown category"}</button>}
+      {filters.type && <button onClick={onRemoveType} aria-label={`Remove type filter ${filters.type}`}>{filters.type}</button>}
+      {filters.accountIds.map((id) => <FilterChip key={id} kind="account" id={id}
+        name={names.acct.get(id)} onRemove={() => onRemoveList("accountId", id)} />)}
+      {filters.categoryIds.map((id) => <FilterChip key={id} kind="category" id={id}
+        name={names.cat.get(id)} onRemove={() => onRemoveList("categoryId", id)} />)}
     </div>
     <span>{count} {count === 1 ? "result" : "results"}</span>
     {active > 0 && <button className="ledger__clear" onClick={onClear} aria-label="Clear all filters">Clear all</button>}
   </div>;
+}
+
+function FilterChip({ kind, id, name, onRemove }: {
+  kind: "account" | "category";
+  id: string;
+  name?: string;
+  onRemove: () => void;
+}) {
+  const label = name ?? `Unknown ${kind}`;
+  return <button onClick={onRemove} aria-label={`Remove ${kind} filter ${name ?? "Unknown"}`}
+    title={name ? undefined : id}>{label}</button>;
+}
+
+function filterCount(filters: LedgerFilters): number {
+  return (filters.type ? 1 : 0) + filters.accountIds.length + filters.categoryIds.length;
 }
 
 function TxnRow({
@@ -289,7 +275,7 @@ function TxnRow({
   );
 }
 
-// Client-side search + type filter over the loaded month.
+// Client-side search and list filters over the loaded month.
 function filterTxns(
   txns: Transaction[],
   query: string,
@@ -297,10 +283,13 @@ function filterTxns(
   names: { acct: Map<string, string>; cat: Map<string, string> },
 ): Transaction[] {
   const q = query.trim().toLowerCase();
+  const accountIds = new Set(filters.accountIds);
+  const categoryIds = new Set(filters.categoryIds);
   return txns.filter((t) => {
     if (filters.type && t.type !== filters.type) return false;
-    if (filters.categoryId && t.categoryId !== filters.categoryId) return false;
-    if (filters.accountId && ![t.accountId, t.fromAccountId, t.toAccountId].includes(filters.accountId)) return false;
+    if (categoryIds.size > 0 && (!t.categoryId || !categoryIds.has(t.categoryId))) return false;
+    const transactionAccounts = [t.accountId, t.fromAccountId, t.toAccountId].filter(Boolean) as string[];
+    if (accountIds.size > 0 && !transactionAccounts.some((id) => accountIds.has(id))) return false;
     if (!q) return true;
     const parts = [
       t.note ?? "",

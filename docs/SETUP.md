@@ -64,7 +64,7 @@ TBD — will be filled in as real errors are hit during Phase 0-1 implementation
 ### Test Framework + Runner
 - Backend: Jest + Supertest (integration tests hit routes against a real/test
   MySQL schema — no DB mocking, per user's global testing rule).
-- Frontend: Vitest + React Testing Library (unit/component), Playwright (E2E).
+- Frontend: Vitest + React Testing Library (unit/component).
 
 ### Coverage Target
 80%+, enforced at Phase 7.4 as a gate before deploy.
@@ -73,8 +73,8 @@ TBD — will be filled in as real errors are hit during Phase 0-1 implementation
 1. **Unit** — pure functions (money helpers, sync LWW reconciler, recurring
    scheduler logic) — no I/O.
 2. **Integration** — API routes against a real test MySQL DB (supertest).
-3. **E2E** — critical flows: login, add expense online, add expense offline
-   then reconnect, budget-over banner (Playwright).
+3. **Manual acceptance** - critical flows: login, add expense online, add
+   expense offline then reconnect, budget-over banner, and responsive layouts.
 
 ### TDD Workflow
 RED -> GREEN -> REFACTOR, per task in `docs/PLAN.md`. Write the failing test
@@ -84,7 +84,6 @@ before any implementation code.
 ```bash
 cd server && npm test          # backend unit + integration
 cd web && npm test              # frontend unit + component
-cd web && npm run test:e2e      # Playwright E2E
 ```
 
 ### How to Write New Tests
@@ -107,6 +106,12 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 
 ## [Unreleased]
 ### Changed
+- Removed Playwright, its browser suite, and its npm command after repeated local
+  browser crashes. Responsive release checks are manual.
+- Replaced Ledger's persistent account/category selectors with one collapsed
+  Filters button and multi-select checklists. Account/category filters remain
+  URL-backed, load the full month before local filtering, and require no API or
+  database schema change.
 - Polished iPad Ledger filters, removed Reports grid dead space, compacted the
   Settings export action, and removed Note entry from transfers without an API
   or database schema change.
@@ -116,7 +121,7 @@ Format: [Keep a Changelog](https://keepachangelog.com)
 ### Added
 - **iPad and new features** - adaptive iPad mini portrait/landscape layouts,
   Ledger URL filters and detail pane, report drill-down, quick-add favorites,
-  dashboard customization, dirty-draft guards, and Chromium/WebKit checks.
+  dashboard customization, dirty-draft guards, and responsive checks.
   The forecast API remains available, but its Dashboard card was removed.
 - **Insights (Phase 8)** — new `features/insights/` server feature + `/api/insights`:
   - `GET /forecast?month=` — recurring-aware month-end projection. Discretionary
@@ -368,7 +373,7 @@ Format: [Keep a Changelog](https://keepachangelog.com)
   - 79 web tests (Vitest + RTL) all passing (up from 53), `tsc -b` clean.
     Verified live end to end against the real running `server/` dev
     instance with two one-off `tsx` scripts (deleted after use, not part of
-    the permanent suite, since `web/` had no Playwright harness at that time):
+    the permanent suite, since `web/` had no browser harness at that time):
     (1) offline enqueue -> `push()` -> confirmed via `GET /api/accounts`
     that the server actually has the row -> `pull()` -> confirmed it's back
     in the local Dexie cache; (2) a dedicated check that the `lastSyncedAt`
@@ -492,10 +497,6 @@ Format: [Keep a Changelog](https://keepachangelog.com)
   writers could create two. Accepted for now (solo-user, single-session
   app); would need `SELECT ... FOR UPDATE` or a generated-column unique
   index if this ever needs to support concurrent writers.
-- Playwright now covers Chromium and WebKit at phone, iPad mini portrait,
-  iPad mini landscape, and desktop sizes. It verifies navigation mode,
-  Ledger split geometry, Dashboard/Reports layout, sheets, route overflow,
-  screenshots, and draft preservation across rotation.
 - `offline/outbox.ts` ops marked `'failed'` (a genuine server error, not a
   stale-LWW `'skipped'`) have no retry/backoff or requeue path — they sit
   inert since `getPendingOps()` only selects `status === 'pending'`. Phase 6
@@ -520,7 +521,7 @@ Format: [Keep a Changelog](https://keepachangelog.com)
   schema/API change, out of scope for a client-only phase.
 # Frontend device verification
 
-Run `cd web && npm test`, `npm run build`, then `npm run test:e2e`. Check these viewport sizes in
-both Chromium and WebKit: 390x844, 744x1133, 1133x744, and 1440x900. On a
-physical iPad mini, check Safari, Chrome, and the installed PWA in both
-orientations. Rotate with a transaction draft and Ledger selection open.
+Run `cd web && npm test` and `npm run build`. Manually check 390x844, 744x1133,
+1133x744, and 1440x900. On a physical iPad mini, check Safari, Chrome, and the
+installed PWA in both orientations. Rotate with a transaction draft and Ledger
+selection open.

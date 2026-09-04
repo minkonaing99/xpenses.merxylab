@@ -46,42 +46,76 @@
 }
 
 .ledger__filter-panel {
-  display: none;
-  grid-template-columns: 1fr 1fr;
-  gap: var(--sp-2);
+  display: grid;
+  gap: var(--sp-4);
   margin-bottom: var(--sp-3);
-  padding: var(--sp-2);
+  padding: var(--sp-4);
   background: var(--paper-raised);
   border: 1px solid var(--line);
   border-radius: var(--r-md);
 }
 
-.ledger__filter-panel.is-open {
+.ledger__filter-panel[hidden] {
+  display: none;
+}
+
+.ledger__filter-type {
   display: grid;
+  gap: var(--sp-2);
 }
 
-.ledger__filter-panel .ledger__filters {
-  grid-column: 1 / -1;
-}
-
-.ledger__select {
-  display: flex;
-  flex-direction: column;
-  gap: var(--sp-1);
+.ledger__filter-label,
+.ledger__check-group legend {
   color: var(--ink-soft);
-  font-size: var(--t-caption);
-  font-weight: 600;
+  font-size: var(--t-label);
+  font-weight: 650;
 }
 
-.ledger__select select {
-  width: 100%;
-  min-height: 2.75rem;
-  padding: 0 var(--sp-3);
-  color: var(--ink);
+.ledger__check-groups {
+  display: grid;
+  gap: var(--sp-3);
+}
+
+.ledger__check-group {
+  min-width: 0;
+  padding: var(--sp-2);
   background: var(--paper-sunken);
-  border: 1px solid transparent;
+  border: 0;
   border-radius: var(--r-md);
-  font-size: 1rem;
+}
+
+.ledger__check-status,
+.ledger__check-empty {
+  margin: var(--sp-1) var(--sp-2);
+  color: var(--ink-faint);
+  font-size: var(--t-caption);
+}
+
+.ledger__check-list {
+  max-height: 12rem;
+  overflow-y: auto;
+  overscroll-behavior: contain;
+}
+
+.ledger__check {
+  display: flex;
+  align-items: center;
+  gap: var(--sp-2);
+  min-height: 2.75rem;
+  padding: 0 var(--sp-2);
+  border-radius: var(--r-sm);
+  font-size: var(--t-body);
+  font-weight: 550;
+}
+
+.ledger__check:hover {
+  background: var(--accent-wash);
+}
+
+.ledger__check input {
+  width: 1.125rem;
+  height: 1.125rem;
+  accent-color: var(--accent);
 }
 
 .ledger__filter-summary {
@@ -117,10 +151,6 @@
 .ledger__search:focus {
   outline: none;
   border-color: var(--accent);
-}
-
-.ledger__filters {
-  min-width: 0;
 }
 
 .ledger__note {
@@ -249,25 +279,16 @@
   white-space: nowrap;
 }
 
+@media (min-width: 40rem) {
+  .ledger__check-groups {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+  }
+}
+
 /* Wide, tall layouts use a persistent ledger detail pane. */
 @media (min-width: 48rem) and (min-height: 40rem) {
   .ledger {
     padding-inline: var(--sp-5);
-  }
-
-  .ledger__filter-panel {
-    display: grid;
-    grid-template-columns: minmax(22rem, 1.4fr) repeat(2, minmax(10rem, 1fr));
-    align-items: end;
-  }
-
-  .ledger__filter-panel .ledger__filters {
-    grid-column: auto;
-    margin: 0;
-  }
-
-  .ledger__filter-toggle {
-    display: none;
   }
 
   .day {

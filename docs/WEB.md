@@ -48,7 +48,7 @@ web/src/
 
 Login · Dashboard (private-by-default balance, month flow, anomaly insight cards,
 upcoming recurring next 30 days, budget bars, category spend) · Ledger
-(day-grouped, URL-backed AND filters, search across all cursor pages, and a
+(day-grouped, URL-backed multi-select filters, search across all cursor pages, and a
 52/48 read-only detail split on wide iPads) · Add/Edit transaction sheet
 (expense/income/transfer) · Reports (month stats, category bars, month-over-month
 comparison, daily-spend calendar heatmap) · Settings hub → Accounts / Categories
@@ -122,13 +122,16 @@ hit the network).
 
 Vitest + Testing Library, jsdom. The suite covers money/format/api-client logic,
 month context, UI primitives, every CRUD screen (create/edit/409-delete),
-add-transaction validation/create/edit/delete, dashboard, reports, and the
-offline pause-then-replay behavior. Run `npm test` and `npm run build`.
-Playwright runs Chromium and WebKit at phone, iPad mini portrait/landscape, and
-desktop viewports with geometry assertions and route screenshots: `npm run test:e2e`.
+add-transaction validation/create/edit/delete, dashboard, reports, responsive
+Ledger behavior, and offline pause-then-replay. Run `npm test` and `npm run build`.
+Verify phone, iPad mini portrait/landscape, and desktop layouts manually before
+release.
 
-Wide Ledger filters reuse the segmented-control vocabulary and keep account
-selectors compact. Reports group chart and summary in one column so a tall
+Ledger uses one collapsed Filters disclosure on every viewport. It contains the
+type segmented control plus account and category checklists. Repeated
+`accountId` and `categoryId` URL parameters use OR within each checklist and AND
+between checklists; active list filters load all remaining transaction pages
+before filtering locally. Reports group chart and summary in one column so a tall
 category list cannot open a gap between them. Settings export actions keep an
 intrinsic button size. Transfers omit the optional Note control. New transfers
 submit a null note, while edits preserve any legacy hidden note. The API and

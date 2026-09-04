@@ -5,6 +5,4 @@ dist-ssr
 .DS_Store
 dev-dist
 coverage
-test-results
-playwright-report
 *.tsbuildinfo

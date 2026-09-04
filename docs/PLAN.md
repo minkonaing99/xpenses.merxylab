@@ -17,7 +17,7 @@ applies to every implementation task; write the failing test first.
 - [x] 0.2 `server/` npm init: express, mysql2, zod, jsonwebtoken, bcrypt,
       cookie-parser, node-cron, express-rate-limit, uuid, dotenv; dev: jest, supertest.
 - [x] 0.3 `web/` npm init: vite + react + TS, react-router; dev: vitest, RTL.
-      (vite-plugin-pwa + dexie + Playwright E2E deferred to 4.3/Phase 5 — no
+      (vite-plugin-pwa + dexie deferred to 4.3/Phase 5 - no
       installability or offline work needed until those phases start.)
 - [x] 0.4 `config/env.js` — load + validate required env, fail fast (test first).
 - [ ] 0.5 `lib/money.js` — pure satang helpers (add, sub, format THB). TDD.
@@ -158,8 +158,8 @@ masked by `--runInBand`).
       envelope, throws `ApiClientError`) + `features/auth/` (`api.ts`,
       `LoginScreen.tsx` + route guard `RequireAuth` in `App.tsx`). Component
       tests (Vitest + RTL) for fetchClient, auth api, LoginScreen, and the
-      route guard's authed/unauthed/error paths. E2E (Playwright) deferred —
-      no Playwright harness existed in `web/` at that phase (introduce with Phase 5/6
+      route guard's authed/unauthed/error paths. Browser E2E deferred -
+      no browser harness existed in `web/` at that phase (introduce with Phase 5/6
       E2E work per docs/SETUP.md, not a blocker for this phase's Done
       Criteria which only requires the login flow work, proven here via
       component tests + a live curl smoke test through the Vite proxy).
@@ -188,7 +188,7 @@ masked by `--runInBand`).
       on the merge/LWW logic (18/18) plus a real end-to-end integration
       check against the live running server (see below) — the plan's
       "High — mirrors server reconcile; test both sides agree" risk was
-      taken seriously: no Playwright harness existed at that phase (see Phase 4.4
+      taken seriously: no browser harness existed at that phase (see Phase 4.4
       note), so verification used a one-off `tsx` script exercising the
       real `offline/db.ts`/`outbox.ts`/`sync.ts` modules against the live
       dev server (login -> enqueue offline create -> push -> confirmed via
@@ -235,7 +235,7 @@ masked by `--runInBand`).
       `txnMapping.ts` (pure `calculateNet`/`formatTxnDate`/`iconForTxn`/
       `toTxnRowProps`). `mockTransactions.ts` deleted. Verified live against
       the real server: full offline-create -> reconnect -> push -> server
-      confirmed it via a one-off `tsx` script (before the Playwright harness;
+      confirmed it via a one-off `tsx` script (before a browser harness;
       deferred to Phase 7, confirmed with user).
 - [x] 6.4 Budgets: `BudgetsScreen` rewired — cached budget rows for
       identity/CRUD, live `spent`/`over` from `GET /api/budgets?month=`
@@ -465,7 +465,7 @@ Keep updated. Claude reads this before starting work.
   `offline/sync.ts` (`pull()`/`push()`, LWW merge mirroring the server's
   `shouldApply()`). 79/79 web tests passing (up from 53), typecheck clean.
   Verified end to end against the live running server via one-off `tsx`
-  scripts (before the Playwright harness) — full round trip (offline enqueue ->
+  scripts (before a browser harness) - full round trip (offline enqueue ->
   push -> server has it -> pull -> back in local cache) and a dedicated
   second check confirming the `lastSyncedAt` cursor round-trips through the
   server's strict ISO `zod.datetime()` validation. `code-reviewer` pass:
@@ -535,5 +535,5 @@ bidirectional pull (only if multi-device), and Backlog items above.
 - Dashboard: quiet private balance, removed month-end forecast UI, persistent
   visibility/order customization, and stable Accounts/Budgets grouping.
 - Settings and transaction forms protect dirty drafts on scrim, close, or Escape.
-- Verify phone 390x844, iPad mini 744x1133 and 1133x744, desktop 1440x900 in
-  Chromium and WebKit, plus physical Safari/Chrome/PWA rotation checks.
+- Manually verify phone 390x844, iPad mini 744x1133 and 1133x744, desktop
+  1440x900, plus physical Safari/Chrome/PWA rotation checks.
