@@ -82,7 +82,7 @@ const transactionCreateSchema = z.object({
   id: z.string().uuid(),
   type: z.enum(TXN_TYPES),
   amount: z.number().int().positive(),
-  note: z.string().max(255).optional(),
+  note: z.string().max(255).nullable().optional(),
   categoryId: uuidOrNull,
   accountId: uuidOrNull,
   fromAccountId: uuidOrNull,
@@ -94,7 +94,7 @@ const transactionCreateSchema = z.object({
 const transactionUpdateSchema = z
   .object({
     amount: z.number().int().positive().optional(),
-    note: z.string().max(255).optional(),
+    note: z.string().max(255).nullable().optional(),
     categoryId: uuidOrNull,
     accountId: uuidOrNull,
     fromAccountId: uuidOrNull,
