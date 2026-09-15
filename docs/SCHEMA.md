@@ -18,6 +18,7 @@
 | type | VARCHAR(32) | NOT NULL, default 'cash' | cash \| bank \| other |
 | starting_balance | BIGINT | NOT NULL, default 0 | satang |
 | sort_order | INT | NOT NULL, default 0 | |
+| balance_revision | BIGINT UNSIGNED | NOT NULL, default 0 | Incremented atomically when tracked balance inputs change. |
 | created_at | DATETIME | NOT NULL, default now | |
 | updated_at | DATETIME | NOT NULL, on update now | LWW |
 | deleted_at | DATETIME | NULL | soft delete |
@@ -125,6 +126,13 @@ one pot and stores a positive satang amount plus an optional note.
 Links one expense transaction to one pot. Editing or soft-deleting that expense
 recalculates the pot reserve from the live transaction state.
 
+### balance_checks
+Immutable matched snapshots for manual account reconciliation. Each row stores
+`account_id`, signed `actual_balance`, signed `tracked_balance`,
+`account_revision`, and `checked_at`. A check needs review when its saved
+revision differs from the account's current revision. Transaction triggers bump
+revisions so every REST, sync, recurring, Plan, and pot-spend path participates.
+
 ## Relationships (ERD-style)
 - Account has many Transactions (as account_id, from_account_id, to_account_id).
 - Category has many Transactions (as category_id).
@@ -133,6 +141,7 @@ recalculates the pot reserve from the live transaction state.
   generated Transaction.
 - Account has many SavingsPots; each pot has many immutable movements and
   linked purchase transactions.
+- Account has many immutable BalanceChecks.
 
 ## Enums / Constants
 - `transactions.type` / `recurring_rules.type`: `expense`, `income`, `transfer`.

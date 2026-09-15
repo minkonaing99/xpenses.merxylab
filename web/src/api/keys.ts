@@ -2,6 +2,7 @@
 export const keys = {
   me: ["me"] as const,
   accounts: ["accounts"] as const,
+  balanceCheck: (id: string) => ["accounts", id, "balance-check"] as const,
   categories: ["categories"] as const,
   recurring: ["recurring"] as const,
   summary: (m: string) => ["summary", m] as const,

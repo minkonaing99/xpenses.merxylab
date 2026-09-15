@@ -4,8 +4,9 @@
 // Hooks here just bind to a key.
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { api } from "../lib/api";
+import { keys } from "./keys";
 import { mk, PERSISTED_QUERY_KEY } from "../app/queryClient";
-import type { Account, Category, RecurringRule, Transaction } from "./types";
+import type { Account, BalanceCheck, Category, RecurringRule, Transaction } from "./types";
 import type { PlannedPurchase } from "./types";
 import type { SavingsPotCreate, SavingsPotMovementCreate, SavingsPotSpendCreate } from "./types";
 
@@ -46,6 +47,14 @@ export function useUpdateAccount() {
 }
 export function useDeleteAccount() {
   return useMutation<unknown, Error, string>({ mutationKey: mk.accountDelete });
+}
+export function useMarkBalanceChecked() {
+  const client = useQueryClient();
+  return useMutation<BalanceCheck, Error, { accountId: string; id: string; actualBalance: number; expectedRevision: number }>({
+    mutationFn: ({ accountId, ...body }) => api.post(`/accounts/${accountId}/balance-check`, body),
+    networkMode: "always",
+    onSuccess: () => client.invalidateQueries({ queryKey: keys.accounts }),
+  });
 }
 
 /* categories */

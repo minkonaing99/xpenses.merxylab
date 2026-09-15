@@ -9,8 +9,25 @@ export interface Account {
   type: AccountType;
   startingBalance: number;
   balance: number; // computed current balance (satang)
+  balanceRevision: number;
   reserved?: number; // savings-pot reserve; optional for restored older caches
   available?: number; // balance minus reserve
+}
+
+export interface BalanceCheck {
+  id: string;
+  accountId: string;
+  actualBalance: number;
+  trackedBalance: number;
+  accountRevision: number;
+  checkedAt: string;
+  needsReview: boolean;
+}
+
+export interface BalanceCheckData {
+  account: Account;
+  latestCheck: BalanceCheck | null;
+  recentTransactions: Transaction[];
 }
 
 export interface Category {

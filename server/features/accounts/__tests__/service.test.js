@@ -50,6 +50,7 @@ describe('mapAccountRow', () => {
       type: 'cash',
       startingBalance: 10000,
       balance: 12500,
+      balanceRevision: 0,
       reserved: 3000,
       available: 9500,
       sortOrder: 0,

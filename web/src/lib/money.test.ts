@@ -4,6 +4,7 @@ import { bahtToSatang, formatSatang, formatSigned } from "./money";
 describe("bahtToSatang", () => {
   it("parses whole baht", () => expect(bahtToSatang("120")).toBe(12000));
   it("parses decimals", () => expect(bahtToSatang("12.50")).toBe(1250));
+  it("parses negative balances", () => expect(bahtToSatang("-12.50")).toBe(-1250));
   it("parses one decimal place", () => expect(bahtToSatang("12.5")).toBe(1250));
   it("strips grouping and symbol", () => expect(bahtToSatang("1,299.90")).toBe(129990));
   it("strips ฿", () => expect(bahtToSatang("฿99")).toBe(9900));

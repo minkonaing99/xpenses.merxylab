@@ -31,12 +31,61 @@ describe('accounts router', () => {
   })
 
   afterEach(async () => {
+    await pool.query('DELETE FROM balance_checks WHERE account_id = ?', [accountId])
     await pool.query('DELETE FROM transactions WHERE account_id = ? OR from_account_id = ? OR to_account_id = ?', [
       accountId,
       accountId,
       accountId,
     ])
     await pool.query('DELETE FROM accounts WHERE id = ?', [accountId])
+  })
+
+  it('GET balance-check returns current balance and no previous check', async () => {
+    await request(app).post('/api/accounts').send({ id: accountId, name: 'Check Me', startingBalance: -500 })
+    const res = await request(app).get(`/api/accounts/${accountId}/balance-check`)
+    expect(res.status).toBe(200)
+    expect(res.body.data).toMatchObject({
+      account: { id: accountId, balance: -500, balanceRevision: 0 },
+      latestCheck: null,
+    })
+  })
+
+  it('POST balance-check saves only a fresh matching balance', async () => {
+    await request(app).post('/api/accounts').send({ id: accountId, name: 'Check Me', startingBalance: -500 })
+    const saved = await request(app).post(`/api/accounts/${accountId}/balance-check`).send({
+      id: randomUUID(), actualBalance: -500, expectedRevision: 0,
+    })
+    expect(saved.status).toBe(201)
+    expect(saved.body.data).toMatchObject({ actualBalance: -500, trackedBalance: -500, needsReview: false })
+
+    const mismatch = await request(app).post(`/api/accounts/${accountId}/balance-check`).send({
+      id: randomUUID(), actualBalance: -499, expectedRevision: 0,
+    })
+    expect(mismatch.status).toBe(409)
+  })
+
+  it('POST balance-check rejects unsafe integer input', async () => {
+    await request(app).post('/api/accounts').send({ id: accountId, name: 'Check Me' })
+    const res = await request(app).post(`/api/accounts/${accountId}/balance-check`).send({
+      id: randomUUID(), actualBalance: Number.MAX_SAFE_INTEGER + 1, expectedRevision: 0,
+    })
+    expect(res.status).toBe(400)
+    expect(res.body.error.code).toBe('VALIDATION_ERROR')
+  })
+
+  it('invalidates a saved check after account activity', async () => {
+    await request(app).post('/api/accounts').send({ id: accountId, name: 'Check Me' })
+    await request(app).post(`/api/accounts/${accountId}/balance-check`).send({
+      id: randomUUID(), actualBalance: 0, expectedRevision: 0,
+    })
+    await pool.query(
+      `INSERT INTO transactions (id, type, amount, account_id, txn_date, updated_at)
+       VALUES (?, 'expense', 100, ?, CURDATE(), NOW())`,
+      [randomUUID(), accountId],
+    )
+    const res = await request(app).get(`/api/accounts/${accountId}/balance-check`)
+    expect(res.body.data.latestCheck.needsReview).toBe(true)
+    expect(res.body.data.account.balanceRevision).toBe(1)
   })
 
   it('POST creates an account, GET / lists it with a computed balance', async () => {

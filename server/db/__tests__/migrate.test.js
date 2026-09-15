@@ -1,5 +1,7 @@
 'use strict'
 
+const fs = require('fs')
+const path = require('path')
 const { splitStatements, pendingMigrations } = require('../migrate')
 
 describe('splitStatements', () => {
@@ -30,4 +32,11 @@ describe('pendingMigrations', () => {
     const applied = new Set(['001_init.sql'])
     expect(pendingMigrations(files, applied)).toEqual([])
   })
+})
+
+it('keeps balance-check migration executable without delimiter directives', () => {
+  const sql = fs.readFileSync(path.join(__dirname, '../migrations/006_balance_checks.sql'), 'utf8')
+  const statements = splitStatements(sql)
+  expect(statements).toHaveLength(5)
+  expect(statements.filter((statement) => statement.startsWith('CREATE TRIGGER'))).toHaveLength(3)
 })

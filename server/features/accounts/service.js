@@ -26,6 +26,7 @@ function mapAccountRow(row) {
     balance,
     reserved: Number(potReserved),
     available: balance - Number(potReserved),
+    balanceRevision: Number(account.balanceRevision ?? 0),
   }
 }
 

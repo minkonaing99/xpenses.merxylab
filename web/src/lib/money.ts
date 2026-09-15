@@ -7,11 +7,12 @@ export const SATANG_PER_BAHT = 100;
 export function bahtToSatang(input: string): number | null {
   const cleaned = input.replace(/[,\s฿]/g, "").trim();
   if (cleaned === "" || cleaned === ".") return null;
-  if (!/^\d*\.?\d*$/.test(cleaned)) return null;
-  const [whole, frac = ""] = cleaned.split(".");
+  if (!/^-?\d*\.?\d*$/.test(cleaned) || cleaned === "-") return null;
+  const negative = cleaned.startsWith("-");
+  const [whole, frac = ""] = cleaned.replace("-", "").split(".");
   const paise = (frac + "00").slice(0, 2); // truncate beyond 2dp, don't round up silently
   const satang = Number(whole || "0") * SATANG_PER_BAHT + Number(paise);
-  return Number.isFinite(satang) ? satang : null;
+  return Number.isFinite(satang) ? satang * (negative ? -1 : 1) : null;
 }
 
 /** Satang -> baht number, for formatting only. */

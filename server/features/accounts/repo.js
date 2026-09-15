@@ -96,9 +96,42 @@ async function update(pool, id, patch) {
   const columns = Object.keys(patch).filter((key) => key in UPDATABLE_FIELDS)
   if (columns.length === 0) return
 
-  const setClause = columns.map((key) => `${UPDATABLE_FIELDS[key]} = ?`).join(', ')
+  const revision = columns.includes('startingBalance') ? 'balance_revision = balance_revision + 1, ' : ''
+  const setClause = revision + columns.map((key) => `${UPDATABLE_FIELDS[key]} = ?`).join(', ')
   const values = columns.map((key) => patch[key])
   await pool.query(`UPDATE accounts SET ${setClause} WHERE id = ? AND deleted_at IS NULL`, [...values, id])
+}
+
+async function findLatestCheck(pool, accountId) {
+  const [rows] = await pool.query(
+    'SELECT * FROM balance_checks WHERE account_id = ? ORDER BY checked_at DESC, id DESC LIMIT 1',
+    [accountId],
+  )
+  return rows[0] || null
+}
+
+async function findCheckById(pool, id) {
+  const [rows] = await pool.query('SELECT * FROM balance_checks WHERE id = ?', [id])
+  return rows[0] || null
+}
+
+async function createCheck(pool, check) {
+  await pool.query(
+    'INSERT INTO balance_checks (id, account_id, actual_balance, tracked_balance, account_revision) VALUES (?, ?, ?, ?, ?)',
+    [check.id, check.accountId, check.actualBalance, check.trackedBalance, check.accountRevision],
+  )
+  return findCheckById(pool, check.id)
+}
+
+async function findRecentTransactions(pool, accountId) {
+  const params = [accountId, accountId, accountId]
+  const [rows] = await pool.query(
+    `SELECT * FROM transactions
+     WHERE deleted_at IS NULL AND (account_id = ? OR from_account_id = ? OR to_account_id = ?)
+     ORDER BY txn_date DESC, created_at DESC LIMIT 20`,
+    params,
+  )
+  return rows
 }
 
 async function softDelete(pool, id) {
@@ -140,4 +173,8 @@ module.exports = {
   softDelete,
   countReferences,
   findAllForSync,
+  findLatestCheck,
+  findCheckById,
+  createCheck,
+  findRecentTransactions,
 }

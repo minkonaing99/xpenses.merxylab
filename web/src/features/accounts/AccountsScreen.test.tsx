@@ -11,8 +11,8 @@ import { AccountsScreen } from "./AccountsScreen";
 import { fakeGet, renderApp } from "../../test/utils";
 
 const accounts = [
-  { id: "a1", name: "Cash", type: "cash", startingBalance: 0, balance: 12000, reserved: 3000, available: 9000 },
-  { id: "a2", name: "Bank", type: "bank", startingBalance: 0, balance: 0, reserved: 0, available: 0 },
+  { id: "a1", name: "Cash", type: "cash", startingBalance: 0, balance: 12000, balanceRevision: 0, reserved: 3000, available: 9000 },
+  { id: "a2", name: "Bank", type: "bank", startingBalance: 0, balance: 0, balanceRevision: 0, reserved: 0, available: 0 },
 ];
 
 beforeEach(() => {
@@ -61,6 +61,25 @@ describe("AccountsScreen", () => {
         expect.objectContaining({ name: "Pocket" }),
       ),
     );
+  });
+
+  it("compares and marks a matching balance checked", async () => {
+    vi.mocked(api.get).mockImplementation(fakeGet({
+      "/accounts/a1/balance-check": { account: accounts[0], latestCheck: null, recentTransactions: [] },
+      "/accounts": accounts,
+    }) as never);
+    renderApp(<AccountsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: /Cash/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Check balance" }));
+
+    expect(await screen.findByText("Tracked balance")).toBeInTheDocument();
+    fireEvent.change(screen.getByLabelText("Actual balance in baht"), { target: { value: "120" } });
+    fireEvent.click(screen.getByRole("button", { name: "Mark checked" }));
+
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith(
+      "/accounts/a1/balance-check",
+      expect.objectContaining({ actualBalance: 12000, expectedRevision: 0 }),
+    ));
   });
 
   it("surfaces a 409 when deleting an account with transactions", async () => {

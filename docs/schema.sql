@@ -1,7 +1,14 @@
 CREATE TABLE accounts (
-  id CHAR(36) NOT NULL, name VARCHAR(80) NOT NULL, type VARCHAR(32) NOT NULL DEFAULT 'cash', starting_balance BIGINT NOT NULL DEFAULT 0, sort_order INT NOT NULL DEFAULT 0,
+  id CHAR(36) NOT NULL, name VARCHAR(80) NOT NULL, type VARCHAR(32) NOT NULL DEFAULT 'cash', starting_balance BIGINT NOT NULL DEFAULT 0, sort_order INT NOT NULL DEFAULT 0, balance_revision BIGINT UNSIGNED NOT NULL DEFAULT 0,
   created_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP, updated_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP, deleted_at DATETIME NULL,
   PRIMARY KEY (id)
+) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TABLE balance_checks (
+  id CHAR(36) NOT NULL, account_id CHAR(36) NOT NULL, actual_balance BIGINT NOT NULL, tracked_balance BIGINT NOT NULL, account_revision BIGINT UNSIGNED NOT NULL,
+  checked_at DATETIME NOT NULL DEFAULT CURRENT_TIMESTAMP,
+  PRIMARY KEY (id), KEY idx_balance_check_account_time (account_id, checked_at),
+  CONSTRAINT fk_balance_check_account FOREIGN KEY (account_id) REFERENCES accounts(id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
 
 CREATE TABLE categories (
@@ -23,6 +30,10 @@ CREATE TABLE transactions (
   PRIMARY KEY (id), KEY idx_txn_date (txn_date), KEY idx_txn_type (type), KEY idx_txn_category (category_id), KEY idx_txn_account (account_id), KEY idx_txn_updated_at (updated_at), KEY fk_txn_from_account (from_account_id), KEY fk_txn_to_account (to_account_id),
   CONSTRAINT fk_txn_account FOREIGN KEY (account_id) REFERENCES accounts (id), CONSTRAINT fk_txn_category FOREIGN KEY (category_id) REFERENCES categories (id), CONSTRAINT fk_txn_from_account FOREIGN KEY (from_account_id) REFERENCES accounts (id), CONSTRAINT fk_txn_to_account FOREIGN KEY (to_account_id) REFERENCES accounts (id)
 ) ENGINE=InnoDB DEFAULT CHARSET=utf8mb4;
+
+CREATE TRIGGER transactions_balance_revision_insert AFTER INSERT ON transactions FOR EACH ROW UPDATE accounts SET balance_revision = balance_revision + 1 WHERE id IN (NEW.account_id, NEW.from_account_id, NEW.to_account_id);
+CREATE TRIGGER transactions_balance_revision_update AFTER UPDATE ON transactions FOR EACH ROW UPDATE accounts SET balance_revision = balance_revision + 1 WHERE (NOT (OLD.type <=> NEW.type) OR NOT (OLD.amount <=> NEW.amount) OR NOT (OLD.account_id <=> NEW.account_id) OR NOT (OLD.from_account_id <=> NEW.from_account_id) OR NOT (OLD.to_account_id <=> NEW.to_account_id) OR NOT (OLD.txn_date <=> NEW.txn_date) OR NOT (OLD.deleted_at <=> NEW.deleted_at)) AND id IN (OLD.account_id, OLD.from_account_id, OLD.to_account_id, NEW.account_id, NEW.from_account_id, NEW.to_account_id);
+CREATE TRIGGER transactions_balance_revision_delete AFTER DELETE ON transactions FOR EACH ROW UPDATE accounts SET balance_revision = balance_revision + 1 WHERE id IN (OLD.account_id, OLD.from_account_id, OLD.to_account_id);
 
 CREATE TABLE planned_purchases (
   id CHAR(36) NOT NULL, name VARCHAR(255) NOT NULL, amount BIGINT NOT NULL, account_id CHAR(36) NOT NULL, category_id CHAR(36) NOT NULL, planned_date DATE NOT NULL,

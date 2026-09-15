@@ -5,6 +5,7 @@ interface Props {
   ariaLabel: string;
   className?: string;
   autoFocus?: boolean;
+  allowNegative?: boolean;
 }
 
 /**
@@ -12,13 +13,13 @@ interface Props {
  * inputMode="decimal" is the modern trigger; type=text keeps controlled decimal
  * entry sane (type=number drops a trailing "."); pattern nudges stubborn keyboards.
  */
-export function MoneyInput({ value, onChange, placeholder = "0.00", ariaLabel, className, autoFocus }: Props) {
+export function MoneyInput({ value, onChange, placeholder = "0.00", ariaLabel, className, autoFocus, allowNegative = false }: Props) {
   return (
     <input
       className={className}
       type="text"
       inputMode="decimal"
-      pattern="[0-9]*[.,]?[0-9]*"
+      pattern={allowNegative ? "-?[0-9]*[.,]?[0-9]*" : "[0-9]*[.,]?[0-9]*"}
       enterKeyHint="done"
       autoComplete="off"
       placeholder={placeholder}

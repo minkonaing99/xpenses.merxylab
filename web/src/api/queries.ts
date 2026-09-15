@@ -4,6 +4,7 @@ import { api } from "../lib/api";
 import { keys } from "./keys";
 import type {
   Account,
+  BalanceCheckData,
   Anomaly,
   BudgetStatus,
   CategorySpend,
@@ -30,6 +31,15 @@ export function useMe() {
 
 export function useAccounts() {
   return useQuery({ queryKey: keys.accounts, queryFn: () => api.get<Account[]>("/accounts") });
+}
+
+export function useBalanceCheck(accountId: string | null) {
+  return useQuery({
+    queryKey: keys.balanceCheck(accountId ?? ""),
+    queryFn: () => api.get<BalanceCheckData>(`/accounts/${accountId}/balance-check`),
+    enabled: Boolean(accountId),
+    staleTime: 0,
+  });
 }
 
 export function useCategories() {

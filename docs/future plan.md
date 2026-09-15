@@ -156,6 +156,9 @@ they satisfy the required recovery behavior.
 
 ## Balance check
 
+Status: manual reconciliation MVP implemented on `version3.3.0`. Adjustment
+transactions, statement import, cleared flags, and automatic matching remain deferred.
+
 ### Purpose and first version
 
 Compare one account's tracked balance with its actual bank balance or counted

@@ -50,3 +50,11 @@
   font-size: var(--t-lead);
   font-weight: 650;
 }
+
+.bcheck { display: grid; gap: var(--sp-4); }
+.bcheck__row { display: flex; justify-content: space-between; font-weight: 650; }
+.bcheck__difference, .bcheck__last { margin: 0; color: var(--ink-soft); }
+.bcheck__difference.is-match { color: var(--positive); }
+.bcheck__ledger { text-align: center; color: var(--accent); }
+.bcheck__transactions { list-style: none; padding: 0; margin: var(--sp-2) 0 0; }
+.bcheck__transactions li { display: flex; justify-content: space-between; padding: var(--sp-2) 0; border-bottom: 1px solid var(--line); }

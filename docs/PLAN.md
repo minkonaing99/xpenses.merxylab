@@ -350,9 +350,8 @@ security-reviewer passes and the app is reachable at `xpenses.merxylab.com`.
 Keep updated. Claude reads this before starting work.
 
 ### In Progress
-- None. Phase 7 hardening done (7.1 confirmed, 7.3 security pass, 7.4 coverage
-  gate, 7.5 changelog). Only 7.2 `deploy.sh` remains, deliberately deferred by
-  the user.
+- Version 3.3.0: manual balance check/reconciliation. Fresh tracked-balance
+  comparison, immutable matched snapshots, recent activity, and stale-check warning.
 
 ### Done — Phase 8 (Insights) + Phase 9 (MCP)
 - **Phase 8** — `features/insights/` + `/api/insights` (forecast, anomalies,
