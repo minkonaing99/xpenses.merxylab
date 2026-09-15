@@ -30,6 +30,13 @@ describe('reports csv', () => {
   })
 
   describe('toCsv', () => {
+    it('labels reconciliation corrections as adjustments', () => {
+      const [, row] = toCsv([{
+        txn_date: '2026-07-05', type: 'expense', kind: 'adjustment',
+        account_name: 'Cash', amount: 150, note: 'Correction',
+      }]).split('\r\n')
+      expect(row).toContain(',adjustment,')
+    })
     it('emits a header row even with no data', () => {
       expect(toCsv([])).toBe('date,type,category,account,amount_thb,note')
     })

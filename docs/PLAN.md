@@ -351,7 +351,8 @@ Keep updated. Claude reads this before starting work.
 
 ### In Progress
 - Version 3.3.0: manual balance check/reconciliation. Fresh tracked-balance
-  comparison, immutable matched snapshots, recent activity, and stale-check warning.
+  comparison, immutable matched snapshots, recent activity, stale-check warning,
+  and atomic noted adjustment transactions.
 
 ### Done — Phase 8 (Insights) + Phase 9 (MCP)
 - **Phase 8** — `features/insights/` + `/api/insights` (forecast, anomalies,

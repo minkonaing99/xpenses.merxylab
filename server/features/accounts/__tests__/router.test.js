@@ -88,6 +88,26 @@ describe('accounts router', () => {
     expect(res.body.data.account.balanceRevision).toBe(1)
   })
 
+  it('creates an adjustment and matched check atomically', async () => {
+    await request(app).post('/api/accounts').send({ id: accountId, name: 'Adjust Me', startingBalance: 1000 })
+    const id = randomUUID()
+    const res = await request(app).post(`/api/accounts/${accountId}/balance-adjustment`).send({
+      id, actualBalance: 850, expectedRevision: 0, note: 'Unknown bank difference',
+    })
+    expect(res.status).toBe(201)
+    expect(res.body.data).toMatchObject({ actualBalance: 850, trackedBalance: 850, adjustmentTransactionId: id })
+    const [rows] = await pool.query('SELECT type, amount, kind, note FROM transactions WHERE id = ?', [id])
+    expect(rows[0]).toMatchObject({ type: 'expense', amount: 150, kind: 'adjustment', note: 'Unknown bank difference' })
+  })
+
+  it('requires an adjustment note', async () => {
+    await request(app).post('/api/accounts').send({ id: accountId, name: 'Adjust Me' })
+    const res = await request(app).post(`/api/accounts/${accountId}/balance-adjustment`).send({
+      id: randomUUID(), actualBalance: 100, expectedRevision: 0, note: '   ',
+    })
+    expect(res.status).toBe(400)
+  })
+
   it('POST creates an account, GET / lists it with a computed balance', async () => {
     const createRes = await request(app)
       .post('/api/accounts')

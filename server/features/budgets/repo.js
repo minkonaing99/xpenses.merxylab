@@ -37,7 +37,7 @@ const SPENT_JOIN_SQL = `
   FROM budgets b
   LEFT JOIN (
     SELECT category_id, SUM(amount) AS total FROM transactions
-    WHERE type = 'expense' AND deleted_at IS NULL AND txn_date >= ? AND txn_date < ?
+    WHERE type = 'expense' AND kind = 'ordinary' AND deleted_at IS NULL AND txn_date >= ? AND txn_date < ?
     GROUP BY category_id
   ) spent ON spent.category_id = b.category_id
   WHERE b.deleted_at IS NULL

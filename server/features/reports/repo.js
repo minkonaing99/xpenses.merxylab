@@ -8,7 +8,7 @@ async function categorySpend(pool, month) {
     `SELECT c.id AS category_id, c.name, SUM(t.amount) AS total
      FROM transactions t
      JOIN categories c ON c.id = t.category_id
-     WHERE t.type = 'expense' AND t.deleted_at IS NULL AND t.txn_date >= ? AND t.txn_date < ?
+     WHERE t.type = 'expense' AND t.kind = 'ordinary' AND t.deleted_at IS NULL AND t.txn_date >= ? AND t.txn_date < ?
      GROUP BY c.id, c.name
      ORDER BY total DESC`,
     [start, end],
@@ -21,7 +21,7 @@ async function categorySpend(pool, month) {
 async function monthTransactions(pool, month) {
   const { start, end } = monthRange(month)
   const [rows] = await pool.query(
-    `SELECT t.txn_date, t.type, t.amount, t.note,
+    `SELECT t.txn_date, t.type, t.kind, t.amount, t.note,
             c.name AS category_name,
             a.name AS account_name,
             fa.name AS from_account_name,
@@ -46,14 +46,14 @@ async function dailySpend(pool, from, to) {
             (SELECT c.name
              FROM transactions t
              JOIN categories c ON c.id = t.category_id
-             WHERE t.type = 'expense' AND t.deleted_at IS NULL AND t.txn_date = d.txn_date
+             WHERE t.type = 'expense' AND t.kind = 'ordinary' AND t.deleted_at IS NULL AND t.txn_date = d.txn_date
              GROUP BY t.category_id, c.name
              ORDER BY SUM(t.amount) DESC, c.name ASC
              LIMIT 1) AS top_category_name
      FROM (
        SELECT txn_date, SUM(amount) AS total
        FROM transactions
-       WHERE type = 'expense' AND deleted_at IS NULL AND txn_date >= ? AND txn_date <= ?
+       WHERE type = 'expense' AND kind = 'ordinary' AND deleted_at IS NULL AND txn_date >= ? AND txn_date <= ?
        GROUP BY txn_date
      ) d
      ORDER BY d.txn_date ASC`,
@@ -66,7 +66,7 @@ async function dailySpend(pool, from, to) {
 // powers date-range export.
 async function rangeTransactions(pool, from, to) {
   const [rows] = await pool.query(
-    `SELECT t.txn_date, t.type, t.amount, t.note,
+    `SELECT t.txn_date, t.type, t.kind, t.amount, t.note,
             c.name AS category_name,
             a.name AS account_name,
             fa.name AS from_account_name,
@@ -87,7 +87,7 @@ async function monthlyTotals(pool, month) {
   const { start, end } = monthRange(month)
   const [rows] = await pool.query(
     `SELECT type, SUM(amount) AS total FROM transactions
-     WHERE deleted_at IS NULL AND type IN ('income', 'expense') AND txn_date >= ? AND txn_date < ?
+     WHERE deleted_at IS NULL AND kind = 'ordinary' AND type IN ('income', 'expense') AND txn_date >= ? AND txn_date < ?
      GROUP BY type`,
     [start, end],
   )

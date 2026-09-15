@@ -40,3 +40,8 @@ it('keeps balance-check migration executable without delimiter directives', () =
   expect(statements).toHaveLength(5)
   expect(statements.filter((statement) => statement.startsWith('CREATE TRIGGER'))).toHaveLength(3)
 })
+
+it('keeps adjustment migration to two portable statements', () => {
+  const sql = fs.readFileSync(path.join(__dirname, '../migrations/007_reconciliation_adjustments.sql'), 'utf8')
+  expect(splitStatements(sql)).toHaveLength(2)
+})

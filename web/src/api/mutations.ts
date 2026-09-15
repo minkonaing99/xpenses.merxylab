@@ -56,6 +56,14 @@ export function useMarkBalanceChecked() {
     onSuccess: () => client.invalidateQueries({ queryKey: keys.accounts }),
   });
 }
+export function useRecordBalanceAdjustment() {
+  const client = useQueryClient();
+  return useMutation<BalanceCheck, Error, { accountId: string; id: string; actualBalance: number; expectedRevision: number; note: string }>({
+    mutationFn: ({ accountId, ...body }) => api.post(`/accounts/${accountId}/balance-adjustment`, body),
+    networkMode: "always",
+    onSuccess: () => client.invalidateQueries(),
+  });
+}
 
 /* categories */
 export function useCreateCategory() {

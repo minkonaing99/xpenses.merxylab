@@ -19,6 +19,9 @@ function txn(p: Partial<Transaction>): Transaction {
 }
 
 describe("buildTemplates", () => {
+  it("skips reconciliation adjustments", () => {
+    expect(buildTemplates([txn({ kind: "adjustment" })])).toEqual([]);
+  });
   it("dedupes identical entries, keeping the newest", () => {
     const t = buildTemplates([
       txn({ note: "Coffee", amount: 6000, updatedAt: "2026-07-01T00:00:00.000Z" }),

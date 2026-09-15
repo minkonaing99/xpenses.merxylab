@@ -23,7 +23,7 @@ export function buildTemplates(txns: Transaction[], limit = 6): TxnTemplate[] {
   const out: TxnTemplate[] = [];
   const recent = [...txns].sort((a, b) => (a.updatedAt < b.updatedAt ? 1 : -1));
   for (const t of recent) {
-    if (t.type === "transfer") continue;
+    if (t.type === "transfer" || t.kind === "adjustment") continue;
     const sig = signature(t);
     if (seen.has(sig)) continue;
     seen.add(sig);

@@ -117,10 +117,18 @@ async function findCheckById(pool, id) {
 
 async function createCheck(pool, check) {
   await pool.query(
-    'INSERT INTO balance_checks (id, account_id, actual_balance, tracked_balance, account_revision) VALUES (?, ?, ?, ?, ?)',
-    [check.id, check.accountId, check.actualBalance, check.trackedBalance, check.accountRevision],
+    'INSERT INTO balance_checks (id, account_id, actual_balance, tracked_balance, account_revision, adjustment_transaction_id) VALUES (?, ?, ?, ?, ?, ?)',
+    [check.id, check.accountId, check.actualBalance, check.trackedBalance, check.accountRevision, check.adjustmentTransactionId ?? null],
   )
   return findCheckById(pool, check.id)
+}
+
+async function createAdjustment(pool, adjustment) {
+  await pool.query(
+    `INSERT INTO transactions (id, type, kind, amount, note, account_id, txn_date, updated_at)
+     VALUES (?, ?, 'adjustment', ?, ?, ?, ?, NOW())`,
+    [adjustment.id, adjustment.type, adjustment.amount, adjustment.note, adjustment.accountId, adjustment.txnDate],
+  )
 }
 
 async function findRecentTransactions(pool, accountId) {
@@ -177,4 +185,5 @@ module.exports = {
   findCheckById,
   createCheck,
   findRecentTransactions,
+  createAdjustment,
 }

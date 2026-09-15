@@ -28,12 +28,12 @@ export function TransactionDetail({
       <Money amount={amount} signed={transaction.type !== "transfer"} className="ledger-detail__amount" />
       <dl>
         <div><dt>Date</dt><dd>{transaction.txnDate}</dd></div>
-        <div><dt>Type</dt><dd>{transaction.type}</dd></div>
+        <div><dt>Type</dt><dd>{transaction.kind === "adjustment" ? "Adjustment" : transaction.type}</dd></div>
         <div><dt>Account</dt><dd>{account}</dd></div>
         {transaction.categoryId && <div><dt>Category</dt><dd>{names.cat.get(transaction.categoryId) ?? "Unknown"}</dd></div>}
         {transaction.note && transaction.note !== title && <div><dt>Note</dt><dd>{transaction.note}</dd></div>}
       </dl>
-      <Button onClick={onEdit}>Edit transaction</Button>
+      {transaction.kind !== "adjustment" && <Button onClick={onEdit}>Edit transaction</Button>}
     </aside>
   );
 }

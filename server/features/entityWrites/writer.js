@@ -322,6 +322,7 @@ async function createTransaction(pool, payload) {
   validateTransactionShape(transaction)
   const saved = { ...transaction, updatedAt: toMysqlDatetime(transaction.updatedAt) }
   const existing = await transactionsRepo.findByIdAny(pool, transaction.id)
+  if (existing?.kind === 'adjustment') throw new ApiError('CONFLICT', 'reconciliation adjustments are immutable')
   const result = existing
     ? await writeLinkedPotExpense(pool, existing, transaction, (target) => transactionsRepo.upsert(target, saved))
     : await transactionsRepo.upsert(pool, saved)
@@ -332,6 +333,7 @@ async function updateTransaction(pool, id, payload) {
   const patch = parse(transactionUpdateSchema, payload)
   const existing = await transactionsRepo.findById(pool, id)
   if (!existing) throw new ApiError('NOT_FOUND', 'transaction not found')
+  if (existing.kind === 'adjustment') throw new ApiError('CONFLICT', 'reconciliation adjustments are immutable')
 
   validateTransactionShape({ ...rowToCamel(existing), ...patch })
   const saved = { ...patch, updatedAt: toMysqlDatetime(patch.updatedAt) }
@@ -346,6 +348,7 @@ async function deleteTransaction(pool, id, payload) {
   const body = parse(transactionDeleteSchema, payload)
   const existing = await transactionsRepo.findById(pool, id)
   if (!existing) throw new ApiError('NOT_FOUND', 'transaction not found')
+  if (existing.kind === 'adjustment') throw new ApiError('CONFLICT', 'reconciliation adjustments are immutable')
 
   const result = await writeLinkedPotExpense(
     pool, existing, { ...body, deleted: true },

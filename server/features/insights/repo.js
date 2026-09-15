@@ -24,7 +24,7 @@ async function actualsToDate(pool, month, throughDate) {
        COALESCE(SUM(CASE WHEN t.type = 'expense' AND rr.transaction_id IS NULL THEN t.amount END), 0) AS discretionary
      FROM transactions t
      LEFT JOIN recurring_runs rr ON rr.transaction_id = t.id
-     WHERE t.deleted_at IS NULL AND t.type IN ('income', 'expense')
+     WHERE t.deleted_at IS NULL AND t.kind = 'ordinary' AND t.type IN ('income', 'expense')
        AND t.txn_date >= ? AND t.txn_date <= ?`,
     [start, throughDate],
   )
@@ -43,7 +43,7 @@ async function categoryHistory(pool, month, throughDate, monthsBack) {
        COALESCE(SUM(CASE WHEN t.txn_date >= ? AND t.txn_date < ? THEN t.amount END), 0) AS prev_total
      FROM categories c
      LEFT JOIN transactions t
-       ON t.category_id = c.id AND t.type = 'expense' AND t.deleted_at IS NULL
+       ON t.category_id = c.id AND t.type = 'expense' AND t.kind = 'ordinary' AND t.deleted_at IS NULL
      WHERE c.deleted_at IS NULL
      GROUP BY c.id, c.name`,
     [start, throughDate, prevStart, start],
@@ -64,7 +64,7 @@ async function categoryComparison(pool, month, monthsBack) {
        COALESCE(SUM(CASE WHEN t.txn_date >= ? AND t.txn_date < ? THEN t.amount END), 0) AS prev_total
      FROM categories c
      LEFT JOIN transactions t
-       ON t.category_id = c.id AND t.type = 'expense' AND t.deleted_at IS NULL
+       ON t.category_id = c.id AND t.type = 'expense' AND t.kind = 'ordinary' AND t.deleted_at IS NULL
      WHERE c.deleted_at IS NULL
      GROUP BY c.id, c.name`,
     [start, end, lastStart, start, prevStart, start],
@@ -82,7 +82,7 @@ async function budgetStatus(pool, month, throughDate) {
      FROM budgets b
      JOIN categories c ON c.id = b.category_id
      LEFT JOIN transactions t
-       ON t.category_id = b.category_id AND t.type = 'expense' AND t.deleted_at IS NULL
+       ON t.category_id = b.category_id AND t.type = 'expense' AND t.kind = 'ordinary' AND t.deleted_at IS NULL
        AND t.txn_date >= ? AND t.txn_date <= ?
      WHERE b.deleted_at IS NULL
      GROUP BY b.category_id, c.name, b.limit_amount`,

@@ -259,6 +259,7 @@ function TxnRow({
   return (
     <li className="txn-item">
       <button className={`txn${selected ? " is-selected" : ""}`} onClick={onOpen}
+        disabled={!wide && t.kind === "adjustment"}
         aria-label={`${wide ? (selected ? "Selected" : "View details for") : "Edit"} ${title}`}
         aria-pressed={wide ? selected : undefined}>
         <div className="txn__meta">

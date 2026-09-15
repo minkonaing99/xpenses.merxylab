@@ -32,7 +32,7 @@ function accountLabel(row) {
 function toRecord(row) {
   return {
     date: row.txn_date,
-    type: row.type,
+    type: row.kind === 'adjustment' ? 'adjustment' : row.type,
     category: row.category_name ?? '',
     account: accountLabel(row),
     amount_thb: satangToBaht(row.amount),

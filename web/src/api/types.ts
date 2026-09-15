@@ -22,6 +22,7 @@ export interface BalanceCheck {
   accountRevision: number;
   checkedAt: string;
   needsReview: boolean;
+  adjustmentTransactionId?: string | null;
 }
 
 export interface BalanceCheckData {
@@ -39,6 +40,7 @@ export interface Category {
 export interface Transaction {
   id: string;
   type: TxnType;
+  kind?: "ordinary" | "adjustment";
   amount: number; // satang, always > 0
   note?: string | null;
   categoryId?: string | null;

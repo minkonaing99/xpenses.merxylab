@@ -82,6 +82,24 @@ describe("AccountsScreen", () => {
     ));
   });
 
+  it("records a noted adjustment for an unexplained difference", async () => {
+    vi.mocked(api.get).mockImplementation(fakeGet({
+      "/accounts/a1/balance-check": { account: accounts[0], latestCheck: null, recentTransactions: [] },
+      "/accounts": accounts,
+    }) as never);
+    renderApp(<AccountsScreen />);
+    fireEvent.click(await screen.findByRole("button", { name: /Cash/ }));
+    fireEvent.click(screen.getByRole("button", { name: "Check balance" }));
+    await screen.findByText("Tracked balance");
+    fireEvent.change(screen.getByLabelText("Actual balance in baht"), { target: { value: "118" } });
+    fireEvent.change(screen.getByLabelText("Adjustment note"), { target: { value: "Unknown bank difference" } });
+    fireEvent.click(screen.getByRole("button", { name: "Record adjustment" }));
+    await waitFor(() => expect(api.post).toHaveBeenCalledWith(
+      "/accounts/a1/balance-adjustment",
+      expect.objectContaining({ actualBalance: 11800, expectedRevision: 0, note: "Unknown bank difference" }),
+    ));
+  });
+
   it("surfaces a 409 when deleting an account with transactions", async () => {
     vi.mocked(api.del).mockRejectedValue(new ApiError("CONFLICT", "no", 409));
     renderApp(<AccountsScreen />);

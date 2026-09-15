@@ -81,3 +81,7 @@ CREATE TABLE balance_checks (
 CREATE TRIGGER transactions_balance_revision_insert AFTER INSERT ON transactions FOR EACH ROW UPDATE accounts SET balance_revision = balance_revision + 1 WHERE id IN (NEW.account_id, NEW.from_account_id, NEW.to_account_id);
 CREATE TRIGGER transactions_balance_revision_update AFTER UPDATE ON transactions FOR EACH ROW UPDATE accounts SET balance_revision = balance_revision + 1 WHERE (NOT (OLD.type <=> NEW.type) OR NOT (OLD.amount <=> NEW.amount) OR NOT (OLD.account_id <=> NEW.account_id) OR NOT (OLD.from_account_id <=> NEW.from_account_id) OR NOT (OLD.to_account_id <=> NEW.to_account_id) OR NOT (OLD.txn_date <=> NEW.txn_date) OR NOT (OLD.deleted_at <=> NEW.deleted_at)) AND id IN (OLD.account_id, OLD.from_account_id, OLD.to_account_id, NEW.account_id, NEW.from_account_id, NEW.to_account_id);
 CREATE TRIGGER transactions_balance_revision_delete AFTER DELETE ON transactions FOR EACH ROW UPDATE accounts SET balance_revision = balance_revision + 1 WHERE id IN (OLD.account_id, OLD.from_account_id, OLD.to_account_id);
+
+-- Reconciliation adjustments.
+ALTER TABLE transactions ADD COLUMN kind VARCHAR(16) NOT NULL DEFAULT 'ordinary' AFTER type;
+ALTER TABLE balance_checks ADD COLUMN adjustment_transaction_id CHAR(36) NULL AFTER account_revision, ADD UNIQUE KEY uq_balance_check_adjustment (adjustment_transaction_id), ADD CONSTRAINT fk_balance_check_adjustment FOREIGN KEY (adjustment_transaction_id) REFERENCES transactions(id);

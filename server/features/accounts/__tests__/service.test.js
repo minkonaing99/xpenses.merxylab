@@ -1,6 +1,6 @@
 'use strict'
 
-const { computeBalance, mapAccountRow } = require('../service')
+const { computeBalance, safeBalanceFromRow, mapAccountRow } = require('../service')
 
 describe('computeBalance', () => {
   it('starts from startingBalance when there is no activity', () => {
@@ -25,6 +25,16 @@ describe('computeBalance', () => {
     expect(
       computeBalance({ startingBalance: 10000, expenseOut: 2000, incomeIn: 5000, transferOut: 1000, transferIn: 500 }),
     ).toBe(12500)
+  })
+})
+
+describe('safeBalanceFromRow', () => {
+  it('uses exact DB integer arithmetic', () => {
+    expect(safeBalanceFromRow({ starting_balance: '9007199254740991', expense_out: '9007199254740990', income_in: '0', transfer_out: '0', transfer_in: '0' })).toBe(1)
+  })
+
+  it('rejects an unsafe result', () => {
+    expect(safeBalanceFromRow({ starting_balance: '9007199254740992', expense_out: '0', income_in: '0', transfer_out: '0', transfer_in: '0' })).toBeNull()
   })
 })
 

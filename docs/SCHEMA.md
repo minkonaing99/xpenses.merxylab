@@ -39,6 +39,7 @@
 |---|---|---|---|
 | id | CHAR(36) | PK, client UUID | |
 | type | VARCHAR(16) | NOT NULL | expense \| income \| transfer |
+| kind | VARCHAR(16) | NOT NULL, default ordinary | ordinary \| adjustment |
 | amount | BIGINT | NOT NULL, > 0 | satang |
 | note | VARCHAR(255) | NULL | |
 | category_id | CHAR(36) | NULL, FK categories.id | required for expense |
@@ -132,6 +133,9 @@ Immutable matched snapshots for manual account reconciliation. Each row stores
 `account_revision`, and `checked_at`. A check needs review when its saved
 revision differs from the account's current revision. Transaction triggers bump
 revisions so every REST, sync, recurring, Plan, and pot-spend path participates.
+An optional unique `adjustment_transaction_id` links a reconciliation correction.
+Adjustments affect account balance, remain immutable and auditable, and are
+excluded from ordinary income, expense, budget, and insight totals.
 
 ## Relationships (ERD-style)
 - Account has many Transactions (as account_id, from_account_id, to_account_id).

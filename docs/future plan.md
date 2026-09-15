@@ -156,8 +156,8 @@ they satisfy the required recovery behavior.
 
 ## Balance check
 
-Status: manual reconciliation MVP implemented on `version3.3.0`. Adjustment
-transactions, statement import, cleared flags, and automatic matching remain deferred.
+Status: manual reconciliation and noted adjustment transactions implemented on
+`version3.3.0`. Statement import, cleared flags, and automatic matching remain deferred.
 
 ### Purpose and first version
 
@@ -198,9 +198,8 @@ Show amount and resulting balance before confirmation. Preserve original history
 record the correction separately from ordinary income and spending in reports.
 Adjustment creation and retries must be atomic and idempotent.
 
-The first release can defer adjustments until their accounting and report behavior
-are implemented. Manual checks and recording identifiable missing transactions
-remain useful on their own. Defer statement import and automatic matching.
+Adjustments are implemented as immutable, noted ledger corrections excluded from
+ordinary spending and income totals. Defer statement import and automatic matching.
 
 Reference: [Actual Budget reconciliation](https://actualbudget.org/docs/accounts/reconciliation/)
 provides an established account-to-bank comparison workflow.

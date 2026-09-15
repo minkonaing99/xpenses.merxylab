@@ -7,7 +7,8 @@ const { ApiError } = require('../../lib/apiResponse')
 const { rowToCamel } = require('../../lib/caseMap')
 const { writeEntity } = require('../entityWrites/writer')
 const repo = require('./repo')
-const { mapAccountRow } = require('./service')
+const { mapAccountRow, safeBalanceFromRow } = require('./service')
+const { todayInBangkok } = require('../../cron/dateUtil')
 
 function createAccountsRouter(pool) {
   const router = express.Router()
@@ -16,6 +17,7 @@ function createAccountsRouter(pool) {
     actualBalance: z.number().int().safe(),
     expectedRevision: z.number().int().safe().nonnegative(),
   }).strict()
+  const adjustmentSchema = checkSchema.extend({ note: z.string().trim().min(1).max(255) })
 
   const mapCheck = (row, revision) => row ? {
     ...rowToCamel(row),
@@ -93,6 +95,62 @@ function createAccountsRouter(pool) {
     } finally {
       connection.release()
     }
+  })
+
+  router.post('/:id/balance-adjustment', async (req, res, next) => {
+    const parsed = adjustmentSchema.safeParse(req.body)
+    if (!parsed.success || !z.string().uuid().safeParse(req.params.id).success) {
+      return next(new ApiError('VALIDATION_ERROR', parsed.error?.issues[0].message || 'invalid account id'))
+    }
+    const connection = await pool.getConnection()
+    try {
+      await connection.beginTransaction()
+      const locked = await repo.findByIdForUpdate(connection, req.params.id)
+      if (!locked) throw new ApiError('NOT_FOUND', 'account not found')
+      const existing = await repo.findCheckById(connection, parsed.data.id)
+      if (existing) {
+        const [rows] = await connection.query('SELECT note FROM transactions WHERE id = ? AND kind = ?', [parsed.data.id, 'adjustment'])
+        const same = existing.account_id === req.params.id
+          && Number(existing.actual_balance) === parsed.data.actualBalance
+          && Number(existing.account_revision) - 1 === parsed.data.expectedRevision
+          && rows[0]?.note === parsed.data.note
+        if (!same) throw new ApiError('CONFLICT', 'adjustment id already used')
+        await connection.commit()
+        return res.json(ok(mapCheck(existing, locked.balance_revision)))
+      }
+      const collision = await repo.findCheckById(connection, parsed.data.id)
+      const [transactions] = await connection.query('SELECT id FROM transactions WHERE id = ?', [parsed.data.id])
+      if (collision || transactions.length) throw new ApiError('CONFLICT', 'adjustment id already used')
+      const beforeRow = await repo.findByIdWithSums(connection, req.params.id)
+      const before = mapAccountRow(beforeRow)
+      before.balance = safeBalanceFromRow(beforeRow)
+      if (before.balance === null) throw new ApiError('CONFLICT', 'account balance exceeds supported range')
+      if (before.balanceRevision !== parsed.data.expectedRevision) throw new ApiError('CONFLICT', 'account balance changed; review again')
+      const difference = parsed.data.actualBalance - before.balance
+      if (!Number.isSafeInteger(difference) || difference === 0) throw new ApiError('CONFLICT', 'adjustment requires a nonzero safe difference')
+      await repo.createAdjustment(connection, {
+        id: parsed.data.id,
+        type: difference > 0 ? 'income' : 'expense',
+        amount: Math.abs(difference),
+        note: parsed.data.note,
+        accountId: req.params.id,
+        txnDate: todayInBangkok(),
+      })
+      const afterRow = await repo.findByIdWithSums(connection, req.params.id)
+      const after = mapAccountRow(afterRow)
+      after.balance = safeBalanceFromRow(afterRow)
+      if (after.balance !== parsed.data.actualBalance) throw new ApiError('CONFLICT', 'account balance changed; review again')
+      const row = await repo.createCheck(connection, {
+        id: parsed.data.id, accountId: req.params.id, actualBalance: parsed.data.actualBalance,
+        trackedBalance: after.balance, accountRevision: after.balanceRevision,
+        adjustmentTransactionId: parsed.data.id,
+      })
+      await connection.commit()
+      res.status(201).json(ok(mapCheck(row, after.balanceRevision)))
+    } catch (err) {
+      await connection.rollback()
+      next(err)
+    } finally { connection.release() }
   })
 
   router.post('/', async (req, res, next) => {

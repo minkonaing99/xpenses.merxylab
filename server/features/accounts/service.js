@@ -7,6 +7,13 @@ function computeBalance({ startingBalance, expenseOut, incomeIn, transferOut, tr
   return startingBalance - expenseOut + incomeIn - transferOut + transferIn
 }
 
+function safeBalanceFromRow(row) {
+  const balance = BigInt(row.starting_balance) - BigInt(row.expense_out)
+    + BigInt(row.income_in) - BigInt(row.transfer_out) + BigInt(row.transfer_in)
+  const max = BigInt(Number.MAX_SAFE_INTEGER)
+  return balance > max || balance < -max ? null : Number(balance)
+}
+
 function mapAccountRow(row) {
   const {
     expense_out: expenseOut, income_in: incomeIn, transfer_out: transferOut,
@@ -30,4 +37,4 @@ function mapAccountRow(row) {
   }
 }
 
-module.exports = { computeBalance, mapAccountRow }
+module.exports = { computeBalance, safeBalanceFromRow, mapAccountRow }

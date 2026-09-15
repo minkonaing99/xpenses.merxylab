@@ -6,6 +6,7 @@ import {
   useDeleteAccount,
   useUpdateAccount,
   useMarkBalanceChecked,
+  useRecordBalanceAdjustment,
 } from "../../api/hooks";
 import { useUnresolvedWriteCount } from "../../app/pendingWrites";
 import type { Account, AccountType } from "../../api/types";
@@ -196,16 +197,19 @@ function AccountForm({
 function BalanceCheckSheet({ account, onClose }: { account: Account | null; onClose: () => void }) {
   const check = useBalanceCheck(account?.id ?? null);
   const mark = useMarkBalanceChecked();
+  const adjust = useRecordBalanceAdjustment();
   const unresolved = useUnresolvedWriteCount();
   const [actual, setActual] = useState("");
   const [err, setErr] = useState<string | null>(null);
+  const [note, setNote] = useState("");
+  const [attempt, setAttempt] = useState<{ id: string; expectedRevision: number } | null>(null);
   const parsed = bahtToSatang(actual);
   const tracked = check.data?.account.balance;
   const difference = parsed !== null && tracked !== undefined ? parsed - tracked : null;
   const blocked = !navigator.onLine || unresolved > 0;
 
   useEffect(() => {
-    if (account) { setActual(""); setErr(null); void check.refetch(); }
+    if (account) { setActual(""); setNote(""); setAttempt(null); setErr(null); void check.refetch(); }
     // Account opening is only reset trigger; query object changes each render.
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [account?.id]);
@@ -230,19 +234,49 @@ function BalanceCheckSheet({ account, onClose }: { account: Account | null; onCl
     }
   }
 
+  async function recordAdjustment() {
+    if (!account || parsed === null || !difference || !check.data || blocked || !note.trim()) return;
+    const request = attempt ?? { id: crypto.randomUUID(), expectedRevision: check.data.account.balanceRevision };
+    setAttempt(request);
+    try {
+      setErr(null);
+      await adjust.mutateAsync({ accountId: account.id, id: request.id, actualBalance: parsed,
+        expectedRevision: request.expectedRevision, note: note.trim() });
+      onClose();
+    } catch (error) {
+      const conflict = error instanceof ApiError && error.code === "CONFLICT";
+      setErr(conflict ? "Balance changed. Review fresh totals and try again."
+        : "Couldn't record adjustment. Retry keeps the same operation ID.");
+      if (conflict) setAttempt(null);
+      await check.refetch();
+    }
+  }
+
   return <Sheet open={Boolean(account)} onClose={onClose} title={`Check ${account?.name ?? "balance"}`}>
     <div className="bcheck">
       {check.isLoading || !check.data ? <p>Loading current balance...</p> : <>
         <div className="bcheck__row"><span>Tracked balance</span><Money amount={tracked ?? 0} /></div>
         <label className="aform__field">
           <span className="fld__label">Actual balance (฿)</span>
-          <MoneyInput value={actual} onChange={setActual} ariaLabel="Actual balance in baht" allowNegative autoFocus />
+          <MoneyInput value={actual} onChange={(value) => { setActual(value); setAttempt(null); }} ariaLabel="Actual balance in baht" allowNegative autoFocus />
         </label>
         {difference !== null && <p className={`bcheck__difference${difference === 0 ? " is-match" : ""}`}>
           {difference === 0 ? "Balances match." : difference > 0
             ? `Actual account has ${formatSigned(difference)} more than tracker.`
             : `Tracker has ${formatSigned(-difference)} more than actual account.`}
         </p>}
+        {difference !== null && difference !== 0 && <>
+          <label className="aform__field">
+            <span className="fld__label">Adjustment note</span>
+            <textarea value={note} maxLength={255} aria-label="Adjustment note"
+              onChange={(event) => { setNote(event.target.value); setAttempt(null); }}
+              placeholder="Why this correction is needed" />
+          </label>
+          <p className="bcheck__last">Adjustment {formatSigned(difference)} sets tracked balance to {formatSigned(parsed ?? 0)}.</p>
+          <Button block disabled={blocked || !note.trim() || adjust.isPending} onClick={recordAdjustment}>
+            {adjust.isPending ? "Recording..." : "Record adjustment"}
+          </Button>
+        </>}
         {check.data.latestCheck && <p className="bcheck__last">
           Last checked {new Date(check.data.latestCheck.checkedAt).toLocaleDateString()}
           {check.data.latestCheck.needsReview && " - needs review after account changes"}
