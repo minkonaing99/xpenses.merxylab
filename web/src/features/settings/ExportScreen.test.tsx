@@ -6,6 +6,7 @@ import { ExportScreen } from "./ExportScreen";
 describe("ExportScreen", () => {
   it("downloads JSON for the selected range", () => {
     renderApp(<ExportScreen />);
+    expect(document.querySelector(".export__row")).toBeInTheDocument();
     fireEvent.change(screen.getByLabelText("Format"), { target: { value: "json" } });
     expect(screen.getByRole("link", { name: "Download JSON" })).toHaveAttribute("href", expect.stringContaining("format=json"));
   });

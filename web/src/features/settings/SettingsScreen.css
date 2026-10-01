@@ -79,9 +79,8 @@
 }
 
 .export__row {
-  display: flex;
+  display: grid;
   gap: var(--sp-3);
-  align-items: flex-end;
   margin-bottom: var(--sp-2);
 }
 
@@ -106,11 +105,21 @@
 }
 
 .settings__export {
-  flex: 0 0 auto;
+  width: 100%;
   min-width: 9rem;
   text-align: center;
-  align-self: flex-end;
   font-size: var(--t-body);
+}
+
+@media (min-width: 48rem) {
+  .export__row {
+    grid-template-columns: minmax(0, 1fr) minmax(0, 1fr) minmax(9rem, .6fr) auto;
+    align-items: end;
+  }
+
+  .settings__export {
+    width: auto;
+  }
 }
 
 /* Desktop: manage links become a two-column card grid. */
