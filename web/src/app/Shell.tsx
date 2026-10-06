@@ -1,11 +1,14 @@
-import { useState, type ReactNode } from "react";
-import { NavLink } from "react-router-dom";
+import { useEffect, useState, type Dispatch, type ReactNode, type SetStateAction } from "react";
+import { NavLink, useLocation, useNavigate } from "react-router-dom";
 import { AddTransactionSheet } from "../features/transactions/AddTransactionSheet";
 import { LogoMark } from "../ui/Logo";
+import { isSheetOpen, Sheet } from "../ui/Sheet";
 import "./Shell.css";
 
 export function Shell({ children }: { children: ReactNode }) {
   const [adding, setAdding] = useState(false);
+  const [helping, setHelping] = useState(false);
+  useShortcuts(setAdding, setHelping);
 
   return (
     <div className="shell">
@@ -42,8 +45,73 @@ export function Shell({ children }: { children: ReactNode }) {
       </nav>
 
       <AddTransactionSheet open={adding} onClose={() => setAdding(false)} />
+      <Sheet open={helping} onClose={() => setHelping(false)} title="Keyboard shortcuts">
+        <dl className="shortcuts">
+          {SHORTCUTS.map(([keys, action]) => (
+            <div key={action}><dt><kbd>{keys}</kbd></dt><dd>{action}</dd></div>
+          ))}
+        </dl>
+      </Sheet>
     </div>
   );
+}
+
+const SHORTCUTS = [
+  ["n", "New transaction"],
+  ["/", "Search transactions"],
+  ["[ or ]", "Previous or next month"],
+  ["Up/Down or j/k", "Move between ledger rows"],
+  ["Esc", "Close the open sheet"],
+  ["?", "Show this list"],
+];
+
+const NON_TEXT_INPUTS = ["checkbox", "radio", "button", "submit", "reset"];
+
+function isTyping(target: EventTarget | null) {
+  if (target instanceof HTMLInputElement) return !NON_TEXT_INPUTS.includes(target.type);
+  return target instanceof HTMLElement && (target.isContentEditable || ["TEXTAREA", "SELECT"].includes(target.tagName));
+}
+
+const searchBox = () => document.querySelector<HTMLInputElement>('input[type="search"]');
+const pressMonth = (label: string) =>
+  document.querySelector<HTMLButtonElement>(`.msw__nav[aria-label="${label}"]`)?.click();
+
+/** Single-key PC shortcuts. Off while typing, with modifiers, or while a sheet is open. */
+function useShortcuts(setAdding: Dispatch<SetStateAction<boolean>>, setHelping: Dispatch<SetStateAction<boolean>>) {
+  const navigate = useNavigate();
+  const location = useLocation();
+  const [searchPending, setSearchPending] = useState(false);
+
+  useEffect(() => {
+    const actions: Record<string, () => void> = {
+      n: () => setAdding(true),
+      "?": () => setHelping(true),
+      "[": () => pressMonth("Previous month"),
+      "]": () => pressMonth("Next month"),
+      "/": () => {
+        const box = searchBox();
+        if (box) return box.focus();
+        navigate("/ledger");
+        setSearchPending(true);
+      },
+    };
+    const onKey = (event: KeyboardEvent) => {
+      const action = actions[event.key];
+      if (!action || event.defaultPrevented || event.metaKey || event.ctrlKey || event.altKey) return;
+      if (isTyping(event.target) || isSheetOpen()) return;
+      event.preventDefault();
+      action();
+    };
+    window.addEventListener("keydown", onKey);
+    return () => window.removeEventListener("keydown", onKey);
+  }, [navigate, setAdding, setHelping]);
+
+  useEffect(() => {
+    const box = searchPending ? searchBox() : null;
+    if (!box) return;
+    box.focus();
+    setSearchPending(false);
+  }, [searchPending, location]);
 }
 
 function HomeIcon() {

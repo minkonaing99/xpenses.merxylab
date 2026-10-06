@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, type KeyboardEvent } from "react";
 import { useSearchParams } from "react-router-dom";
 import { useAccounts, useCategories, useTransactions } from "../../api/hooks";
 import type { Account, Category, Transaction, TxnType } from "../../api/types";
@@ -156,7 +156,7 @@ export function TransactionsScreen() {
       )}
 
       <div className="ledger__workspace">
-        <div className="ledger__list">
+        <div className="ledger__list" onKeyDown={moveRowFocus}>
         {groups.map(([day, rows]) => (
           <section key={day} className="day">
           <div className="day__head">
@@ -191,6 +191,17 @@ export function TransactionsScreen() {
       <AddTransactionSheet open={!!editing} editing={editing} onClose={() => setEditing(null)} />
     </div>
   );
+}
+
+const ROW_STEP: Record<string, number> = { ArrowDown: 1, j: 1, ArrowUp: -1, k: -1 };
+
+function moveRowFocus(event: KeyboardEvent<HTMLDivElement>) {
+  const step = ROW_STEP[event.key];
+  const row = event.target;
+  if (!step || !(row instanceof HTMLButtonElement) || !row.classList.contains("txn")) return;
+  const rows = [...event.currentTarget.querySelectorAll<HTMLButtonElement>("button.txn")];
+  event.preventDefault();
+  rows[rows.indexOf(row) + step]?.focus();
 }
 
 function FilterSummary({ filters, names, count, query, onRemoveType, onRemoveList, onClear }: {

@@ -63,6 +63,27 @@ describe("TransactionsScreen", () => {
     expect(await screen.findByRole("dialog", { name: "Edit transaction" })).toBeInTheDocument();
   });
 
+  it("moves between rows with arrow keys and j/k", async () => {
+    const first = { ...txns[0], id: "first", note: "First row" };
+    const second = { ...txns[0], id: "second", note: "Second row" };
+    vi.mocked(api.getPage).mockResolvedValue({ data: [first, second], nextCursor: null });
+    renderApp(<TransactionsScreen />);
+
+    const top = await screen.findByRole("button", { name: /Edit First row/ });
+    const next = screen.getByRole("button", { name: /Edit Second row/ });
+    top.focus();
+    fireEvent.keyDown(top, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(next);
+    fireEvent.keyDown(next, { key: "ArrowDown" });
+    expect(document.activeElement).toBe(next);
+    fireEvent.keyDown(next, { key: "k" });
+    expect(document.activeElement).toBe(top);
+    fireEvent.keyDown(top, { key: "j" });
+    expect(document.activeElement).toBe(next);
+    fireEvent.keyDown(next, { key: "ArrowUp" });
+    expect(document.activeElement).toBe(top);
+  });
+
   it("keeps the latest same-day transaction at the top", async () => {
     const latest = { ...txns[0], id: "latest", note: "Latest input" };
     const older = { ...txns[0], id: "older", note: "Older input" };

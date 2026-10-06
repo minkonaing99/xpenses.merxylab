@@ -72,6 +72,17 @@ favorite can be removed. No database or API schema is involved.
 - Reports put chart/category data side by side when wide; category rows and
   donut segments open a filtered Ledger URL.
 
+## Keyboard
+
+- Sheets move focus inside on open (an `autoFocus` field keeps it), keep Tab
+  and Shift+Tab inside the panel, and return focus to the opener on close.
+  Escape closes only the topmost sheet.
+- Global single-key shortcuts (`app/Shell.tsx`), ignored while typing, with
+  Cmd/Ctrl/Alt, or while a sheet is open: `n` new transaction, `/` search
+  (opens the Ledger first if needed), `[` and `]` previous and next month
+  (presses the on-screen month buttons, so their rules apply), `?` shortcut list.
+- Ledger rows: Up/Down or `j`/`k` move focus between transactions.
+
 ## Data + offline model
 
 React Query is the single source of server state. There is no hand-rolled
