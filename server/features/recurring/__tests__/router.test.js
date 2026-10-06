@@ -77,6 +77,17 @@ describe('recurring router', () => {
     expect(listRes.body.data.some((r) => r.id === ruleId)).toBe(true)
   })
 
+  it('POST replays the same rule id and rejects reuse with different data', async () => {
+    expect((await request(app).post('/api/recurring').send(validRule())).status).toBe(201)
+    const replay = await request(app).post('/api/recurring').send(validRule())
+    expect(replay.status).toBe(200)
+    expect(replay.body.data).toMatchObject({ id: ruleId, amount: 1500 })
+
+    const reuse = await request(app).post('/api/recurring').send({ ...validRule(), amount: 9999 })
+    expect(reuse.status).toBe(409)
+    expect(reuse.body.error.code).toBe('CONFLICT')
+  })
+
   it('POST rejects an expense rule missing categoryId', async () => {
     const { categoryId: _drop, ...body } = validRule()
     const res = await request(app).post('/api/recurring').send(body)

@@ -67,7 +67,7 @@ Notes:
   note and returns the resolved names. `delete_transaction` soft-deletes. Both
   send an `updatedAt` so the server's last-write-wins guard applies. The MCP
   process remembers each `request_id` and replays the first result; reusing an
-  ID with different input is rejected. That memory is lost on restart, but a
+  ID with different input is rejected. It keeps the newest 500 IDs and is lost on restart, but a
   repeated update sets the same values and a repeated delete returns
   `NOT_FOUND`, so nothing applies twice.
 - Ambiguous or blank category/account names are rejected before writing. Supply

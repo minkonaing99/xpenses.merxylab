@@ -9,6 +9,17 @@ const { todayInBangkok } = require('../../cron/dateUtil')
 const { addInterval, planUpcoming } = require('./scheduler')
 const repo = require('./repo')
 
+// nextRunDate and active are excluded: the cron and pause/resume change them after creation.
+const CREATE_FIELDS = ['type', 'amount', 'note', 'categoryId', 'accountId', 'fromAccountId', 'toAccountId', 'intervalUnit', 'intervalCount']
+
+function mapRule(row) {
+  return { ...rowToCamel(row), active: Boolean(row.active) }
+}
+
+function sameCreatedRule(current, candidate) {
+  return CREATE_FIELDS.every((field) => (current[field] ?? null) === (candidate[field] ?? (field === 'intervalCount' ? 1 : null)))
+}
+
 const upcomingSchema = z.union([
   z.object({ days: z.coerce.number().int().positive().max(365).default(30) }),
   z.object({ from: z.string().date(), to: z.string().date() }).refine(({ from, to }) => from <= to, 'from must be before to'),
@@ -49,11 +60,16 @@ function createRecurringRouter(pool) {
 
   router.post('/', async (req, res, next) => {
     try {
+      const existing = typeof req.body?.id === 'string' ? await repo.findById(pool, req.body.id) : null
+      if (existing) {
+        const current = mapRule(existing)
+        if (!sameCreatedRule(current, req.body)) throw new ApiError('CONFLICT', 'recurring rule id already used for different data')
+        return res.json(ok(current))
+      }
       const result = await writeEntity(pool, {
         entity: 'recurring',
         action: 'create',
         payload: req.body,
-        replay: true,
       })
       res.status(201).json(ok(result.value))
     } catch (err) {

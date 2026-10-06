@@ -269,3 +269,30 @@ test("reads and writes report resolved names, budget impact and duplicates", asy
     assert.deepEqual(dupes.structuredContent.data[0].ids, ["t1", "t2"]);
   } finally { await session.close(); }
 });
+
+
+test("upstream error text is sanitized and capped; replay cache is bounded", async () => {
+  const noisy = await connect({ get: async () => { throw new ApiError(`bad\u0000\n${"x".repeat(500)}`, "weird code!", 502); } });
+  try {
+    const result = await noisy.client.callTool({ name: "get_balances", arguments: {} });
+    const { error } = JSON.parse(result.content[0].text);
+    assert.equal(error.code, "API_ERROR");
+    assert.ok(error.message.length <= 200);
+    assert.doesNotMatch(error.message, /[\u0000-\u001f]/);
+  } finally { await noisy.close(); }
+
+  const api = mockApi();
+  const session = await connect(api);
+  const id = "7b7feaac-bacd-4f9e-a214-3eb0f572c945";
+  const requestIdFor = (n) => `00000000-0000-4000-8000-${String(n).padStart(12, "0")}`;
+  try {
+    for (let n = 0; n <= 500; n++) {
+      await session.client.callTool({ name: "delete_plan", arguments: { request_id: requestIdFor(n), id } });
+    }
+    assert.equal(api.writes.length, 501);
+    await session.client.callTool({ name: "delete_plan", arguments: { request_id: requestIdFor(500), id } });
+    assert.equal(api.writes.length, 501);
+    await session.client.callTool({ name: "delete_plan", arguments: { request_id: requestIdFor(0), id } });
+    assert.equal(api.writes.length, 502);
+  } finally { await session.close(); }
+});

@@ -47,6 +47,10 @@ const duplicate = z.object({
   ids: z.array(z.string()), type: z.string(), amount: money, dates: z.array(z.string()), notes: z.array(z.string().nullable()),
 });
 
+function safeCode(code) {
+  return /^[A-Z][A-Z0-9_]{0,39}$/.test(code ?? "") ? code : "API_ERROR";
+}
+
 function register(server, name, description, inputSchema, dataSchema, handler) {
   const readOnly = /^(get|list)_/.test(name);
   server.registerTool(name, {
@@ -62,7 +66,7 @@ function register(server, name, description, inputSchema, dataSchema, handler) {
       return { content: [{ type: "text", text: JSON.stringify(result) }], structuredContent: result };
     } catch (err) {
       const error = err instanceof ApiError
-        ? { code: err.code, message: err.message, status: err.status }
+        ? { code: safeCode(err.code), message: String(err.message).replace(/[\u0000-\u001f\u007f]+/g, " ").slice(0, 200), status: err.status }
         : { code: "INTERNAL_ERROR", message: "Unexpected tool failure. For writes, keep the same request_id and input when retrying." };
       return { content: [{ type: "text", text: JSON.stringify({ error }) }], isError: true };
     }
@@ -145,8 +149,10 @@ function registerCreates(server, client) {
   });
 }
 
-// ponytail: in-memory replay cache, lost on MCP restart. Later replays stay safe because
+// ponytail: in-memory replay cache (newest 500 IDs), lost on MCP restart. Later replays stay safe because
 // updates set absolute values, deletes are tombstones, and confirm/create reject reuse.
+const MAX_REPLAYS = 500;
+
 function once(applied, tool, { request_id, ...input }, run) {
   const key = JSON.stringify([tool, input], Object.keys(input).sort());
   const prior = applied.get(request_id);
@@ -159,6 +165,7 @@ function once(applied, tool, { request_id, ...input }, run) {
     throw err;
   });
   applied.set(request_id, { key, data });
+  if (applied.size > MAX_REPLAYS) applied.delete(applied.keys().next().value);
   return data;
 }
 
