@@ -1,7 +1,8 @@
 // Runnable self-check for the pure helpers (no SDK, no network).
 // Run: node test.mjs
 import assert from "node:assert/strict";
-import { bahtToSatang, buildPlan, buildTransactions, matchByName, todayIn, createClient } from "./src/client.mjs";
+import {
+  findDuplicates, bahtToSatang, buildPlan, buildTransactions, matchByName, todayIn, createClient } from "./src/client.mjs";
 
 // bahtToSatang
 assert.equal(bahtToSatang(120), 12000);
@@ -15,7 +16,10 @@ assert.equal(bahtToSatang("90071992547409.92"), null); // unsafe integer must ne
 // matchByName
 const cats = [{ name: "Food" }, { name: "Fuel" }, { name: "Fun money" }];
 assert.equal(matchByName(cats, "food").name, "Food");
-assert.equal(matchByName(cats, "fu").name, "Fuel"); // prefix beats substring order
+assert.equal(matchByName(cats, "fue").name, "Fuel");
+assert.equal(matchByName(cats, "fu"), null); // ambiguous prefix
+assert.equal(matchByName(cats, "   "), null);
+assert.equal(matchByName([{ name: "Food" }, { name: "Food" }], "Food"), null);
 assert.equal(matchByName(cats, "money").name, "Fun money"); // substring
 assert.equal(matchByName(cats, "zzz"), null);
 
@@ -95,7 +99,7 @@ const failing = createClient({
     text: async () => JSON.stringify({ ok: false, error: { code: "VALIDATION_ERROR", message: "bad" } }),
   }),
 });
-await assert.rejects(() => failing.get("/x"), /bad/);
+await assert.rejects(() => failing.get("/x"), (err) => err.message === "bad" && err.code === "VALIDATION_ERROR" && err.status === 400);
 
 // createClient: follows every cursor while preserving the existing array result
 let pagedPaths = [];
@@ -153,5 +157,39 @@ const malformedCursor = createClient({
   }),
 });
 await assert.rejects(() => malformedCursor.getAll("/transactions?month=2026-07"), /invalid pagination cursor/i);
+
+
+const offline = createClient({ baseUrl: "https://x.test", token: "tok", fetchImpl: async () => { throw new TypeError("fetch failed"); } });
+await assert.rejects(() => offline.post("/plans", {}), (err) => err.code === "NETWORK_ERROR" && /request_id/.test(err.message));
+for (const bodyStalls of [false, true]) {
+  const slow = createClient({
+    baseUrl: "https://x.test", token: "tok", timeoutMs: 5,
+    fetchImpl: async (_url, { signal }) => {
+      const wait = () => new Promise((_resolve, reject) => signal.addEventListener("abort", () => reject(signal.reason), { once: true }));
+      return bodyStalls ? { ok: true, status: 200, text: wait } : wait();
+    },
+  });
+  const keepAlive = setInterval(() => {}, 50);
+  try { await assert.rejects(() => slow.get("/accounts"), (err) => err.code === "TIMEOUT"); }
+  finally { clearInterval(keepAlive); }
+}
+
+const skipped = createClient({
+  baseUrl: "https://x.test", token: "tok",
+  fetchImpl: async () => ({ ok: true, status: 200, text: async () => JSON.stringify({ ok: true, data: {}, meta: { syncStatus: "skipped" } }) }),
+});
+await assert.rejects(() => skipped.patch("/transactions/x", {}), (err) => err.code === "CONFLICT");
+await assert.rejects(() => skipped.del("/transactions/x", {}), (err) => err.code === "CONFLICT");
+
+const dupes = findDuplicates([
+  { id: "a", type: "expense", amount: 4000, accountId: "x", txnDate: "2026-10-06", note: "Breakfast" },
+  { id: "b", type: "expense", amount: 4000, accountId: "x", txnDate: "2026-10-06" },
+  { id: "c", type: "expense", amount: 4000, accountId: "y", txnDate: "2026-10-06" },
+  { id: "d", type: "expense", amount: 4000, accountId: "x", txnDate: "2026-10-08" },
+  { id: "e", type: "expense", amount: 4000, accountId: "x", txnDate: "2026-10-06", kind: "adjustment" },
+], 0);
+assert.deepEqual(dupes, [{ ids: ["a", "b"], type: "expense", amount: 4000, dates: ["2026-10-06", "2026-10-06"], notes: ["Breakfast", null] }]);
+assert.equal(findDuplicates([{ id: "a", type: "expense", amount: 1, accountId: "x", txnDate: "2026-10-06" },
+  { id: "d", type: "expense", amount: 1, accountId: "x", txnDate: "2026-10-08" }], 2).length, 1);
 
 console.log("ok - all mcp client self-checks passed");

@@ -44,6 +44,7 @@ describe('ERROR_CODES', () => {
     expect(ERROR_CODES).toEqual([
       'VALIDATION_ERROR',
       'UNAUTHORIZED',
+      'FORBIDDEN',
       'NOT_FOUND',
       'CONFLICT',
       'RATE_LIMITED',

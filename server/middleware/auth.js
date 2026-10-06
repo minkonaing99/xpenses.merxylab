@@ -7,6 +7,26 @@ const { loadEnv } = require('../config/env')
 
 const COOKIE_NAME = 'xpenses_token'
 
+const MCP_READ_PATHS = [
+  '/api/accounts', '/api/categories', '/api/transactions', '/api/budgets',
+  '/api/plans', '/api/recurring', '/api/insights/forecast', '/api/insights/anomalies', '/api/insights/comparisons',
+]
+const MCP_CREATE_PATHS = ['/api/transactions/bulk', '/api/plans', '/api/recurring']
+const UUID = '[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}'
+const MCP_ID_ROUTES = [
+  ['PATCH', new RegExp(`^/api/transactions/${UUID}$`, 'i')],
+  ['DELETE', new RegExp(`^/api/transactions/${UUID}$`, 'i')],
+  ['POST', new RegExp(`^/api/plans/${UUID}/confirm$`, 'i')],
+  ['DELETE', new RegExp(`^/api/plans/${UUID}$`, 'i')],
+]
+
+function allowsApiToken(req) {
+  const path = `${req.baseUrl || ''}${req.path || ''}`.replace(/\/$/, '')
+  return (req.method === 'GET' && MCP_READ_PATHS.includes(path))
+    || (req.method === 'POST' && MCP_CREATE_PATHS.includes(path))
+    || MCP_ID_ROUTES.some(([method, pattern]) => req.method === method && pattern.test(path))
+}
+
 // Pull a Bearer token out of the Authorization header, if present.
 function bearerToken(req) {
   const header = typeof req.get === 'function' ? req.get('authorization') : undefined
@@ -22,6 +42,10 @@ function makeAuthMiddleware(jwtSecret, apiToken) {
     if (apiToken) {
       const presented = bearerToken(req)
       if (presented && safeCompare(presented, apiToken)) {
+        if (!allowsApiToken(req)) {
+          next(new ApiError('FORBIDDEN', 'API token does not permit this operation'))
+          return
+        }
         next()
         return
       }

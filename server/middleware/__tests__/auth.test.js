@@ -65,6 +65,9 @@ describe('makeAuthMiddleware', () => {
       return {
         req: {
           cookies: {},
+          method: 'GET',
+          baseUrl: '/api/accounts',
+          path: '/',
           get: (h) => (h.toLowerCase() === 'authorization' ? authorization : undefined),
         },
         res: {},
@@ -99,4 +102,57 @@ describe('makeAuthMiddleware', () => {
       expect(next).toHaveBeenCalledWith(expect.objectContaining({ code: 'UNAUTHORIZED' }))
     })
   })
+})
+
+
+describe('bearer permissions on mounted routes', () => {
+  const express = require('express')
+  const request = require('supertest')
+  const errorHandler = require('../error')
+  const apiToken = 'a-long-enough-api-token-value-123'
+  const app = express()
+  app.use(require('cookie-parser')())
+  const middleware = makeAuthMiddleware(SECRET, apiToken)
+  const uuid = '20ec5727-0940-4ce6-9e45-feca871b47df'
+  for (const mount of ['accounts', 'categories', 'transactions', 'budgets', 'insights', 'plans', 'recurring', 'sync', 'savings-pots']) {
+    app.use(`/api/${mount}`, middleware, (req, res) => res.json({ ok: true }))
+  }
+  app.use(errorHandler)
+
+  it.each([
+    ['get', '/api/accounts'], ['get', '/api/categories/'],
+    ['get', '/api/transactions?month=2026-10'], ['get', '/api/budgets'],
+    ['get', '/api/insights/forecast'], ['get', '/api/insights/anomalies'],
+    ['get', '/api/insights/comparisons'], ['get', '/api/plans'],
+    ['post', '/api/transactions/bulk'], ['post', '/api/plans/'],
+    ['patch', `/api/transactions/${uuid}`], ['delete', `/api/transactions/${uuid}`],
+    ['get', '/api/recurring'], ['post', '/api/recurring'],
+    ['post', `/api/plans/${uuid}/confirm`], ['delete', `/api/plans/${uuid}`],
+  ])('allows %s %s', async (method, path) => {
+    await request(app)[method](path).set('Authorization', `Bearer ${apiToken}`).expect(200)
+  })
+
+  it.each([
+    ['delete', '/api/transactions/id'], ['patch', `/api/plans/${uuid}`],
+    ['post', '/api/plans/id/confirm'], ['post', '/api/transactions'],
+    ['delete', '/api/transactions/bulk'], ['patch', `/api/recurring/${uuid}`],
+    ['delete', `/api/recurring/${uuid}`], ['get', `/api/transactions/${uuid}/x`],
+    ['post', '/api/accounts'], ['get', '/api/sync'], ['post', '/api/sync'],
+    ['get', '/api/accounts/id/balance-check'], ['get', '/api/savings-pots'],
+    ['put', '/api/transactions/bulk'], ['head', '/api/accounts'],
+  ])('forbids %s %s even with a valid cookie', async (method, path) => {
+    const response = await request(app)[method](path)
+      .set('Authorization', `Bearer ${apiToken}`)
+      .set('Cookie', `${COOKIE_NAME}=${jwt.sign({ sub: 'owner' }, SECRET)}`)
+      .expect(403)
+    if (method !== 'head') expect(response.body.error.code).toBe('FORBIDDEN')
+  })
+})
+
+
+it('keeps cookie-only browser writes authorized', async () => {
+  const middleware = makeAuthMiddleware(SECRET, 'a-long-enough-api-token-value-123')
+  const { req, res, next } = mockReqRes({ [COOKIE_NAME]: jwt.sign({ sub: 'owner' }, SECRET) })
+  middleware({ ...req, method: 'DELETE', baseUrl: '/api/transactions', path: '/id' }, res, next)
+  expect(next).toHaveBeenCalledWith()
 })

@@ -227,6 +227,8 @@ Computed in the accounts service via aggregated queries over non-deleted txns.
 ## API
 
 Base: `/api` · JSON only · Auth via httpOnly JWT cookie (all routes except login and logout).
+The optional `API_TOKEN` bearer credential permits only the MCP route allowlist;
+see [MCP permissions](MCP.md#security-notes).
 No versioning in v1 (single consumer, solo app) — `/api/*` is implicitly v1.
 
 ### Response Envelope
@@ -236,7 +238,7 @@ No versioning in v1 (single consumer, solo app) — `/api/*` is implicitly v1.
 // error
 { "ok": false, "error": { "code": "VALIDATION_ERROR", "message": "..." } }
 ```
-Codes: `VALIDATION_ERROR`(400) `UNAUTHORIZED`(401) `NOT_FOUND`(404)
+Codes: `VALIDATION_ERROR`(400) `UNAUTHORIZED`(401) `FORBIDDEN`(403) `NOT_FOUND`(404)
 `CONFLICT`(409) `RATE_LIMITED`(429) `SERVER_ERROR`(500).
 
 ### Auth
