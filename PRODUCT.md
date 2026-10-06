@@ -6,15 +6,16 @@ product
 
 ## Users
 
-Solo owner, authenticated by a single shared password, calling the API to
-log cash/bank spending and periodically check month-at-a-glance balances,
-category spend, and budget status. No sharing, no roles, no other users ever.
+Solo owner, authenticated by a single shared password, logging cash/bank
+spending through the PWA or by talking to Claude (MCP), and checking
+month-at-a-glance balances, category spend, and budget status. No sharing, no roles, no other users ever.
 
 ## Product Purpose
 
-xpenses is a personal expense tracker API: capture every expense, income, and
-transfer against self-defined accounts, categorize spend, cap it with
-per-category monthly budgets, and auto-insert recurring transactions.
+xpenses is a personal expense tracker (API, PWA, and MCP server): capture every
+expense, income, and transfer against self-defined accounts, categorize spend,
+cap it with per-category monthly budgets, auto-insert recurring transactions,
+plan purchases, reserve savings, and reconcile balances against reality.
 Success looks like: numbers that are never distrusted because of float
 rounding, and a recurring cron that never double-inserts or silently misses
 a due date.

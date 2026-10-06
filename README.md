@@ -68,7 +68,7 @@ The app is deployed on Hostinger using its managed Node.js environment. The fron
 
 ## Project documentation
 
-- [Product requirements](docs/prd.md)
+- [Product requirements](docs/PRD.md)
 - [Web app and offline behavior](docs/WEB.md)
 - [Architecture and technical decisions](docs/TECH.md)
 - [Database and API design](docs/SCHEMA.md)

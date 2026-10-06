@@ -1,0 +1,3 @@
+-- Pending database changes. Applied manually by the owner (dev, test, production).
+-- Append new statements below with a dated comment; no migration files.
+-- After applying, fold the change into docs/schema.sql and clear it from here.

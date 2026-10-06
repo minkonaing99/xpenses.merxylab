@@ -200,15 +200,17 @@ to MySQL.
 | Recurring transaction insertion | node-cron, daily (Asia/Bangkok) | Per-rule try/catch; failed rule logged, other rules unaffected; idempotency via `(rule_id, run_date)` PK prevents double-insert on retry/re-run. |
 | Recurring insertion (Plan B) | Hostinger external cron -> `POST /api/cron/run` | Same idempotency guard as above; safe to call more than once per day. |
 
-## Migration Strategy
-Plain ordered SQL files run by `db/migrate.js`: `001_init.sql` (tables) ->
-`002_seed.sql` (accounts+categories) through `005_savings_pots.sql`. Naming convention: zero-padded sequence
-prefix + short snake_case description (`00N_description.sql`). A
-`schema_migrations(version, applied_at)` table tracks applied files; the
-runner applies any file not yet recorded, in filename order. No down-migrations
-in v1 (solo project, forward-only).
+## Schema Change Process
+New database changes do **not** get migration files. Write the SQL
+(`CREATE TABLE`, `ALTER TABLE`, ...) to `docs/new-changes-db.sql` (append if it
+exists); the owner applies it manually to dev, test, and production, then folds
+it into `docs/schema.sql`. Never modify existing production data from code.
 
-## Seed Data (migration)
+- `docs/schema.sql`: full current schema snapshot (reference).
+- `server/db/migrations/001-007` + `db/migrate.js`: frozen history. They still
+  build the disposable `xpense_test` database; no new files are added.
+
+## Seed Data
 - accounts: "Cash" (cash), "Bank" (bank), starting_balance 0.
 - categories starter list: Food, Groceries, Transport, Bills, Shopping,
   Health, Entertainment, Rent, Salary, Other.
@@ -255,6 +257,9 @@ Codes: `VALIDATION_ERROR`(400) `UNAUTHORIZED`(401) `FORBIDDEN`(403) `NOT_FOUND`(
 | POST   | /api/accounts | `{ id, name, type, startingBalance }` | Yes | id = client UUID. |
 | PATCH  | /api/accounts/:id | partial | Yes | LWW via updatedAt. |
 | DELETE | /api/accounts/:id | — | Yes | 409 if referenced by txns. Soft delete. |
+| GET    | /api/accounts/:id/balance-check | — | Yes | `{ account, latestCheck, recentTransactions }` for reconciling against a real balance. |
+| POST   | /api/accounts/:id/balance-check | `{ id, actualBalance, expectedRevision }` | Yes | Records an immutable matched snapshot. 409 if the balance changed since review or actual != tracked. Idempotent on `id`. |
+| POST   | /api/accounts/:id/balance-adjustment | `{ id, actualBalance, expectedRevision, note }` | Yes | Atomically writes an `adjustment`-kind transaction for the difference plus the matching check. Adjustments are immutable. |
 
 ### Categories
 | Method | Path | Body | Auth Required | Notes |
@@ -315,7 +320,7 @@ Transaction body:
 |---|---|---|---|---|
 | GET    | /api/recurring | — | Yes | List rules. |
 | GET    | /api/recurring/upcoming | `?days=30` | Yes | Read-only projection: active rules' occurrences in `[today, today+days]`, flattened + sorted by date. Each item = the rule plus `date`. Does not insert txns. |
-| POST   | /api/recurring | rule template + `{ intervalUnit, intervalCount, nextRunDate }` | Yes | |
+| POST   | /api/recurring | rule template + `{ id, intervalUnit, intervalCount, nextRunDate }` | Yes | Idempotent on `id`: same data returns the existing rule (200); different data returns 409. |
 | PATCH  | /api/recurring/:id | partial (incl. `active`) | Yes | Pause/resume. Resuming an overdue rule preserves cadence, skips missed runs, and advances `nextRunDate` to the first scheduled date on or after Bangkok today. |
 | DELETE | /api/recurring/:id | — | Yes | Soft delete. |
 
@@ -325,7 +330,7 @@ Transaction body:
 | GET | /api/plans | `?month=YYYY-MM` | Yes | Active plans, confirmed purchase history, and account/budget forecasts. |
 | POST | /api/plans | `{ id, name, amount, accountId, categoryId, plannedDate, waitDays }` | Yes | Idempotent on `id`; conflicting reuse returns 409. `waitDays` 0-30, default 7. Planned date moves to end of wait if needed. |
 | PATCH | /api/plans/:id | active plan fields, or `{ reflection, reflectionNote? }` for a confirmed purchase | Yes | Increasing an active plan price restarts its waiting period. Reflection updates never change its transaction. |
-| DELETE | /api/plans/:id | — | Yes | Permanently deletes active plan. |
+| DELETE | /api/plans/:id | — | Yes | Permanently deletes an active plan; 404 if none (already deleted or confirmed). |
 | POST | /api/plans/:id/confirm | — | Yes | After wait ends, creates linked expense dated today. |
 
 ### Savings pots
@@ -337,6 +342,13 @@ Transaction body:
 | POST | /api/savings-pots/:id/movements | `{ id, type, amount, note? }` | Yes | Atomic allocate or release. Idempotent on movement ID. |
 | POST | /api/savings-pots/:id/spend | expense body | Yes | Atomically creates an expense in the pot account and links it to the pot. |
 | POST | /api/savings-pots/:id/archive | — | Yes | Requires zero reserve. |
+
+### Insights
+| Method | Path | Query | Auth Required | Notes |
+|---|---|---|---|---|
+| GET | /api/insights/forecast | `?month=YYYY-MM&asOf=YYYY-MM-DD` | Yes | Recurring-aware month-end projection: paid income/expense, daily burn, projected expense/income/net. `asOf` optional. |
+| GET | /api/insights/anomalies | `?month=YYYY-MM` | Yes | Flags: `budget_burn` (>=80% of budget before 80% of month) and `category_velocity` (projected >=2x trailing 3-month average, floor 500 THB). |
+| GET | /api/insights/comparisons | `?month=YYYY-MM` | Yes | Per category: current, last month, trailing average, deltas, trend. |
 
 ### Reports
 | Method | Path | Query | Auth Required | Notes |

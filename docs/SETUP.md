@@ -16,8 +16,10 @@ git clone <repo-url> xpenses
 cd xpenses/server && npm install
 cd ../web && npm install
 cp server/.env.example server/.env   # fill in real values, see Env Vars below
-node server/db/migrate.js            # applies 001_init.sql, 002_seed.sql
+node server/db/migrate.js            # fresh DB only: applies frozen migrations 001-007
 ```
+Later schema changes are not migrations: apply `docs/new-changes-db.sql`
+manually (see SCHEMA.md "Schema Change Process").
 
 ### Env Vars
 | Key | Description |
@@ -27,13 +29,17 @@ node server/db/migrate.js            # applies 001_init.sql, 002_seed.sql
 | `DB_USER` | MySQL user |
 | `DB_PASSWORD` | MySQL password |
 | `DB_NAME` | MySQL database name |
-| `PASSWORD_HASH` | bcrypt hash of the single app password |
+| `PASSWORD_HASH` | bcrypt hash of the single app password (or `PASSWORD_HASH_B64`, base64 of it, when `$` gets mangled by the shell/host) |
 | `JWT_SECRET` | signing secret for the auth JWT |
 | `CRON_SHARED_SECRET` | shared secret for the Plan-B `/api/cron/run` endpoint |
 | `NODE_ENV` | `development` \| `production` |
+| `API_TOKEN` | Optional. Bearer token for the MCP server (min 24 chars). Unset disables token access. Route allowlist in `middleware/auth.js`. |
 
-`config/env.js` (Phase 0.4) validates all of the above are present at boot
-and fails fast if any are missing.
+MCP client side (`mcp/`, not the server): `XPENSES_API_URL`, `XPENSES_API_TOKEN`
+(see MCP.md).
+
+`config/env.js` validates the required keys at boot and fails fast if any are
+missing.
 
 ### How to Run Locally
 ```bash
@@ -52,10 +58,17 @@ cd web && npm run build      # emits to server/public/
 `server/app.js` serves `server/public/` with an SPA fallback in production, so
 the frontend is same-origin with the API (first-party auth cookie, no CORS).
 Deploy: build web -> rsync `server/` (incl. `public/`) to Hostinger; Passenger
-runs `app.js`. `server/.env` and `server/public/` are gitignored.
+runs `app.js`. `server/.env` is gitignored; `server/public/` is committed on
+purpose so the git-based deploy ships it, so rebuild and commit it with web
+changes.
 
 ### Common Errors + Fixes
-TBD — will be filled in as real errors are hit during Phase 0-1 implementation.
+| Error | Fix |
+|---|---|
+| Jest: `Missing required env var(s): DB_HOST, ...` | `jest.setup.js` loads `server/.env.test` (points at `xpense_test`). Create it from `.env.example`. |
+| Local `mysql.server start`: `Permission denied` on the data dir | The data dir is root-owned: `sudo /usr/local/mysql/support-files/mysql.server start`. |
+| MCP tool returns 403 `FORBIDDEN` | The route is not on the API token allowlist (`middleware/auth.js`), or the server is older than the MCP client. |
+| MCP `INVALID_RESPONSE` | API data failed the tool's output schema; compare the live response with the zod schema in `mcp/src/server.mjs`. |
 
 ---
 
@@ -100,12 +113,38 @@ per project testing standard (avoids mock/prod divergence).
 
 ## Changelog
 
-Current version: `0.2.0`
+Current version: `3.4.0` (changes since then are under Unreleased)
 
 Format: [Keep a Changelog](https://keepachangelog.com)
 
 ## [Unreleased]
+### Fixed
+- `GET /api/plans` returned budget `spent` as a string (MySQL SUM), so
+  `forecastSpent` concatenated text and `overForecast` was wrong; MCP
+  `get_plans` failed its schema check.
+- `DELETE /api/plans/:id` returns 404 when no active plan matched instead of
+  silent success.
+- `POST /api/recurring` replays the same rule id idempotently and returns 409
+  for reuse with different data.
+
+### Security
+- `proxy-addr` 2.0.7 -> 2.0.8 (CVE-2026-90711) in server and mcp lockfiles.
+- API token allowlist widened only to the routes the MCP edit tools use:
+  PATCH/DELETE `/transactions/:uuid`, GET/POST `/recurring`,
+  POST `/plans/:uuid/confirm`, DELETE `/plans/:uuid`.
+
+### Added
+- MCP: 18 tools now, including update/delete transaction, recurring
+  list/create, plan confirm/delete, and `find_duplicates`; write results
+  return resolved names and touched budget status (see MCP.md).
+- Web keyboard support: sheet focus trap/restore, top-sheet Escape, global
+  shortcuts (`n`, `/`, `[`, `]`, `?`), ledger Up/Down or `j`/`k`, visible focus
+  on amount inputs (see WEB.md "Keyboard").
+- `docs/DESIGN.md` rebuilt from the live tokens.
+
 ### Changed
+- Database changes no longer use migration files; SQL goes to
+  `docs/new-changes-db.sql` and is applied manually.
 - Fixed sign out for missing, expired, and active sessions. Successful logout
   clears persisted client session state before reload; network failure now shows
   a retryable error instead of silently reloading.
@@ -152,9 +191,8 @@ Format: [Keep a Changelog](https://keepachangelog.com)
     endpoint remains for API and MCP clients, but its Dashboard card was removed.
   - Tests: +30 server (service pure math, repo SQL, router), +3 web.
 - **MCP server (Phase 9)** — `mcp/` package (stdio, `@modelcontextprotocol/sdk`)
-  exposing finances to Claude Desktop / Claude Code. Ten tools cover reads,
-  atomic bulk expense/income/transfer creation, and plan listing/creation.
-  Mutations remain create-only. Auth via a
+  exposing finances to Claude Desktop / Claude Code. Initially ten create-only
+  tools (expanded since; see Unreleased). Auth via a
   new optional `API_TOKEN` env: `middleware/auth.js` now accepts a constant-time
   `Authorization: Bearer <token>` alongside the JWT cookie; `config/env.js`
   enforces a 24-char floor. Setup in `docs/MCP.md`. Self-check: `mcp/test.mjs`.
@@ -499,27 +537,13 @@ Format: [Keep a Changelog](https://keepachangelog.com)
        effect on a fresh sync).
 
 ### Known gaps / follow-ups
-- `server/.env`'s `PASSWORD_HASH` is still a placeholder for the dev password
-  "changeme123" — replace with a real hash
-  (`node -e "console.log(require('bcrypt').hashSync('yourpassword', 10))"`)
-  before relying on login for anything beyond local dev.
 - No silent JWT re-issue on activity yet (flat 7-day expiry) — deliberate v1
   scope per docs/SCHEMA.md, not a bug; revisit if 7 days proves too short.
-- Root `README.md` still missing (Phase 0.1 partial).
 - Budgets' and categories' "one active per category/unique name" checks are
   check-then-create, not transactional — a real race under concurrent
   writers could create two. Accepted for now (solo-user, single-session
   app); would need `SELECT ... FOR UPDATE` or a generated-column unique
   index if this ever needs to support concurrent writers.
-- `offline/outbox.ts` ops marked `'failed'` (a genuine server error, not a
-  stale-LWW `'skipped'`) have no retry/backoff or requeue path — they sit
-  inert since `getPendingOps()` only selects `status === 'pending'`. Phase 6
-  added visibility (a Settings-screen banner reading `useOutboxStatus`
-  shows "N changes couldn't sync"), but not a fix — there's still no way
-  to retry or discard a failed op, and no differentiation between terminal
-  errors (`VALIDATION_ERROR`, a `NOT_FOUND` because another device already
-  deleted the target row) and transient ones (`SERVER_ERROR`) that a naive
-  retry might actually fix.
 - Recurring rules referencing a since-deleted account/category have no
   "broken reference" warning — `RecurringScreen` falls back to
   `'Uncategorized'`/`'?'` gracefully but never prompts the user to fix or
@@ -533,7 +557,13 @@ Format: [Keep a Changelog](https://keepachangelog.com)
   linkage technically exists server-side via the `recurring_runs` join
   table (used only for cron idempotency) but is never surfaced. Needs a
   schema/API change, out of scope for a client-only phase.
-# Frontend device verification
+- Budgets flag `over` when `spent >= limit` (`budgets/service.js`), so spending
+  exactly the limit shows as over (the Rent 4,301 workaround). Switch to `>`
+  if "at limit" should be fine.
+- Server integration tests for recurring id replay and plan-delete 404 were
+  written but not yet run (local MySQL was down at the time).
+
+### Frontend device verification
 
 Run `cd web && npm test` and `npm run build`. Manually check 390x844, 744x1133,
 1133x744, and 1440x900. On a physical iPad mini, check Safari, Chrome, and the

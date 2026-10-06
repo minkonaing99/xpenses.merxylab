@@ -2,12 +2,15 @@
 
 ## 1. High-Level Shape
 ```
-[ API client ]  --HTTPS/JSON-->  [ Express API (Passenger) ]  -->  [ MySQL ]
-                                          |
-                                    node-cron (daily)
-                                 recurring auto-insert
+[ React PWA (web/) ] --cookie--+
+                               +--HTTPS/JSON-->  [ Express API (Passenger) ]  -->  [ MySQL ]
+[ MCP stdio server (mcp/) ] ---+                         |
+   --Bearer API_TOKEN                              node-cron (daily)
+                                                 recurring auto-insert
 ```
-Single subdomain: `xpenses.merxylab.com`. API under `/api/*`.
+Single subdomain: `xpenses.merxylab.com`. API under `/api/*`; the built PWA is
+served same-origin from `server/public/`. The MCP server runs locally next to
+Claude and calls the API with a bearer token (see MCP.md).
 
 ## 2. Deployment Topology (Hostinger Business shared)
 - Backend runs in Hostinger's Node.js App slot, managed by Phusion Passenger.
@@ -17,7 +20,8 @@ Single subdomain: `xpenses.merxylab.com`. API under `/api/*`.
     node-cron; the app must stay warm. (Fallback: Hostinger cron job hitting a
     protected `/api/cron/run` endpoint — see SCHEMA.md Plan B.)
 - MySQL hosted by Hostinger; credentials via env (never in repo).
-- `deploy.sh` (SSH): `git pull` + `npm ci --omit=dev` on server.
+- Deploy is git-based: build `web/` into `server/public/`, commit, pull on the
+  host, restart Passenger. No `deploy.sh` script exists.
 
 ## 3. Backend Structure (organize by feature)
 ```
@@ -25,23 +29,28 @@ server/
   app.js                 # express app, middleware, route mount, export app
   config/env.js          # load + validate env (fail fast)
   db/pool.js             # mysql2 pool
-  db/migrate.js          # run SQL migrations in order
-  middleware/auth.js     # verify JWT cookie
-  middleware/validate.js # zod-based boundary validation
+  db/migrate.js          # frozen migrations 001-007 (test DB setup only)
+  middleware/auth.js     # JWT cookie, or Bearer API_TOKEN on an allowlist
   middleware/error.js    # central error -> API envelope
   features/
-    auth/       (routes, service, __tests__)
-    accounts/   (routes, repo, service, __tests__)
-    categories/ (routes, repo, service, __tests__)
-    transactions/(routes, repo, service, sync, __tests__)
-    budgets/    (routes, repo, service, __tests__)
-    recurring/  (routes, repo, service, cron, __tests__)
-    reports/    (routes, service, __tests__)
-    savingsPots/(routes, repo, service, __tests__)
-    entityWrites/ (shared write interface, schemas, business rules)
-  lib/money.js           # satang helpers (pure, immutable)
+    auth/         (router, service)
+    accounts/     (router, repo, service; balance check + adjustments)
+    categories/   (router, repo)
+    transactions/ (router, repo, service: LWW shouldApply, cursors)
+    budgets/      (router, repo, service)
+    recurring/    (router, repo, scheduler, runner)
+    plans/        (router, repo, service: forecast, wait days)
+    savingsPots/  (router, repo, service)
+    insights/     (router, repo, service: forecast, anomalies, comparisons)
+    reports/      (router, repo, service, csv)
+    sync/         (router, ops: /api/sync pull + push)
+    cron/         (router: Plan B /api/cron/run)
+    entityWrites/ (writer: shared write seam, schemas)
   lib/apiResponse.js     # success/error envelope
-  cron/index.js          # schedule recurring job
+  lib/caseMap.js, mysqlDate.js, dateRange.js, safeCompare.js
+  cron/index.js          # schedule recurring job; dateUtil.js (Bangkok dates)
+web/   React PWA, see WEB.md
+mcp/   stdio MCP server, see MCP.md
 ```
 
 ## 4. Data Flow — Writes
@@ -85,8 +94,11 @@ the expense and purchase link atomically.
 
 ## 7. Auth Flow
 - `POST /api/auth/login {password}` -> bcrypt.compare vs env hash -> set
-  httpOnly, Secure, SameSite=Lax cookie with signed JWT (short-ish exp + silent
-  re-issue on activity). All `/api/*` (except login) require the cookie.
+  httpOnly, Secure, SameSite=Lax cookie with signed JWT (flat 7-day expiry, no
+  silent re-issue yet). All `/api/*` (except login/logout) require the cookie.
+- Programmatic access: when `API_TOKEN` is set, `Authorization: Bearer <token>`
+  (constant-time compare) authenticates only an explicit method+path allowlist
+  in `middleware/auth.js`; anything else returns 403 even with a cookie.
 
 ## 8. Recurring Job
 - node-cron daily at a fixed hour (server TZ = Asia/Bangkok).
@@ -113,9 +125,11 @@ the expense and purchase link atomically.
 - No dedicated Redis/cache tier available — no caching layer planned for v1.
 
 ## 11. Integration Points
-- None external in v1 (no bank APIs, no OAuth, no push notification service).
-- Hostinger cron (Plan B fallback) is the only "external" trigger, authenticated
-  via a shared secret header on `/api/cron/run`.
+- No third-party APIs (no bank APIs, no OAuth, no push notification service).
+- MCP server (`mcp/`): local stdio process that calls the REST API with the
+  bearer `API_TOKEN`; JSON envelope contract, money in satang.
+- Hostinger cron (Plan B fallback), authenticated via a shared secret header on
+  `/api/cron/run`.
 
 ## 12. Scalability Plan
 - Not applicable at solo-user scale. If revisited: vertical scaling on
@@ -143,7 +157,7 @@ the expense and purchase link atomically.
 - **jsonwebtoken + bcrypt** — standard JWT/password hashing pair.
 - **node-cron** — in-process scheduling for recurring job (Plan B: external
   Hostinger cron hitting `/api/cron/run`).
-- **uuid** — client-generated transaction IDs.
+- IDs are client-generated UUIDs (`crypto.randomUUID`), no uuid package.
 
 ---
 
@@ -196,6 +210,9 @@ in case the app process isn't kept warm reliably.
     (HTTPS-only) + SameSite=Lax (limits cross-site send).
   - Cron endpoint abuse (Plan B) -> requires a shared-secret header, not
     public; treat as a second credential to rotate if exposed.
+  - API token leak -> token reaches only the allowlisted MCP routes (no
+    accounts/categories/budgets/pots/sync writes); deletes are soft; rotate
+    `API_TOKEN` on the server and the MCP client config.
   - Error responses -> central `middleware/error.js` maps all errors to the
     standard envelope, stripping stack traces/SQL details from client responses.
 - **Dependency audit process**: run `npm audit` (server) before each deploy;

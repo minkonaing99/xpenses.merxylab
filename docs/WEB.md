@@ -13,8 +13,9 @@ React-Query architecture (replacing the earlier custom offline-engine build).
 
 ## Design system
 
-Calm personal-finance / one-ink-accent, light theme. Tokens in `src/theme/tokens.css`
-(OKLCH): warm paper, soft ink, and violet `--accent` for the
+Calm personal-finance / one-ink-accent, light and dark themes. Tokens in
+`src/theme/tokens.css` (OKLCH): lavender-tinted paper, cool ink, and violet
+`--accent` for the
 primary/add action and active tab; muted ledger tints (`--pos` green in,
 `--neg` clay-red out) carry money sign, never the brand color. Money is
 integer satang end to end; formatted to THB only at the display edge

@@ -14,3 +14,6 @@ docs/agentguide.md
 
 # Local MCP config holds the dev API token
 .mcp.json
+
+# graphify
+graphify-out/

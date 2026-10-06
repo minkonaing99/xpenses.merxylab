@@ -313,12 +313,14 @@ masked by `--runInBand`).
 ## Milestone Table
 | Milestone | Description | Target Date | Status |
 |---|---|---|---|
-| M0 — Scaffold | Phase 0 complete | TBD | Not started |
+| M0 — Scaffold | Phase 0 complete | TBD | Complete |
 | M1 — API core | Phases 1-3 complete, sync contract proven | TBD | Complete |
 | M2 — PWA shell | Phase 4 complete, installable + login works | TBD | Complete |
 | M3 — Offline-capable | Phase 5 complete | TBD | Complete |
 | M4 — Feature complete | Phase 6 complete, matches PRD.md Success Criteria | TBD | Complete |
-| M5 — Live | Phase 7 complete, deployed to xpenses.merxylab.com | TBD | Not started |
+| M5 — Live | Phase 7 complete, deployed to xpenses.merxylab.com | TBD | Complete |
+| M6 — v3.3.0 | Balance check + reconciliation adjustments | TBD | Complete |
+| M7 — v3.4.0+ | MCP edit tools, keyboard support, docs cleanup | 2026-10-06 | Complete |
 
 ## Dependencies Map
 - Phase 0 blocks everything.
@@ -349,10 +351,28 @@ security-reviewer passes and the app is reachable at `xpenses.merxylab.com`.
 
 Keep updated. Claude reads this before starting work.
 
+**Current status pointer (2026-10-06):** feature freeze. The app is deployed
+and in daily use; the focus is accurate data, not new features. Add a feature
+only when about a month of real use shows a need.
+
 ### In Progress
-- Version 3.3.0: manual balance check/reconciliation. Fresh tracked-balance
-  comparison, immutable matched snapshots, recent activity, stale-check warning,
-  and atomic noted adjustment transactions.
+- Reconcile Cash and HOP against real balances (both still show only their
+  starting balance; HOP fares were logged against KrungThai).
+- Log every expense for ~4 weeks; note real friction before building.
+
+### Done — 2026-10-06
+- `get_plans` fix (numeric budget `spent`), plan-delete 404, recurring id
+  replay/409, `proxy-addr` CVE bump.
+- MCP grew to 18 tools: edit/delete transactions, recurring, plan confirm/delete,
+  duplicates, resolved names, touched budget status.
+- Web keyboard support (focus management, shortcuts, ledger row keys).
+- Docs cleanup: PRD/TECH/SCHEMA/SETUP/PLAN brought in line with code;
+  `DESIGN.md` rebuilt; DB changes now go to `docs/new-changes-db.sql`.
+
+### Done — v3.3.0
+- Manual balance check/reconciliation: tracked-balance comparison, immutable
+  matched snapshots, recent activity, stale-check warning, atomic noted
+  adjustment transactions.
 
 ### Done — Phase 8 (Insights) + Phase 9 (MCP)
 - **Phase 8** — `features/insights/` + `/api/insights` (forecast, anomalies,
@@ -365,16 +385,10 @@ Keep updated. Claude reads this before starting work.
   alongside JWT cookie) + `config/env.js` 24-char floor. Docs: `docs/MCP.md`.
 - Tests after both phases: 286 server / 76 web passing, `mcp/test.mjs` green.
 
-### Backlog
-- Phase 0 — 0.1 (README.md still missing), 0.5 (`lib/money.js` on the
-  server — note `web/src/lib/money.ts` already exists client-side).
-- Phase 7 (deploy + hardening).
-- Offline engine: no retry/backoff or requeue path for `'failed'` outbox
-  ops (they sit inert; Phase 6 added a Settings-screen banner surfacing the
-  failed count via `useOutboxStatus`, but there's still no way to retry or
-  discard one); no differentiation between transient (`SERVER_ERROR`) and
-  terminal (`VALIDATION_ERROR`, `NOT_FOUND`) push error codes. See
-  docs/SETUP.md Known gaps.
+### Backlog (only if real use asks for it)
+- Negative-balance warning when an expense takes a cash account below 0.
+- Run the DB-backed server tests for recurring replay and plan-delete 404.
+- Decide budget `over` semantics (`>=` vs `>`); see SETUP.md Known gaps.
 - Recurring rules referencing a since-deleted account/category have no
   "broken reference" warning in `RecurringScreen` (the list falls back to
   `'Uncategorized'`/`'?'` gracefully, but nothing prompts the user to fix
@@ -505,7 +519,7 @@ Keep updated. Claude reads this before starting work.
   surface): the account-balance `฿NaN` sync bug and the unstyled
   `AmountInput` reuse — both fixed, tested, and re-verified live in-browser.
 
-**Current status pointer (updated 2026-07-11):** the web frontend was
+**Earlier status (2026-07-11, historical):** the web frontend was
 **rebuilt from scratch** with a leaner React-Query architecture, replacing the
 Phase-6 custom offline-engine build described above. Current frontend is
 authoritative in `docs/WEB.md`; the Phase 6 notes are retained as history of
