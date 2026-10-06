@@ -53,6 +53,7 @@ function createRecurringRouter(pool) {
         entity: 'recurring',
         action: 'create',
         payload: req.body,
+        replay: true,
       })
       res.status(201).json(ok(result.value))
     } catch (err) {

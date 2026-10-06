@@ -24,3 +24,15 @@ describe('plans service', () => {
     ])
   })
 })
+
+
+it('normalizes MySQL budget sums before computing plan forecasts', () => {
+  const { mapBudgetRow } = require('../../budgets/service')
+  const row = { id: 'b1', category_id: 'c1', spent: '2000', limit_amount: 10000 }
+  const result = computeForecast({
+    accounts: [], budgets: [mapBudgetRow(row)],
+    plans: [{ categoryId: 'c1', amount: 3000, plannedDate: '2026-10-10' }], month: '2026-10',
+  })
+  expect(result.budgets[0]).toMatchObject({ spent: 2000, planned: 3000, forecastSpent: 5000, overForecast: false })
+  expect(row.spent).toBe('2000')
+})

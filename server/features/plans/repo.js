@@ -49,7 +49,8 @@ async function update(pool, id, patch) {
 }
 
 async function remove(pool, id) {
-  await pool.query("DELETE FROM planned_purchases WHERE id = ? AND status = 'planned'", [id])
+  const [result] = await pool.query("DELETE FROM planned_purchases WHERE id = ? AND status = 'planned'", [id])
+  return result.affectedRows > 0
 }
 
 async function confirm(pool, id, transactionId) {

@@ -68,6 +68,26 @@ describe('plans router purchase reflections', () => {
     await pool.query('DELETE FROM accounts WHERE id = ?', [accountId])
   })
 
+  it('returns numeric budget spending and adds planned money arithmetically', async () => {
+    const budgetId = randomUUID()
+    const transactionId = randomUUID()
+    const today = todayInBangkok()
+    try {
+      await require('../../budgets/repo').create(pool, { id: budgetId, categoryId, limitAmount: 10000 })
+      await require('../../transactions/repo').create(pool, {
+        id: transactionId, type: 'expense', categoryId, accountId, amount: 2000,
+        txnDate: today, updatedAt: `${today} 00:00:00`,
+      })
+      await createPlan(today)
+      const response = await request(app).get('/api/plans').query({ month: today.slice(0, 7) }).expect(200)
+      expect(response.body.data.budgets.find((budget) => budget.id === budgetId))
+        .toMatchObject({ spent: 2000, planned: 3000, forecastSpent: 5000, overForecast: false })
+    } finally {
+      await pool.query('DELETE FROM transactions WHERE id = ?', [transactionId])
+      await pool.query('DELETE FROM budgets WHERE id = ?', [budgetId])
+    }
+  })
+
   it('replays the same plan id without creating a duplicate', async () => {
     const body = {
       id: planId,

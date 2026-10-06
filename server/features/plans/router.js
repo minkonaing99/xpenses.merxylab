@@ -10,6 +10,7 @@ const { todayInBangkok } = require('../../cron/dateUtil')
 const accountsRepo = require('../accounts/repo')
 const { mapAccountRow } = require('../accounts/service')
 const budgetsRepo = require('../budgets/repo')
+const { mapBudgetRow } = require('../budgets/service')
 const categoriesRepo = require('../categories/repo')
 const transactionsRepo = require('../transactions/repo')
 const { computeForecast, addWaitDays } = require('./service')
@@ -54,7 +55,7 @@ function createPlansRouter(pool) {
     try {
       const [rows, confirmedRows, accounts, budgets] = await Promise.all([repo.findAll(pool), repo.findConfirmed(pool), accountsRepo.findAllWithSums(pool), budgetsRepo.findAllWithSpent(pool, parsed.data.month)])
       const plans = rows.map(mapPlan)
-      res.json(ok({ plans, confirmedPurchases: confirmedRows.map(mapPlan), ...computeForecast({ accounts: accounts.map(mapAccountRow), budgets: budgets.map(rowToCamel), plans, month: parsed.data.month }) }))
+      res.json(ok({ plans, confirmedPurchases: confirmedRows.map(mapPlan), ...computeForecast({ accounts: accounts.map(mapAccountRow), budgets: budgets.map(mapBudgetRow), plans, month: parsed.data.month }) }))
     } catch (err) { next(err) }
   })
   router.post('/', async (req, res, next) => {
@@ -94,7 +95,10 @@ function createPlansRouter(pool) {
     } catch (err) { next(err) }
   })
   router.delete('/:id', async (req, res, next) => {
-    try { await repo.remove(pool, req.params.id); res.json(ok({})) } catch (err) { next(err) }
+    try {
+      if (!await repo.remove(pool, req.params.id)) throw new ApiError('NOT_FOUND', 'planned purchase not found')
+      res.json(ok({}))
+    } catch (err) { next(err) }
   })
   router.post('/:id/confirm', async (req, res, next) => {
     const connection = await pool.getConnection()
